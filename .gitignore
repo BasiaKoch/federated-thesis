@@ -8,6 +8,13 @@ env/
 .venv/
 fed/
 
+# Slurm output
+*.out
+*.err
+
+# Accidental files
+=*
+
 
 
 # Python cache

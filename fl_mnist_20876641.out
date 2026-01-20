@@ -1,3 +1,0 @@
-ERROR: Virtual environment not found at /home/bk489/federated-thesis/fed or /home/bk489/federated-thesis/venv
-Please create it first with: python -m venv /home/bk489/federated-thesis/venv
-Then install requirements: pip install -r /home/bk489/federated-thesis/requirements.txt
