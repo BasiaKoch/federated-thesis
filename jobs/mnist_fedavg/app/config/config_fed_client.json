@@ -1,0 +1,25 @@
+{
+  "format_version": 2,
+
+  "executors": [
+    {
+      "tasks": ["train", "validate", "submit_model"],
+      "executor": {
+        "path": "mnist_trainer.MNISTTrainer",
+        "args": {
+          "epochs": 1,
+          "batch_size": 32,
+          "lr": 0.01,
+          "mu": 0.0,
+          "data_file": "/Users/basiakoch/Federated/federated-thesis/data/mnist.npz",
+          "partition_file": "/Users/basiakoch/Federated/federated-thesis/data/partitions/mnist_noniid_partition.json"
+        }
+      }
+    }
+  ],
+
+  "task_result_filters": [],
+  "task_data_filters": [],
+
+  "components": []
+}

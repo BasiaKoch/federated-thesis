@@ -1,0 +1,8 @@
+{
+  "name": "mnist_fedavg",
+  "resource_spec": {},
+  "min_clients": 10,
+  "deploy_map": {
+    "app": ["@ALL"]
+  }
+}

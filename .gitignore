@@ -1,0 +1,39 @@
+# NVFlare workspace (simulation outputs)
+workspace/
+
+# Virtual environments
+fedvenv/
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Large data files (keep partition script, ignore data)
+data/mnist.npz
+data/mnist_data/
+data/partitions/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
