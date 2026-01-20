@@ -10,9 +10,8 @@
 #SBATCH --nodes=1                         # One node only
 #SBATCH --ntasks=1                        # One task
 #SBATCH --gres=gpu:1                      # One GPU (A100)
-#SBATCH --cpus-per-task=12                # More CPUs for NVFlare clients (10 parallel)
-#SBATCH --mem=32G                         # Memory for 30 client data
-#SBATCH --time=02:00:00                   # 2 hours (50 rounds with 30 clients)
+#SBATCH --cpus-per-task=3                 # ≤3 CPUs per GPU per CSD3 rules
+#SBATCH --time=00:20:00                   # 20 minutes (INTR QOS limit)
 #SBATCH --output=fl_mnist_%j.out          # %j = job ID
 #SBATCH --error=fl_mnist_%j.err           # Error log
 #SBATCH --qos=INTR
@@ -32,8 +31,8 @@ WORKSPACE="${PROJECT_DIR}/workspace"
 #! ======= Load required environment modules =======
 . /etc/profile.d/modules.sh
 module load rhel8/default-amp
-module load gcc/9 cuda/12.1 cudnn
-module load python/3.11                   # Or your preferred Python version
+module load intel-mkl-2017.4-gcc-5.4.0-2tzpyn7
+module load gcc/9 cuda/12.1 cudnn openmpi/gcc/9.3/4.0.4
 
 #! ======= Activate your environment =======
 # Option 1: Use existing venv (you need to create this on HPC first)
@@ -43,14 +42,22 @@ module load python/3.11                   # Or your preferred Python version
 # source ~/miniconda3/etc/profile.d/conda.sh
 # conda activate fl_env
 
-# For now, assuming venv at project directory
-if [ -d "${PROJECT_DIR}/venv" ]; then
+# For now, assuming venv at project directory (try 'fed' then 'venv')
+if [ -d "${PROJECT_DIR}/fed" ]; then
+    source "${PROJECT_DIR}/fed/bin/activate"
+elif [ -d "${PROJECT_DIR}/venv" ]; then
     source "${PROJECT_DIR}/venv/bin/activate"
 else
-    echo "ERROR: Virtual environment not found at ${PROJECT_DIR}/venv"
+    echo "ERROR: Virtual environment not found at ${PROJECT_DIR}/fed or ${PROJECT_DIR}/venv"
     echo "Please create it first with: python -m venv ${PROJECT_DIR}/venv"
     echo "Then install requirements: pip install -r ${PROJECT_DIR}/requirements.txt"
     exit 1
+fi
+
+# Fix libstdc++ ABI compatibility issue
+# PyTorch requires CXXABI_1.3.11 which may not be in the default library path
+if [ -f /usr/lib64/libstdc++.so.6 ]; then
+    export LD_PRELOAD="/usr/lib64/libstdc++.so.6"
 fi
 
 #! ======= Diagnostics =======
@@ -132,6 +139,9 @@ echo "Step 4: Starting NVFlare simulator..."
 echo "Workspace: ${WORK_PATH}"
 echo "Start time: $(date)"
 echo ""
+
+# Set data root for clients
+export DATA_ROOT="${DATA_DIR}"
 
 nvflare simulator \
     -w "${WORK_PATH}" \

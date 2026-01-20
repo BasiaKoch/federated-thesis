@@ -6,6 +6,9 @@ fedvenv/
 venv/
 env/
 .venv/
+fed/
+
+
 
 # Python cache
 __pycache__/
@@ -37,3 +40,8 @@ data/partitions/
 
 # Logs
 *.log
+
+jobs/*/workspace/
+jobs/*/logs/
+jobs/*/checkpoints/
+

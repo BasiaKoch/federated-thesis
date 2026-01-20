@@ -131,10 +131,36 @@ class MNISTTrainer(Executor):
 
         self._initialized = True
 
+    def _resolve_path(self, path_str: str) -> Path:
+        """Resolve a path, checking DATA_ROOT environment variable if needed."""
+        import os
+        path = Path(path_str)
+        if path.exists():
+            return path
+
+        # Try with DATA_ROOT environment variable
+        data_root = os.environ.get("DATA_ROOT", "")
+        if data_root:
+            # If path is relative, join with DATA_ROOT
+            if not path.is_absolute():
+                resolved = Path(data_root) / path
+                if resolved.exists():
+                    return resolved
+            # Try extracting filename and looking in DATA_ROOT
+            resolved = Path(data_root) / path.name
+            if resolved.exists():
+                return resolved
+            # Try for partition file in partitions subdir
+            resolved = Path(data_root) / "partitions" / path.name
+            if resolved.exists():
+                return resolved
+
+        return path  # Return original if nothing found
+
     def _load_data(self, fl_ctx: FLContext):
         """Load MNIST data for this client based on partition file."""
         # Load MNIST from npz file
-        data_path = Path(self.data_file)
+        data_path = self._resolve_path(self.data_file)
         if not data_path.exists():
             self.log_error(fl_ctx, f"Data file not found: {data_path}")
             raise FileNotFoundError(f"Data file not found: {data_path}")
@@ -147,7 +173,7 @@ class MNISTTrainer(Executor):
         y_test = mnist_data['y_test']
 
         # Load partition file
-        partition_path = Path(self.partition_file)
+        partition_path = self._resolve_path(self.partition_file)
         if not partition_path.exists():
             self.log_error(fl_ctx, f"Partition file not found: {partition_path}")
             raise FileNotFoundError(f"Partition file not found: {partition_path}")

@@ -11,8 +11,8 @@
           "batch_size": 32,
           "lr": 0.01,
           "mu": 0.01,
-          "data_file": "/Users/basiakoch/Federated/federated-thesis/data/mnist.npz",
-          "partition_file": "/Users/basiakoch/Federated/federated-thesis/data/partitions/mnist_noniid_partition.json"
+          "data_file": "mnist.npz",
+          "partition_file": "mnist_noniid_partition.json"
         }
       }
     }

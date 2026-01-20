@@ -10,6 +10,21 @@
 
 set -e
 
+# Load HPC modules if available (for CSD3/similar clusters)
+if [ -f /etc/profile.d/modules.sh ]; then
+    . /etc/profile.d/modules.sh
+    module purge 2>/dev/null || true
+    module load rhel8/default-amp 2>/dev/null || true
+    module load gcc/9 2>/dev/null || true
+    module load cuda/12.1 2>/dev/null || module load cuda/11.8 2>/dev/null || true
+fi
+
+# Fix libstdc++ ABI compatibility issue on HPC systems
+# PyTorch requires CXXABI_1.3.11 which may not be in the default library path
+if [ -f /usr/lib64/libstdc++.so.6 ]; then
+    export LD_PRELOAD="/usr/lib64/libstdc++.so.6"
+fi
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="${SCRIPT_DIR}/data"
