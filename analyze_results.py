@@ -21,7 +21,7 @@ import numpy as np
 
 def load_cross_val_results(workspace: str) -> Optional[Dict]:
     """Load cross-site validation results from workspace."""
-    cross_val_path = Path(workspace) / "simulate_job" / "cross_site_val" / "cross_val_results.json"
+    cross_val_path = Path(workspace) / "server" / "simulate_job" / "cross_site_val" / "cross_val_results.json"
 
     if not cross_val_path.exists():
         print(f"Warning: Cross-validation results not found at {cross_val_path}")
@@ -33,7 +33,7 @@ def load_cross_val_results(workspace: str) -> Optional[Dict]:
 
 def load_server_logs(workspace: str) -> List[Dict]:
     """Parse server logs to extract training metrics per round."""
-    log_path = Path(workspace) / "simulate_job" / "log.txt"
+    log_path = Path(workspace) / "server" / "log.txt"
 
     if not log_path.exists():
         print(f"Warning: Log file not found at {log_path}")
@@ -245,7 +245,7 @@ def print_summary(workspace: str):
     print("=" * 60)
 
     # Check for model files
-    model_path = Path(workspace) / "simulate_job" / "app_server"
+    model_path = Path(workspace) / "server" / "simulate_job" / "app_server"
     if model_path.exists():
         models = list(model_path.glob("*.pt"))
         print(f"Saved models: {len(models)}")
