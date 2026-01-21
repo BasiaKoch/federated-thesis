@@ -23,7 +23,7 @@ from nvflare.apis.shareable import Shareable, make_reply
 from nvflare.apis.signal import Signal
 from nvflare.app_common.app_constant import AppConstants
 
-from model import MNISTLogisticRegression
+from model import create_model, MNISTLogisticRegression, MNISTCNN
 
 
 class MNISTDataset(Dataset):
@@ -61,6 +61,7 @@ class MNISTTrainer(Executor):
         batch_size: Training batch size
         lr: Learning rate
         mu: FedProx proximal term coefficient (0 = FedAvg)
+        model_type: 'logistic' or 'cnn'
         data_file: Path to mnist.npz file
         partition_file: Path to the partition JSON file
     """
@@ -71,6 +72,7 @@ class MNISTTrainer(Executor):
         batch_size: int = 32,
         lr: float = 0.01,
         mu: float = 0.0,
+        model_type: str = "logistic",
         data_file: str = "../data/mnist.npz",
         partition_file: str = "../data/partitions/mnist_noniid_partition.json",
     ):
@@ -80,6 +82,7 @@ class MNISTTrainer(Executor):
         self.batch_size = batch_size
         self.lr = lr
         self.mu = mu
+        self.model_type = model_type
         self.data_file = data_file
         self.partition_file = partition_file
 
@@ -88,8 +91,11 @@ class MNISTTrainer(Executor):
         self.criterion: Optional[nn.Module] = None
         self.train_loader: Optional[DataLoader] = None
         self.test_loader: Optional[DataLoader] = None
+        self.global_test_loader: Optional[DataLoader] = None  # Full test set
         self.device: Optional[torch.device] = None
         self.client_id: Optional[int] = None
+        self.client_digits: Optional[list] = None
+        self.train_samples: int = 0
 
         self._initialized = False
 
@@ -107,14 +113,16 @@ class MNISTTrainer(Executor):
             self.client_id = 0
 
         self.log_info(fl_ctx, f"Initializing trainer for client {self.client_id}")
+        self.log_info(fl_ctx, f"FedProx mu={self.mu} ({'FedProx' if self.mu > 0 else 'FedAvg'})")
 
         # Set device
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.log_info(fl_ctx, f"Using device: {self.device}")
 
         # Initialize model
-        self.model = MNISTLogisticRegression()
+        self.model = create_model(self.model_type)
         self.model.to(self.device)
+        self.log_info(fl_ctx, f"Model type: {self.model_type}")
 
         # Initialize criterion
         self.criterion = nn.CrossEntropyLoss()
@@ -191,16 +199,21 @@ class MNISTTrainer(Executor):
         test_indices = partition_data["test_partition"][client_key]
 
         # Get assigned digits for logging
-        digits = partition_data["client_digits"][client_key]
+        self.client_digits = partition_data["client_digits"][client_key]
+        self.train_samples = len(train_indices)
         self.log_info(
             fl_ctx,
-            f"Client {self.client_id}: digits {digits}, "
-            f"train samples: {len(train_indices)}, test samples: {len(test_indices)}"
+            f"Client {self.client_id}: digits {self.client_digits}, "
+            f"train samples: {self.train_samples}, test samples: {len(test_indices)}"
         )
 
         # Create datasets
         train_dataset = MNISTDataset(x_train, y_train, train_indices)
         test_dataset = MNISTDataset(x_test, y_test, test_indices)
+
+        # Create global test dataset (full MNIST test set - all 10 digits)
+        # This is used to evaluate how well the model generalizes
+        global_test_dataset = MNISTDataset(x_test, y_test, list(range(len(y_test))))
 
         # Create data loaders
         self.train_loader = DataLoader(
@@ -212,6 +225,14 @@ class MNISTTrainer(Executor):
 
         self.test_loader = DataLoader(
             test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=0
+        )
+
+        # Global test loader for full MNIST test set evaluation
+        self.global_test_loader = DataLoader(
+            global_test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=0
@@ -263,15 +284,18 @@ class MNISTTrainer(Executor):
 
         return avg_loss, accuracy
 
-    def _evaluate(self) -> tuple:
-        """Evaluate model on test set."""
+    def _evaluate(self, data_loader: DataLoader = None) -> tuple:
+        """Evaluate model on a test set."""
+        if data_loader is None:
+            data_loader = self.test_loader
+
         self.model.eval()
         total_loss = 0.0
         correct = 0
         total = 0
 
         with torch.no_grad():
-            for data, target in self.test_loader:
+            for data, target in data_loader:
                 data, target = data.to(self.device), target.to(self.device)
                 output = self.model(data)
                 loss = self.criterion(output, target)
@@ -285,6 +309,10 @@ class MNISTTrainer(Executor):
         accuracy = correct / total
 
         return avg_loss, accuracy
+
+    def _evaluate_global(self) -> tuple:
+        """Evaluate model on full MNIST test set (all 10 digits)."""
+        return self._evaluate(self.global_test_loader)
 
     def execute(
         self,
@@ -359,6 +387,20 @@ class MNISTTrainer(Executor):
                 f"Loss={train_loss:.4f}, Acc={train_acc:.4f}"
             )
 
+        # Evaluate on both local and global test sets after training
+        local_test_loss, local_test_acc = self._evaluate()
+        global_test_loss, global_test_acc = self._evaluate_global()
+
+        # Log metrics in a structured format for easy parsing
+        self.log_info(
+            fl_ctx,
+            f"METRICS|round={current_round}|client={self.client_id}|"
+            f"train_loss={train_loss:.6f}|train_acc={train_acc:.6f}|"
+            f"local_test_loss={local_test_loss:.6f}|local_test_acc={local_test_acc:.6f}|"
+            f"global_test_loss={global_test_loss:.6f}|global_test_acc={global_test_acc:.6f}|"
+            f"samples={self.train_samples}|digits={self.client_digits}"
+        )
+
         # Get updated weights
         updated_weights = {
             k: v.cpu().numpy() for k, v in self.model.state_dict().items()
@@ -402,17 +444,37 @@ class MNISTTrainer(Executor):
             {k: torch.tensor(v) for k, v in dxo.data.items()}
         )
 
-        # Evaluate
-        val_loss, val_acc = self._evaluate()
+        # Evaluate on local test set (client's 2 digits)
+        local_val_loss, local_val_acc = self._evaluate()
 
-        self.log_info(fl_ctx, f"Validation: Loss={val_loss:.4f}, Acc={val_acc:.4f}")
+        # Evaluate on global test set (all 10 digits)
+        global_val_loss, global_val_acc = self._evaluate_global()
 
-        # Return metrics
+        self.log_info(
+            fl_ctx,
+            f"Validation - Local: Loss={local_val_loss:.4f}, Acc={local_val_acc:.4f} | "
+            f"Global: Loss={global_val_loss:.4f}, Acc={global_val_acc:.4f}"
+        )
+
+        # Log in structured format for parsing
+        self.log_info(
+            fl_ctx,
+            f"VALIDATION|client={self.client_id}|"
+            f"local_loss={local_val_loss:.6f}|local_acc={local_val_acc:.6f}|"
+            f"global_loss={global_val_loss:.6f}|global_acc={global_val_acc:.6f}|"
+            f"samples={self.train_samples}|digits={self.client_digits}"
+        )
+
+        # Return metrics (including both local and global)
         metrics_dxo = DXO(
             data_kind=DataKind.METRICS,
             data={
-                "val_loss": val_loss,
-                "val_accuracy": val_acc
+                "val_loss": local_val_loss,
+                "val_accuracy": local_val_acc,
+                "global_val_loss": global_val_loss,
+                "global_val_accuracy": global_val_acc,
+                "train_samples": self.train_samples,
+                "digits": self.client_digits
             }
         )
 
