@@ -23,7 +23,7 @@ NUM_CLIENTS=30                            # Total simulated clients
 MIN_CLIENTS=10                            # Clients per round
 
 #! ======= Paths (modify for your HPC setup) =======
-PROJECT_DIR="$HOME/federated-thesis"      # Your project directory on HPC
+PROJECT_DIR="$HOME/federated/federated-thesis"      # Your project directory on HPC
 DATA_DIR="${PROJECT_DIR}/data"
 JOBS_DIR="${PROJECT_DIR}/jobs"
 WORKSPACE="${PROJECT_DIR}/workspace"

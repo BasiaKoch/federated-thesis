@@ -9,7 +9,7 @@ echo "Setting up Federated Learning Environment"
 echo "=============================================="
 
 #! ======= Configuration =======
-PROJECT_DIR="$HOME/federated-thesis"
+PROJECT_DIR="$HOME/federated/federated-thesis"
 VENV_DIR="${PROJECT_DIR}/venv"
 
 #! ======= Load modules =======
