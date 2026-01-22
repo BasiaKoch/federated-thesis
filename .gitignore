@@ -52,3 +52,4 @@ jobs/*/workspace/
 jobs/*/logs/
 jobs/*/checkpoints/
 
+results/
