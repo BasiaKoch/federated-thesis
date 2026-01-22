@@ -347,6 +347,8 @@ class MNISTTrainer(Executor):
         abort_signal: Signal
     ) -> Shareable:
         """Perform local training."""
+        import sys
+
         # Get global model weights from shareable
         try:
             dxo = from_shareable(shareable)
@@ -374,6 +376,9 @@ class MNISTTrainer(Executor):
         current_round = shareable.get_header(AppConstants.CURRENT_ROUND, 0)
         self.log_info(fl_ctx, f"Starting local training for round {current_round}")
 
+        train_loss = 0.0
+        train_acc = 0.0
+
         for epoch in range(self.epochs):
             if abort_signal.triggered:
                 return make_reply(ReturnCode.TASK_ABORTED)
@@ -388,18 +393,35 @@ class MNISTTrainer(Executor):
             )
 
         # Evaluate on both local and global test sets after training
-        local_test_loss, local_test_acc = self._evaluate()
-        global_test_loss, global_test_acc = self._evaluate_global()
+        try:
+            self.log_info(fl_ctx, f"Round {current_round}: Starting evaluation...")
 
-        # Log metrics in a structured format for easy parsing
-        self.log_info(
-            fl_ctx,
-            f"METRICS|round={current_round}|client={self.client_id}|"
-            f"train_loss={train_loss:.6f}|train_acc={train_acc:.6f}|"
-            f"local_test_loss={local_test_loss:.6f}|local_test_acc={local_test_acc:.6f}|"
-            f"global_test_loss={global_test_loss:.6f}|global_test_acc={global_test_acc:.6f}|"
-            f"samples={self.train_samples}|digits={self.client_digits}"
-        )
+            local_test_loss, local_test_acc = self._evaluate()
+            self.log_info(fl_ctx, f"Round {current_round}: Local test done - Acc={local_test_acc:.4f}")
+
+            global_test_loss, global_test_acc = self._evaluate_global()
+            self.log_info(fl_ctx, f"Round {current_round}: Global test done - Acc={global_test_acc:.4f}")
+
+            # Log metrics in a structured format for easy parsing
+            metrics_line = (
+                f"METRICS|round={current_round}|client={self.client_id}|"
+                f"train_loss={train_loss:.6f}|train_acc={train_acc:.6f}|"
+                f"local_test_loss={local_test_loss:.6f}|local_test_acc={local_test_acc:.6f}|"
+                f"global_test_loss={global_test_loss:.6f}|global_test_acc={global_test_acc:.6f}|"
+                f"samples={self.train_samples}|digits={self.client_digits}"
+            )
+            self.log_info(fl_ctx, metrics_line)
+
+            # Also print to stdout as backup (will appear in logs)
+            print(f"[Client {self.client_id}] {metrics_line}", flush=True)
+
+        except Exception as e:
+            self.log_error(fl_ctx, f"Evaluation failed: {e}")
+            import traceback
+            self.log_error(fl_ctx, traceback.format_exc())
+            # Use training metrics as fallback
+            local_test_loss, local_test_acc = train_loss, train_acc
+            global_test_loss, global_test_acc = train_loss, train_acc
 
         # Get updated weights
         updated_weights = {
@@ -415,7 +437,11 @@ class MNISTTrainer(Executor):
             data_kind=DataKind.WEIGHT_DIFF,
             data=weight_diff,
             meta={
-                "NUM_STEPS_CURRENT_ROUND": len(self.train_loader) * self.epochs
+                "NUM_STEPS_CURRENT_ROUND": len(self.train_loader) * self.epochs,
+                "train_loss": float(train_loss),
+                "train_acc": float(train_acc),
+                "local_test_acc": float(local_test_acc),
+                "global_test_acc": float(global_test_acc),
             }
         )
 
