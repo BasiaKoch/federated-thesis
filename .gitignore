@@ -2,6 +2,7 @@
 workspace/
 
 # Virtual environments
+fl_env/
 fedvenv/
 venv/
 env/

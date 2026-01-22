@@ -31,34 +31,19 @@ WORKSPACE="${PROJECT_DIR}/workspace"
 #! ======= Load required environment modules =======
 . /etc/profile.d/modules.sh
 module load rhel8/default-amp
-module load intel-mkl-2017.4-gcc-5.4.0-2tzpyn7
-module load gcc/9 cuda/12.1 cudnn openmpi/gcc/9.3/4.0.4
 
-#! ======= Activate your environment =======
-# Option 1: Use existing venv (you need to create this on HPC first)
-# source ~/fl_env/bin/activate
+# ======= Activate conda environment =======
 
-# Option 2: Use conda
-# source ~/miniconda3/etc/profile.d/conda.sh
-# conda activate fl_env
+# Initialize conda (required in Slurm jobs)
+source ~/.bashrc
 
-# For now, assuming venv at project directory (try 'fed' then 'venv')
-if [ -d "${PROJECT_DIR}/fed" ]; then
-    source "${PROJECT_DIR}/fed/bin/activate"
-elif [ -d "${PROJECT_DIR}/venv" ]; then
-    source "${PROJECT_DIR}/venv/bin/activate"
-else
-    echo "ERROR: Virtual environment not found at ${PROJECT_DIR}/fed or ${PROJECT_DIR}/venv"
-    echo "Please create it first with: python -m venv ${PROJECT_DIR}/venv"
-    echo "Then install requirements: pip install -r ${PROJECT_DIR}/requirements.txt"
+# Activate the environment
+conda activate fed || {
+    echo "ERROR: Conda environment 'fed' not found"
+    echo "Create it with: conda create -n fed python=3.9"
     exit 1
-fi
+}
 
-# Fix libstdc++ ABI compatibility issue
-# PyTorch requires CXXABI_1.3.11 which may not be in the default library path
-if [ -f /usr/lib64/libstdc++.so.6 ]; then
-    export LD_PRELOAD="/usr/lib64/libstdc++.so.6"
-fi
 
 #! ======= Diagnostics =======
 echo "=============================================="
@@ -110,7 +95,7 @@ echo ""
 echo "Step 2: Configuring job for ${NUM_ROUNDS} rounds..."
 SERVER_CONFIG="${JOB_DIR}/app/config/config_fed_server.json"
 if [[ -f "$SERVER_CONFIG" ]]; then
-    python3 - <<EOF
+    python - <<EOF
 import json
 with open("${SERVER_CONFIG}", "r") as f:
     config = json.load(f)
