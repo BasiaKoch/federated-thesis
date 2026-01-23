@@ -1,102 +1,86 @@
 #!/bin/bash
 #! ==============================================================
-#!  SBATCH job submission script for Flower MNIST 2-Digit
-#!  FedAvg Strategy - 10 Clients
+#!  CSD3 Ampere GPU job submission script for Flower MNIST 2-Digit
+#!  FedAvg (standard federated averaging, no proximal term)
 #! ==============================================================
 
-#SBATCH -J flower_fedavg                  # Job name
-#SBATCH -A FERGUSSON-SL3-GPU              # Your GPU project account
-#SBATCH -p ampere                         # Ampere GPU partition
-#SBATCH --nodes=1                         # One node only
-#SBATCH --ntasks=1                        # One task
-#SBATCH --gres=gpu:1                      # One GPU (A100)
-#SBATCH --cpus-per-task=3                 # <=3 CPUs per GPU per CSD3 rules
-#SBATCH --time=01:00:00                   # 1 hour (adjust as needed)
-#SBATCH --output=flower_fedavg_%j.out     # %j = job ID
-#SBATCH --error=flower_fedavg_%j.err      # Error log
+#SBATCH -J flower_fedavg
+#SBATCH -A FERGUSSON-SL3-GPU
+#SBATCH -p ampere
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --gres=gpu:1
+#SBATCH --cpus-per-task=3
+#SBATCH --time=01:00:00
+#SBATCH --output=flower_fedavg_%j.out
+#SBATCH --error=flower_fedavg_%j.err
 #SBATCH --qos=INTR
 
-#! ======= Configuration (modify these) =======
-NUM_ROUNDS="${1:-30}"                     # Number of federation rounds
-NUM_CLIENTS=10                            # Fixed: 10 clients for 2-digit pairing
-LOCAL_EPOCHS="${2:-1}"                    # Local training epochs per round
-LEARNING_RATE="${3:-0.01}"                # Learning rate
-SEED="${4:-42}"                           # Random seed
+#! ======= Simple configuration (MUST MATCH FedProx for fair comparison) =======
+NUM_ROUNDS=30
+FRACTION_FIT=0.5
+LOCAL_EPOCHS=5
+LEARNING_RATE=0.05
+SEED=42
+NUM_CLIENTS=10
 
-#! ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
+SRC_FILE="${PROJECT_DIR}/src/flower_mnist_2digits.py"
 RESULTS_DIR="${PROJECT_DIR}/results/flower_mnist_2digits"
-SRC_DIR="${PROJECT_DIR}/src"
 
 #! ======= Load required environment modules =======
-if [ -f /etc/profile.d/modules.sh ]; then
-    . /etc/profile.d/modules.sh
-    module purge 2>/dev/null || true
-    module load rhel8/default-amp 2>/dev/null || true
-fi
+. /etc/profile.d/modules.sh
+module load rhel8/default-amp
+# If your cluster requires these for CUDA/PyTorch, keep them (match your working template)
+module load gcc/9 cuda/12.1 cudnn openmpi/gcc/9.3/4.0.4
 
-#! ======= Activate conda environment =======
-source ~/.bashrc
-conda activate fed || {
-    echo "ERROR: Conda environment 'fed' not found"
-    echo "Create it with: conda create -n fed python=3.9 && conda activate fed"
-    echo "Then install: pip install flwr torch torchvision"
-    exit 1
-}
+#! ======= Activate environment (DO NOT source ~/.bashrc) =======
+# Option A: venv (like your mnist_env_gpu_crazy)
+# source ~/mnist_env_gpu_crazy/bin/activate
 
-#! ======= Fix libstdc++ if needed =======
-if [ -f /usr/lib64/libstdc++.so.6 ]; then
-    export LD_PRELOAD="/usr/lib64/libstdc++.so.6"
-fi
+# Option B: conda (recommended if your env is conda-based)
+# Use conda.sh directly so ~/.bashrc is NOT needed
+source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || \
+source "$HOME/anaconda3/etc/profile.d/conda.sh" 2>/dev/null
+conda activate fed
 
 #! ======= Diagnostics =======
 echo "=============================================="
 echo "Flower MNIST 2-Digit - FedAvg"
-echo "=============================================="
-echo "Job ID: ${SLURM_JOB_ID:-local}"
-echo "Node: ${SLURM_NODELIST:-$(hostname)}"
-echo "Strategy: FedAvg"
-echo "Rounds: $NUM_ROUNDS"
-echo "Clients: $NUM_CLIENTS"
-echo "Local Epochs: $LOCAL_EPOCHS"
-echo "Learning Rate: $LEARNING_RATE"
-echo "Seed: $SEED"
-echo "=============================================="
+echo "Job ID: ${SLURM_JOB_ID}"
+echo "Node(s): ${SLURM_NODELIST}"
 echo "Python: $(which python)"
-python -c "import sys; print('Python version:', sys.version)"
-python -c "import torch; print('PyTorch:', torch.__version__, 'CUDA:', torch.cuda.is_available())"
-python -c "import flwr; print('Flower:', flwr.__version__)"
-if command -v nvidia-smi &> /dev/null; then
-    nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
-fi
+python -c "import sys; print('Python', sys.version)"
+python -c "import torch; print('PyTorch', torch.__version__, 'CUDA available:', torch.cuda.is_available())"
+python -c "import flwr; print('Flower', flwr.__version__)"
+nvidia-smi
+echo "=============================================="
+echo "Rounds: ${NUM_ROUNDS}"
+echo "Clients: ${NUM_CLIENTS}"
+echo "fraction_fit: ${FRACTION_FIT}"
+echo "local_epochs: ${LOCAL_EPOCHS}"
+echo "lr: ${LEARNING_RATE}"
+echo "seed: ${SEED}"
+echo "Results dir: ${RESULTS_DIR}"
 echo "=============================================="
 
 #! ======= Create results directory =======
-mkdir -p "$RESULTS_DIR"
+mkdir -p "${RESULTS_DIR}"
+cd "${PROJECT_DIR}"
 
-#! ======= Run experiment =======
-echo ""
-echo "Starting FedAvg experiment at $(date)"
-echo ""
+RUN_NAME="fedavg_r${NUM_ROUNDS}_ff${FRACTION_FIT}_e${LOCAL_EPOCHS}_lr${LEARNING_RATE}_s${SEED}"
 
-cd "$PROJECT_DIR"
+echo "Starting Flower FedAvg run: ${RUN_NAME}"
+python "${SRC_FILE}" \
+  --strategy fedavg \
+  --num_clients "${NUM_CLIENTS}" \
+  --rounds "${NUM_ROUNDS}" \
+  --fraction_fit "${FRACTION_FIT}" \
+  --local_epochs "${LOCAL_EPOCHS}" \
+  --lr "${LEARNING_RATE}" \
+  --seed "${SEED}" \
+  --use_cuda \
+  --output_dir "${RESULTS_DIR}" \
+  --run_name "${RUN_NAME}"
 
-python "${SRC_DIR}/flower_mnist_2digits.py" \
-    --strategy fedavg \
-    --num_clients ${NUM_CLIENTS} \
-    --rounds ${NUM_ROUNDS} \
-    --local_epochs ${LOCAL_EPOCHS} \
-    --lr ${LEARNING_RATE} \
-    --seed ${SEED} \
-    --use_cuda \
-    --output_dir "${RESULTS_DIR}" \
-    --run_name "fedavg_r${NUM_ROUNDS}_e${LOCAL_EPOCHS}_lr${LEARNING_RATE}_s${SEED}"
-
-#! ======= Done =======
-echo ""
-echo "=============================================="
-echo "FedAvg Experiment Complete!"
-echo "=============================================="
-echo "End time: $(date)"
-echo "Results saved in: ${RESULTS_DIR}"
-echo ""
+echo "✅ Job completed successfully!"

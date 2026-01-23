@@ -18,7 +18,7 @@
 
 #! ======= Simple configuration =======
 NUM_ROUNDS=30
-MU=1.0
+MU=0.01
 FRACTION_FIT=0.5
 LOCAL_EPOCHS=5
 LEARNING_RATE=0.05
