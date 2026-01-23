@@ -1,4 +1,8 @@
 import argparse
+import json
+import os
+import time
+from datetime import datetime
 from typing import Dict, List, Tuple
 
 import flwr as fl
@@ -144,6 +148,49 @@ class MnistClient(fl.client.NumPyClient):
 
 
 # -----------------------
+# Metrics tracking utilities
+# -----------------------
+def compute_convergence_round(accuracies: List[float], threshold: float = 0.95, window: int = 3) -> int:
+    """
+    Find the first round where accuracy stays above threshold for `window` consecutive rounds.
+    Returns -1 if never converged.
+    """
+    if len(accuracies) < window:
+        return -1
+    for i in range(len(accuracies) - window + 1):
+        if all(acc >= threshold for acc in accuracies[i : i + window]):
+            return i
+    return -1
+
+
+def compute_stability_metrics(values: List[float]) -> Dict[str, float]:
+    """
+    Compute stability metrics: variance, max oscillation, smoothness score.
+    Lower variance and oscillation = more stable convergence.
+    """
+    if len(values) < 2:
+        return {"variance": 0.0, "max_oscillation": 0.0, "smoothness": 1.0}
+
+    arr = np.array(values)
+    variance = float(np.var(arr))
+
+    # Max oscillation: max absolute change between consecutive rounds
+    diffs = np.abs(np.diff(arr))
+    max_oscillation = float(np.max(diffs)) if len(diffs) > 0 else 0.0
+
+    # Smoothness: 1 / (1 + mean absolute diff) - higher is smoother
+    mean_diff = float(np.mean(diffs)) if len(diffs) > 0 else 0.0
+    smoothness = 1.0 / (1.0 + mean_diff)
+
+    return {
+        "variance": variance,
+        "max_oscillation": max_oscillation,
+        "smoothness": smoothness,
+        "mean_change_per_round": mean_diff,
+    }
+
+
+# -----------------------
 # Main: build data, simulate, compare FedAvg vs FedProx
 # -----------------------
 def main() -> None:
@@ -157,12 +204,37 @@ def main() -> None:
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
     ap.add_argument("--mu", type=float, default=0.01)  # used only for fedprox
+    ap.add_argument("--output_dir", type=str, default="./results/flower_mnist_2digits",
+                    help="Directory to save results and metrics")
+    ap.add_argument("--run_name", type=str, default=None,
+                    help="Optional run name for the experiment")
     args = ap.parse_args()
 
     if args.num_clients != 10:
         raise ValueError("This script currently implements the neat 10-client pairing (i, i+5). Use 10 clients.")
 
+    # Create output directory
+    os.makedirs(args.output_dir, exist_ok=True)
+
+    # Generate run name if not provided
+    if args.run_name is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        args.run_name = f"{args.strategy}_rounds{args.rounds}_mu{args.mu}_{timestamp}"
+
     device = torch.device("cuda" if (args.use_cuda and torch.cuda.is_available()) else "cpu")
+    print(f"\n{'='*60}")
+    print(f"Flower MNIST 2-Digit Federated Learning Experiment")
+    print(f"{'='*60}")
+    print(f"Strategy: {args.strategy.upper()}")
+    print(f"Proximal mu: {args.mu}" if args.strategy == "fedprox" else "Proximal mu: N/A (FedAvg)")
+    print(f"Clients: {args.num_clients}")
+    print(f"Rounds: {args.rounds}")
+    print(f"Local epochs: {args.local_epochs}")
+    print(f"Learning rate: {args.lr}")
+    print(f"Device: {device}")
+    print(f"Output dir: {args.output_dir}")
+    print(f"Run name: {args.run_name}")
+    print(f"{'='*60}\n")
 
     # MNIST transforms
     tfm = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
@@ -179,12 +251,17 @@ def main() -> None:
     # Server-side (global) evaluation on full test set
     global_test_loader = DataLoader(testset, batch_size=256, shuffle=False, num_workers=0)
 
+    # Track per-round timing
+    round_start_times: Dict[int, float] = {}
+    round_end_times: Dict[int, float] = {}
+
     def evaluate_fn(server_round: int, parameters, config):
+        round_end_times[server_round] = time.time()
         model = SmallCNN().to(device)
         set_parameters(model, parameters)
         loss, acc = evaluate(model, global_test_loader, device)
-        # Flower logs this in History; we return (loss, metrics)
-        return float(loss), {"global_acc": float(acc), "round": int(server_round)}
+        print(f"  [Round {server_round}] Global Test - Loss: {loss:.4f}, Accuracy: {acc:.4f}")
+        return float(loss), {"global_acc": float(acc), "global_loss": float(loss), "round": int(server_round)}
 
     # Build client_fn
     def client_fn(cid: str):
@@ -214,7 +291,8 @@ def main() -> None:
             proximal_mu=float(args.mu),
         )
 
-    # Run simulation
+    # Run simulation with timing
+    start_time = time.time()
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=args.num_clients,
@@ -222,14 +300,111 @@ def main() -> None:
         strategy=strategy,
         client_resources={"num_cpus": 1, "num_gpus": 1 if device.type == "cuda" else 0},
     )
+    total_time = time.time() - start_time
 
-    # Print final global accuracy
-    # history.metrics_centralized is a dict: metric_name -> list of (round, value)
+    # Extract metrics from history
+    rounds_list: List[int] = []
+    losses_list: List[float] = []
+    accuracies_list: List[float] = []
+
+    if history.losses_centralized:
+        for rnd, loss in history.losses_centralized:
+            rounds_list.append(rnd)
+            losses_list.append(loss)
+
     if history.metrics_centralized and "global_acc" in history.metrics_centralized:
-        last_round, last_acc = history.metrics_centralized["global_acc"][-1]
-        print(f"\nDONE: strategy={args.strategy} final_global_acc={last_acc:.4f} at round={last_round}")
-    else:
-        print("\nDONE: (No centralized metrics found—check Flower version / evaluate_fn)")
+        for rnd, acc in history.metrics_centralized["global_acc"]:
+            if rnd not in rounds_list:
+                rounds_list.append(rnd)
+            # Match index
+            idx = rounds_list.index(rnd)
+            while len(accuracies_list) <= idx:
+                accuracies_list.append(0.0)
+            accuracies_list[idx] = acc
+
+    # Compute analysis metrics
+    convergence_90 = compute_convergence_round(accuracies_list, threshold=0.90, window=3)
+    convergence_95 = compute_convergence_round(accuracies_list, threshold=0.95, window=3)
+    convergence_98 = compute_convergence_round(accuracies_list, threshold=0.98, window=3)
+
+    stability_acc = compute_stability_metrics(accuracies_list)
+    stability_loss = compute_stability_metrics(losses_list)
+
+    final_acc = accuracies_list[-1] if accuracies_list else 0.0
+    final_loss = losses_list[-1] if losses_list else float("inf")
+    best_acc = max(accuracies_list) if accuracies_list else 0.0
+    best_loss = min(losses_list) if losses_list else float("inf")
+
+    # Build comprehensive results dict
+    results = {
+        "experiment": {
+            "strategy": args.strategy,
+            "mu": args.mu if args.strategy == "fedprox" else None,
+            "num_clients": args.num_clients,
+            "rounds": args.rounds,
+            "local_epochs": args.local_epochs,
+            "learning_rate": args.lr,
+            "fraction_fit": args.fraction_fit,
+            "seed": args.seed,
+            "device": str(device),
+            "run_name": args.run_name,
+            "timestamp": datetime.now().isoformat(),
+        },
+        "per_round_metrics": {
+            "rounds": rounds_list,
+            "global_test_loss": losses_list,
+            "global_test_accuracy": accuracies_list,
+        },
+        "final_metrics": {
+            "final_accuracy": final_acc,
+            "final_loss": final_loss,
+            "best_accuracy": best_acc,
+            "best_loss": best_loss,
+            "total_time_seconds": total_time,
+            "avg_time_per_round": total_time / args.rounds if args.rounds > 0 else 0,
+        },
+        "convergence": {
+            "round_to_90_acc": convergence_90,
+            "round_to_95_acc": convergence_95,
+            "round_to_98_acc": convergence_98,
+        },
+        "stability": {
+            "accuracy": stability_acc,
+            "loss": stability_loss,
+        },
+        "client_data_distribution": {
+            f"client_{i}": {"digits": list(pair)} for i, pair in enumerate(train_digits)
+        },
+    }
+
+    # Save results to JSON
+    results_file = os.path.join(args.output_dir, f"{args.run_name}_results.json")
+    with open(results_file, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nResults saved to: {results_file}")
+
+    # Print summary
+    print(f"\n{'='*60}")
+    print(f"EXPERIMENT SUMMARY")
+    print(f"{'='*60}")
+    print(f"Strategy: {args.strategy.upper()}" + (f" (mu={args.mu})" if args.strategy == "fedprox" else ""))
+    print(f"\n--- Accuracy & Loss ---")
+    print(f"Final Accuracy: {final_acc:.4f}")
+    print(f"Best Accuracy:  {best_acc:.4f}")
+    print(f"Final Loss:     {final_loss:.4f}")
+    print(f"Best Loss:      {best_loss:.4f}")
+    print(f"\n--- Convergence (rounds to reach threshold, -1 if never) ---")
+    print(f"Rounds to 90% accuracy: {convergence_90}")
+    print(f"Rounds to 95% accuracy: {convergence_95}")
+    print(f"Rounds to 98% accuracy: {convergence_98}")
+    print(f"\n--- Stability (accuracy) ---")
+    print(f"Variance:       {stability_acc['variance']:.6f}")
+    print(f"Max Oscillation:{stability_acc['max_oscillation']:.4f}")
+    print(f"Smoothness:     {stability_acc['smoothness']:.4f}")
+    print(f"\n--- Timing ---")
+    print(f"Total Time:     {total_time:.2f}s")
+    print(f"Avg per Round:  {total_time / args.rounds:.2f}s")
+    print(f"{'='*60}")
 
     # Print client digit assignments
     print("\nClient digit pairs (train):")
