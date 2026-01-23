@@ -221,6 +221,10 @@ class MnistClient(fl.client.NumPyClient):
         # Snapshot global params once per round (frozen reference for proximal term)
         global_params = [p.detach().clone() for p in self.model.parameters()]
 
+        # DEBUG: Print mu for client 0 to verify FedProx is active
+        if self.cid == "0":
+            print(f"  [DEBUG Client 0] mu={mu}, local_epochs={self.local_epochs}")
+
         # Local training
         for _ in range(self.local_epochs):
             if mu > 0.0:
@@ -234,6 +238,12 @@ class MnistClient(fl.client.NumPyClient):
                 )
             else:
                 train_one_epoch_standard(self.model, self.train_loader, self.device, lr=self.lr)
+
+        # DEBUG: Measure drift (how much weights moved from global)
+        if self.cid == "0":
+            with torch.no_grad():
+                drift = sum(torch.sum((p - p0) ** 2).item() for p, p0 in zip(self.model.parameters(), global_params))
+            print(f"  [DEBUG Client 0] drift={drift:.6f} (should be SMALLER with higher mu)")
 
         return get_parameters(self.model), len(self.train_loader.dataset), {"cid": self.cid, "mu": mu}
 
@@ -281,13 +291,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_clients", type=int, default=10)
     ap.add_argument("--rounds", type=int, default=30)
-    ap.add_argument("--fraction_fit", type=float, default=1.0)
-    ap.add_argument("--local_epochs", type=int, default=1)
-    ap.add_argument("--lr", type=float, default=0.01)
+    ap.add_argument("--fraction_fit", type=float, default=0.5,
+                    help="Fraction of clients per round (0.5 helps show FedProx benefit)")
+    ap.add_argument("--local_epochs", type=int, default=5,
+                    help="Local epochs per round (>1 needed to see FedProx effect)")
+    ap.add_argument("--lr", type=float, default=0.05,
+                    help="Learning rate (higher makes drift more visible)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
-    ap.add_argument("--mu", type=float, default=0.01)
+    ap.add_argument("--mu", type=float, default=1.0,
+                    help="FedProx proximal term (try 0.1, 1.0, or 10.0 to see effect)")
     ap.add_argument("--output_dir", type=str, default="./results/flower_mnist_2digits",
                     help="Directory to save results and metrics")
     ap.add_argument("--run_name", type=str, default=None,
@@ -372,26 +386,17 @@ def main() -> None:
             force_mu=force_mu,  # remove this line if you want mu to come ONLY from config
         )
 
-    # Choose strategy (aggregation stays the same, but FedProx is now truly enforced at the client objective)
+    # Use FedAvg strategy for BOTH cases - the only difference is client-side proximal term
+    # (FedProx aggregation is identical to FedAvg; the difference is in the client objective)
     min_fit = max(1, int(args.num_clients * args.fraction_fit))
 
-    if args.strategy == "fedavg":
-        strategy = fl.server.strategy.FedAvg(
-            fraction_fit=args.fraction_fit,
-            min_fit_clients=min_fit,
-            min_available_clients=args.num_clients,
-            evaluate_fn=evaluate_fn,
-            on_fit_config_fn=fit_config_fn,
-        )
-    else:
-        strategy = fl.server.strategy.FedProx(
-            fraction_fit=args.fraction_fit,
-            min_fit_clients=min_fit,
-            min_available_clients=args.num_clients,
-            evaluate_fn=evaluate_fn,
-            proximal_mu=float(args.mu),
-            on_fit_config_fn=fit_config_fn,
-        )
+    strategy = fl.server.strategy.FedAvg(
+        fraction_fit=args.fraction_fit,
+        min_fit_clients=min_fit,
+        min_available_clients=args.num_clients,
+        evaluate_fn=evaluate_fn,
+        on_fit_config_fn=fit_config_fn,
+    )
 
     start_time = time.time()
     history = fl.simulation.start_simulation(
