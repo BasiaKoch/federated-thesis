@@ -3,7 +3,7 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import flwr as fl
 import numpy as np
@@ -38,22 +38,36 @@ class SmallCNN(nn.Module):
 
 
 def get_parameters(model: nn.Module) -> List[np.ndarray]:
+    # NumpyClient expects numpy arrays (CPU)
     return [val.detach().cpu().numpy() for _, val in model.state_dict().items()]
 
 
 def set_parameters(model: nn.Module, parameters: List[np.ndarray]) -> None:
+    """
+    Safer than torch.tensor(v):
+    - Preserves dtype of existing model tensors (usually float32)
+    - Preserves device (CPU/GPU)
+    """
     state_dict = model.state_dict()
     keys = list(state_dict.keys())
     if len(keys) != len(parameters):
         raise ValueError(f"Parameter length mismatch: {len(keys)} vs {len(parameters)}")
-    new_state = {k: torch.tensor(v) for k, v in zip(keys, parameters)}
+
+    new_state = {}
+    for k, arr in zip(keys, parameters):
+        old_t = state_dict[k]
+        t = torch.from_numpy(arr)
+        # Move + cast to match the model tensor
+        t = t.to(device=old_t.device, dtype=old_t.dtype)
+        new_state[k] = t
+
     model.load_state_dict(new_state, strict=True)
 
 
 # -----------------------
 # Data partitioning: 10 clients, 2 digits each, disjoint samples
 # Each client i gets digits: (i, (i+5)%10)
-# This makes every digit appear in exactly 2 clients, and we split that digit's samples between those 2 clients.
+# Each digit appears in exactly 2 clients, and its samples are split between them.
 # -----------------------
 def make_two_digit_partitions(
     y: np.ndarray,
@@ -63,17 +77,13 @@ def make_two_digit_partitions(
     assert num_clients == 10, "This partitioner assumes 10 clients for the neat (i, i+5) pairing."
     rng = np.random.default_rng(seed)
 
-    # client -> its two digits
     client_digits: List[Tuple[int, int]] = [(i, (i + 5) % 10) for i in range(num_clients)]
-    # which two clients own each digit d? -> clients: d (as first digit) and (d-5)%10 (as second digit)
     digit_owners: Dict[int, Tuple[int, int]] = {d: (d, (d - 5) % 10) for d in range(10)}
 
-    # collect indices per digit
     indices_by_digit: Dict[int, List[int]] = {d: [] for d in range(10)}
     for idx, label in enumerate(y):
         indices_by_digit[int(label)].append(int(idx))
 
-    # shuffle and split each digit's indices across its 2 owning clients
     client_indices: List[List[int]] = [[] for _ in range(num_clients)]
     for d in range(10):
         idxs = np.array(indices_by_digit[d], dtype=np.int64)
@@ -83,21 +93,63 @@ def make_two_digit_partitions(
         client_indices[c1].extend(idxs[:half].tolist())
         client_indices[c2].extend(idxs[half:].tolist())
 
-    # final shuffle within each client for good measure
     for c in range(num_clients):
         rng.shuffle(client_indices[c])
 
     return client_indices, client_digits
 
 
-def train_one_epoch(model: nn.Module, loader: DataLoader, device: torch.device, lr: float) -> None:
+# -----------------------
+# Train / eval
+# -----------------------
+def train_one_epoch_standard(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    lr: float,
+) -> None:
     model.train()
     opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
+
     for x, y in loader:
         x, y = x.to(device), y.to(device)
         opt.zero_grad(set_to_none=True)
         logits = model(x)
         loss = F.cross_entropy(logits, y)
+        loss.backward()
+        opt.step()
+
+
+def train_one_epoch_fedprox(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    lr: float,
+    mu: float,
+    global_params: List[torch.Tensor],
+) -> None:
+    """
+    FedProx client objective:
+      loss = CE + (mu/2) * ||w - w_global||^2
+    global_params must be a frozen snapshot of parameters received from the server.
+    """
+    model.train()
+    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
+
+    for x, y in loader:
+        x, y = x.to(device), y.to(device)
+        opt.zero_grad(set_to_none=True)
+
+        logits = model(x)
+        loss = F.cross_entropy(logits, y)
+
+        if mu > 0.0:
+            prox = 0.0
+            for p, p0 in zip(model.parameters(), global_params):
+                # p0 is detached, same device/dtype
+                prox = prox + torch.sum((p - p0) ** 2)
+            loss = loss + (mu / 2.0) * prox
+
         loss.backward()
         opt.step()
 
@@ -119,11 +171,34 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Tupl
     return total_loss / max(total, 1), correct / max(total, 1)
 
 
+def _get_mu_from_config(config: Dict) -> float:
+    """
+    Flower versions / examples differ in key naming.
+    Be robust and check a few common keys.
+    """
+    for k in ("proximal-mu", "proximal_mu", "proximalMu", "mu"):
+        if k in config:
+            try:
+                return float(config[k])
+            except Exception:
+                pass
+    return 0.0
+
+
 # -----------------------
 # Flower client
 # -----------------------
 class MnistClient(fl.client.NumPyClient):
-    def __init__(self, cid: str, train_loader: DataLoader, test_loader: DataLoader, device: torch.device, lr: float, local_epochs: int):
+    def __init__(
+        self,
+        cid: str,
+        train_loader: DataLoader,
+        test_loader: DataLoader,
+        device: torch.device,
+        lr: float,
+        local_epochs: int,
+        force_mu: Optional[float] = None,  # if provided, overrides config
+    ):
         self.cid = cid
         self.model = SmallCNN().to(device)
         self.train_loader = train_loader
@@ -131,15 +206,36 @@ class MnistClient(fl.client.NumPyClient):
         self.device = device
         self.lr = lr
         self.local_epochs = local_epochs
+        self.force_mu = force_mu
 
     def get_parameters(self, config):
         return get_parameters(self.model)
 
     def fit(self, parameters, config):
+        # Load global (server) weights
         set_parameters(self.model, parameters)
+
+        # Determine proximal mu
+        mu = float(self.force_mu) if self.force_mu is not None else _get_mu_from_config(config)
+
+        # Snapshot global params once per round (frozen reference for proximal term)
+        global_params = [p.detach().clone() for p in self.model.parameters()]
+
+        # Local training
         for _ in range(self.local_epochs):
-            train_one_epoch(self.model, self.train_loader, self.device, lr=self.lr)
-        return get_parameters(self.model), len(self.train_loader.dataset), {"cid": self.cid}
+            if mu > 0.0:
+                train_one_epoch_fedprox(
+                    self.model,
+                    self.train_loader,
+                    self.device,
+                    lr=self.lr,
+                    mu=mu,
+                    global_params=global_params,
+                )
+            else:
+                train_one_epoch_standard(self.model, self.train_loader, self.device, lr=self.lr)
+
+        return get_parameters(self.model), len(self.train_loader.dataset), {"cid": self.cid, "mu": mu}
 
     def evaluate(self, parameters, config):
         set_parameters(self.model, parameters)
@@ -151,10 +247,6 @@ class MnistClient(fl.client.NumPyClient):
 # Metrics tracking utilities
 # -----------------------
 def compute_convergence_round(accuracies: List[float], threshold: float = 0.95, window: int = 3) -> int:
-    """
-    Find the first round where accuracy stays above threshold for `window` consecutive rounds.
-    Returns -1 if never converged.
-    """
     if len(accuracies) < window:
         return -1
     for i in range(len(accuracies) - window + 1):
@@ -164,21 +256,13 @@ def compute_convergence_round(accuracies: List[float], threshold: float = 0.95, 
 
 
 def compute_stability_metrics(values: List[float]) -> Dict[str, float]:
-    """
-    Compute stability metrics: variance, max oscillation, smoothness score.
-    Lower variance and oscillation = more stable convergence.
-    """
     if len(values) < 2:
-        return {"variance": 0.0, "max_oscillation": 0.0, "smoothness": 1.0}
+        return {"variance": 0.0, "max_oscillation": 0.0, "smoothness": 1.0, "mean_change_per_round": 0.0}
 
-    arr = np.array(values)
+    arr = np.array(values, dtype=np.float64)
     variance = float(np.var(arr))
-
-    # Max oscillation: max absolute change between consecutive rounds
     diffs = np.abs(np.diff(arr))
     max_oscillation = float(np.max(diffs)) if len(diffs) > 0 else 0.0
-
-    # Smoothness: 1 / (1 + mean absolute diff) - higher is smoother
     mean_diff = float(np.mean(diffs)) if len(diffs) > 0 else 0.0
     smoothness = 1.0 / (1.0 + mean_diff)
 
@@ -191,19 +275,19 @@ def compute_stability_metrics(values: List[float]) -> Dict[str, float]:
 
 
 # -----------------------
-# Main: build data, simulate, compare FedAvg vs FedProx
+# Main
 # -----------------------
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_clients", type=int, default=10)
     ap.add_argument("--rounds", type=int, default=30)
-    ap.add_argument("--fraction_fit", type=float, default=1.0)   # participate all clients each round (stable)
+    ap.add_argument("--fraction_fit", type=float, default=1.0)
     ap.add_argument("--local_epochs", type=int, default=1)
     ap.add_argument("--lr", type=float, default=0.01)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
-    ap.add_argument("--mu", type=float, default=0.01)  # used only for fedprox
+    ap.add_argument("--mu", type=float, default=0.01)
     ap.add_argument("--output_dir", type=str, default="./results/flower_mnist_2digits",
                     help="Directory to save results and metrics")
     ap.add_argument("--run_name", type=str, default=None,
@@ -213,17 +297,23 @@ def main() -> None:
     if args.num_clients != 10:
         raise ValueError("This script currently implements the neat 10-client pairing (i, i+5). Use 10 clients.")
 
-    # Create output directory
+    # Reproducibility (best-effort)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
+
     os.makedirs(args.output_dir, exist_ok=True)
 
-    # Generate run name if not provided
     if args.run_name is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        args.run_name = f"{args.strategy}_rounds{args.rounds}_mu{args.mu}_{timestamp}"
+        mu_tag = f"mu{args.mu}" if args.strategy == "fedprox" else "muNA"
+        args.run_name = f"{args.strategy}_rounds{args.rounds}_{mu_tag}_{timestamp}"
 
     device = torch.device("cuda" if (args.use_cuda and torch.cuda.is_available()) else "cpu")
+
     print(f"\n{'='*60}")
-    print(f"Flower MNIST 2-Digit Federated Learning Experiment")
+    print("Flower MNIST 2-Digit Federated Learning Experiment")
     print(f"{'='*60}")
     print(f"Strategy: {args.strategy.upper()}")
     print(f"Proximal mu: {args.mu}" if args.strategy == "fedprox" else "Proximal mu: N/A (FedAvg)")
@@ -236,9 +326,7 @@ def main() -> None:
     print(f"Run name: {args.run_name}")
     print(f"{'='*60}\n")
 
-    # MNIST transforms
     tfm = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))])
-
     trainset = datasets.MNIST(root="./data", train=True, download=True, transform=tfm)
     testset = datasets.MNIST(root="./data", train=False, download=True, transform=tfm)
 
@@ -248,22 +336,21 @@ def main() -> None:
     train_partitions, train_digits = make_two_digit_partitions(y_train, num_clients=10, seed=args.seed)
     test_partitions, _ = make_two_digit_partitions(y_test, num_clients=10, seed=args.seed)
 
-    # Server-side (global) evaluation on full test set
     global_test_loader = DataLoader(testset, batch_size=256, shuffle=False, num_workers=0)
 
-    # Track per-round timing
-    round_start_times: Dict[int, float] = {}
-    round_end_times: Dict[int, float] = {}
-
     def evaluate_fn(server_round: int, parameters, config):
-        round_end_times[server_round] = time.time()
         model = SmallCNN().to(device)
         set_parameters(model, parameters)
         loss, acc = evaluate(model, global_test_loader, device)
         print(f"  [Round {server_round}] Global Test - Loss: {loss:.4f}, Accuracy: {acc:.4f}")
         return float(loss), {"global_acc": float(acc), "global_loss": float(loss), "round": int(server_round)}
 
-    # Build client_fn
+    # Make sure clients receive mu in config (robust across Flower versions)
+    def fit_config_fn(server_round: int) -> Dict[str, float]:
+        if args.strategy == "fedprox":
+            return {"proximal-mu": float(args.mu), "proximal_mu": float(args.mu)}
+        return {"proximal-mu": 0.0, "proximal_mu": 0.0}
+
     def client_fn(cid: str):
         c = int(cid)
         train_subset = Subset(trainset, train_partitions[c])
@@ -272,26 +359,40 @@ def main() -> None:
         train_loader = DataLoader(train_subset, batch_size=32, shuffle=True, num_workers=0)
         test_loader = DataLoader(test_subset, batch_size=256, shuffle=False, num_workers=0)
 
-        return MnistClient(cid=cid, train_loader=train_loader, test_loader=test_loader, device=device, lr=args.lr, local_epochs=args.local_epochs)
+        # We let config carry mu, but also "force_mu" for extra safety if you want:
+        force_mu = float(args.mu) if args.strategy == "fedprox" else None
 
-    # Choose strategy
+        return MnistClient(
+            cid=cid,
+            train_loader=train_loader,
+            test_loader=test_loader,
+            device=device,
+            lr=args.lr,
+            local_epochs=args.local_epochs,
+            force_mu=force_mu,  # remove this line if you want mu to come ONLY from config
+        )
+
+    # Choose strategy (aggregation stays the same, but FedProx is now truly enforced at the client objective)
+    min_fit = max(1, int(args.num_clients * args.fraction_fit))
+
     if args.strategy == "fedavg":
         strategy = fl.server.strategy.FedAvg(
             fraction_fit=args.fraction_fit,
-            min_fit_clients=int(args.num_clients * args.fraction_fit),
+            min_fit_clients=min_fit,
             min_available_clients=args.num_clients,
             evaluate_fn=evaluate_fn,
+            on_fit_config_fn=fit_config_fn,
         )
     else:
         strategy = fl.server.strategy.FedProx(
             fraction_fit=args.fraction_fit,
-            min_fit_clients=int(args.num_clients * args.fraction_fit),
+            min_fit_clients=min_fit,
             min_available_clients=args.num_clients,
             evaluate_fn=evaluate_fn,
             proximal_mu=float(args.mu),
+            on_fit_config_fn=fit_config_fn,
         )
 
-    # Run simulation with timing
     start_time = time.time()
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
@@ -309,20 +410,25 @@ def main() -> None:
 
     if history.losses_centralized:
         for rnd, loss in history.losses_centralized:
-            rounds_list.append(rnd)
-            losses_list.append(loss)
+            rounds_list.append(int(rnd))
+            losses_list.append(float(loss))
 
     if history.metrics_centralized and "global_acc" in history.metrics_centralized:
-        for rnd, acc in history.metrics_centralized["global_acc"]:
-            if rnd not in rounds_list:
-                rounds_list.append(rnd)
-            # Match index
-            idx = rounds_list.index(rnd)
-            while len(accuracies_list) <= idx:
-                accuracies_list.append(0.0)
-            accuracies_list[idx] = acc
+        # Ensure ordering by round (some histories can be unordered)
+        acc_pairs = [(int(rnd), float(acc)) for rnd, acc in history.metrics_centralized["global_acc"]]
+        acc_pairs.sort(key=lambda x: x[0])
 
-    # Compute analysis metrics
+        # Align accuracies to rounds_list if possible; otherwise build separately
+        if rounds_list:
+            round_to_idx = {r: i for i, r in enumerate(rounds_list)}
+            accuracies_list = [0.0] * len(rounds_list)
+            for r, acc in acc_pairs:
+                if r in round_to_idx:
+                    accuracies_list[round_to_idx[r]] = acc
+        else:
+            rounds_list = [r for r, _ in acc_pairs]
+            accuracies_list = [acc for _, acc in acc_pairs]
+
     convergence_90 = compute_convergence_round(accuracies_list, threshold=0.90, window=3)
     convergence_95 = compute_convergence_round(accuracies_list, threshold=0.95, window=3)
     convergence_98 = compute_convergence_round(accuracies_list, threshold=0.98, window=3)
@@ -335,7 +441,6 @@ def main() -> None:
     best_acc = max(accuracies_list) if accuracies_list else 0.0
     best_loss = min(losses_list) if losses_list else float("inf")
 
-    # Build comprehensive results dict
     results = {
         "experiment": {
             "strategy": args.strategy,
@@ -361,7 +466,7 @@ def main() -> None:
             "best_accuracy": best_acc,
             "best_loss": best_loss,
             "total_time_seconds": total_time,
-            "avg_time_per_round": total_time / args.rounds if args.rounds > 0 else 0,
+            "avg_time_per_round": total_time / args.rounds if args.rounds > 0 else 0.0,
         },
         "convergence": {
             "round_to_90_acc": convergence_90,
@@ -377,36 +482,33 @@ def main() -> None:
         },
     }
 
-    # Save results to JSON
     results_file = os.path.join(args.output_dir, f"{args.run_name}_results.json")
     with open(results_file, "w") as f:
         json.dump(results, f, indent=2)
     print(f"\nResults saved to: {results_file}")
 
-    # Print summary
     print(f"\n{'='*60}")
-    print(f"EXPERIMENT SUMMARY")
+    print("EXPERIMENT SUMMARY")
     print(f"{'='*60}")
     print(f"Strategy: {args.strategy.upper()}" + (f" (mu={args.mu})" if args.strategy == "fedprox" else ""))
-    print(f"\n--- Accuracy & Loss ---")
+    print("\n--- Accuracy & Loss ---")
     print(f"Final Accuracy: {final_acc:.4f}")
     print(f"Best Accuracy:  {best_acc:.4f}")
     print(f"Final Loss:     {final_loss:.4f}")
     print(f"Best Loss:      {best_loss:.4f}")
-    print(f"\n--- Convergence (rounds to reach threshold, -1 if never) ---")
+    print("\n--- Convergence (rounds to reach threshold, -1 if never) ---")
     print(f"Rounds to 90% accuracy: {convergence_90}")
     print(f"Rounds to 95% accuracy: {convergence_95}")
     print(f"Rounds to 98% accuracy: {convergence_98}")
-    print(f"\n--- Stability (accuracy) ---")
-    print(f"Variance:       {stability_acc['variance']:.6f}")
-    print(f"Max Oscillation:{stability_acc['max_oscillation']:.4f}")
-    print(f"Smoothness:     {stability_acc['smoothness']:.4f}")
-    print(f"\n--- Timing ---")
+    print("\n--- Stability (accuracy) ---")
+    print(f"Variance:        {stability_acc['variance']:.6f}")
+    print(f"Max Oscillation: {stability_acc['max_oscillation']:.4f}")
+    print(f"Smoothness:      {stability_acc['smoothness']:.4f}")
+    print("\n--- Timing ---")
     print(f"Total Time:     {total_time:.2f}s")
     print(f"Avg per Round:  {total_time / args.rounds:.2f}s")
     print(f"{'='*60}")
 
-    # Print client digit assignments
     print("\nClient digit pairs (train):")
     for i, pair in enumerate(train_digits):
         print(f"  client {i}: digits={pair}")
