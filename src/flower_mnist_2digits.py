@@ -291,16 +291,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--num_clients", type=int, default=10)
     ap.add_argument("--rounds", type=int, default=30)
-    ap.add_argument("--fraction_fit", type=float, default=0.5,
+    ap.add_argument("--fraction_fit", type=float, default=0.3,
                     help="Fraction of clients per round (0.5 helps show FedProx benefit)")
-    ap.add_argument("--local_epochs", type=int, default=5,
+    ap.add_argument("--local_epochs", type=int, default=2,
                     help="Local epochs per round (>1 needed to see FedProx effect)")
-    ap.add_argument("--lr", type=float, default=0.05,
+    ap.add_argument("--lr", type=float, default=0.01,
                     help="Learning rate (higher makes drift more visible)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
-    ap.add_argument("--mu", type=float, default=1.0,
+    ap.add_argument("--mu", type=float, default=0.01,
                     help="FedProx proximal term (try 0.1, 1.0, or 10.0 to see effect)")
     ap.add_argument("--output_dir", type=str, default="./results/flower_mnist_2digits",
                     help="Directory to save results and metrics")
