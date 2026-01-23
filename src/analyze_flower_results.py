@@ -2,10 +2,10 @@
 """
 Analyze and compare Flower MNIST 2-Digit experiment results.
 
-This script loads results from FedAvg and FedProx experiments and generates:
-1. Convergence plots (accuracy and loss over rounds)
+This script loads results from FedAvg, FedProx, and baseline experiments and generates:
+1. Convergence plots (accuracy and loss over rounds/epochs)
 2. Stability comparison
-3. Summary statistics table
+3. Summary statistics table comparing all methods
 
 Usage:
     python analyze_flower_results.py --results_dir ./results/flower_mnist_2digits
@@ -39,20 +39,51 @@ def find_latest_results(results_dir: str, strategy: str) -> Optional[str]:
     return files[0]
 
 
+def find_baseline_results(results_dir: str, baseline_type: str) -> Optional[str]:
+    """Find the latest baseline results file."""
+    pattern = os.path.join(results_dir, f"baseline_{baseline_type}_*_results.json")
+    files = glob.glob(pattern)
+    if not files:
+        return None
+    files.sort(key=os.path.getmtime, reverse=True)
+    return files[0]
+
+
 def plot_convergence(
     fedavg_results: Optional[Dict],
     fedprox_results: Optional[Dict],
     output_dir: str,
     show: bool = False,
+    centralized_results: Optional[Dict] = None,
+    local_results: Optional[Dict] = None,
 ) -> None:
-    """Plot accuracy and loss convergence curves for both strategies."""
+    """Plot accuracy and loss convergence curves for all methods including baselines."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
     # Colors and styles
-    colors = {"fedavg": "#1f77b4", "fedprox": "#ff7f0e"}
+    colors = {
+        "fedavg": "#1f77b4",
+        "fedprox": "#ff7f0e",
+        "centralized": "#2ca02c",
+        "local": "#d62728",
+    }
 
     # Plot accuracy
     ax1 = axes[0]
+
+    # Baselines as horizontal lines (or curves if per-epoch data available)
+    if centralized_results:
+        epochs = centralized_results["per_epoch_metrics"]["epochs"]
+        acc = centralized_results["per_epoch_metrics"]["test_accuracy"]
+        ax1.plot(epochs, acc, label="Centralized (upper bound)", color=colors["centralized"],
+                linewidth=2, linestyle="--", alpha=0.8)
+
+    if local_results:
+        epochs = local_results["per_epoch_metrics"]["epochs"]
+        acc = local_results["per_epoch_metrics"]["weighted_global_test_accuracy"]
+        ax1.plot(epochs, acc, label="Local-Only (lower bound)", color=colors["local"],
+                linewidth=2, linestyle="--", alpha=0.8)
+
     if fedavg_results:
         rounds = fedavg_results["per_round_metrics"]["rounds"]
         acc = fedavg_results["per_round_metrics"]["global_test_accuracy"]
@@ -64,20 +95,27 @@ def plot_convergence(
         mu = fedprox_results["experiment"]["mu"]
         ax1.plot(rounds, acc, label=f"FedProx (mu={mu})", color=colors["fedprox"], linewidth=2, marker="s", markersize=3)
 
-    ax1.set_xlabel("Round", fontsize=12)
+    ax1.set_xlabel("Round / Epoch", fontsize=12)
     ax1.set_ylabel("Global Test Accuracy", fontsize=12)
     ax1.set_title("Convergence: Accuracy over Rounds", fontsize=14)
-    ax1.legend(fontsize=11)
+    ax1.legend(fontsize=10, loc="lower right")
     ax1.grid(True, alpha=0.3)
     ax1.set_ylim(0, 1.05)
 
     # Add convergence threshold lines
     for thresh in [0.90, 0.95]:
-        ax1.axhline(y=thresh, color="gray", linestyle="--", alpha=0.5, linewidth=1)
+        ax1.axhline(y=thresh, color="gray", linestyle=":", alpha=0.5, linewidth=1)
         ax1.text(0.5, thresh + 0.01, f"{int(thresh*100)}%", fontsize=9, color="gray")
 
     # Plot loss
     ax2 = axes[1]
+
+    if centralized_results:
+        epochs = centralized_results["per_epoch_metrics"]["epochs"]
+        loss = centralized_results["per_epoch_metrics"]["test_loss"]
+        ax2.plot(epochs, loss, label="Centralized (upper bound)", color=colors["centralized"],
+                linewidth=2, linestyle="--", alpha=0.8)
+
     if fedavg_results:
         rounds = fedavg_results["per_round_metrics"]["rounds"]
         loss = fedavg_results["per_round_metrics"]["global_test_loss"]
@@ -89,10 +127,10 @@ def plot_convergence(
         mu = fedprox_results["experiment"]["mu"]
         ax2.plot(rounds, loss, label=f"FedProx (mu={mu})", color=colors["fedprox"], linewidth=2, marker="s", markersize=3)
 
-    ax2.set_xlabel("Round", fontsize=12)
+    ax2.set_xlabel("Round / Epoch", fontsize=12)
     ax2.set_ylabel("Global Test Loss", fontsize=12)
     ax2.set_title("Convergence: Loss over Rounds", fontsize=14)
-    ax2.legend(fontsize=11)
+    ax2.legend(fontsize=10)
     ax2.grid(True, alpha=0.3)
 
     plt.tight_layout()
@@ -181,15 +219,13 @@ def plot_stability(
 def print_summary_table(
     fedavg_results: Optional[Dict],
     fedprox_results: Optional[Dict],
+    centralized_results: Optional[Dict] = None,
+    local_results: Optional[Dict] = None,
 ) -> None:
-    """Print a formatted summary comparison table."""
-    print("\n" + "=" * 80)
-    print("COMPARISON SUMMARY: FedAvg vs FedProx")
-    print("=" * 80)
-
-    # Header
-    print(f"\n{'Metric':<35} {'FedAvg':>15} {'FedProx':>15} {'Diff':>12}")
-    print("-" * 80)
+    """Print a formatted summary comparison table including baselines."""
+    print("\n" + "=" * 100)
+    print("COMPLETE COMPARISON SUMMARY")
+    print("=" * 100)
 
     def get_val(results: Optional[Dict], *keys, default="-"):
         if not results:
@@ -209,77 +245,102 @@ def print_summary_table(
             return f"{val:.{decimals}f}"
         return str(val)
 
-    def calc_diff(v1, v2, higher_better=True):
-        if v1 == "-" or v2 == "-" or v1 is None or v2 is None:
-            return "-"
-        diff = v2 - v1
-        if higher_better:
-            return f"+{diff:.4f}" if diff > 0 else f"{diff:.4f}"
-        else:
-            return f"{diff:.4f}" if diff > 0 else f"+{abs(diff):.4f}"
+    # Header with all methods
+    print(f"\n{'Metric':<30} {'Centralized':>12} {'Local-Only':>12} {'FedAvg':>12} {'FedProx':>12}")
+    print("-" * 100)
 
-    # Accuracy and Loss
+    # Final accuracy
+    cent_acc = get_val(centralized_results, "final_metrics", "final_test_accuracy")
+    local_acc = get_val(local_results, "final_metrics", "weighted_global_test_accuracy")
     fa_acc = get_val(fedavg_results, "final_metrics", "final_accuracy")
     fp_acc = get_val(fedprox_results, "final_metrics", "final_accuracy")
-    print(f"{'Final Accuracy':<35} {fmt(fa_acc):>15} {fmt(fp_acc):>15} {calc_diff(fa_acc, fp_acc):>12}")
+    print(f"{'Final Test Accuracy':<30} {fmt(cent_acc):>12} {fmt(local_acc):>12} {fmt(fa_acc):>12} {fmt(fp_acc):>12}")
 
+    # Best accuracy
+    cent_best = get_val(centralized_results, "final_metrics", "best_test_accuracy")
+    local_best = get_val(local_results, "final_metrics", "best_client_global_accuracy")
     fa_best = get_val(fedavg_results, "final_metrics", "best_accuracy")
     fp_best = get_val(fedprox_results, "final_metrics", "best_accuracy")
-    print(f"{'Best Accuracy':<35} {fmt(fa_best):>15} {fmt(fp_best):>15} {calc_diff(fa_best, fp_best):>12}")
+    print(f"{'Best Test Accuracy':<30} {fmt(cent_best):>12} {fmt(local_best):>12} {fmt(fa_best):>12} {fmt(fp_best):>12}")
 
+    # Final loss
+    cent_loss = get_val(centralized_results, "final_metrics", "final_test_loss")
     fa_loss = get_val(fedavg_results, "final_metrics", "final_loss")
     fp_loss = get_val(fedprox_results, "final_metrics", "final_loss")
-    print(f"{'Final Loss':<35} {fmt(fa_loss):>15} {fmt(fp_loss):>15} {calc_diff(fa_loss, fp_loss, False):>12}")
+    print(f"{'Final Test Loss':<30} {fmt(cent_loss):>12} {'-':>12} {fmt(fa_loss):>12} {fmt(fp_loss):>12}")
 
-    # Convergence
-    print("-" * 80)
+    # Convergence (FL only)
+    print("-" * 100)
     print("Convergence (rounds to reach threshold, -1 = never):")
 
     fa_c90 = get_val(fedavg_results, "convergence", "round_to_90_acc")
     fp_c90 = get_val(fedprox_results, "convergence", "round_to_90_acc")
-    print(f"{'  Rounds to 90% Accuracy':<35} {fmt(fa_c90, 0):>15} {fmt(fp_c90, 0):>15}")
+    print(f"{'  Rounds to 90% Accuracy':<30} {'-':>12} {'-':>12} {fmt(fa_c90, 0):>12} {fmt(fp_c90, 0):>12}")
 
     fa_c95 = get_val(fedavg_results, "convergence", "round_to_95_acc")
     fp_c95 = get_val(fedprox_results, "convergence", "round_to_95_acc")
-    print(f"{'  Rounds to 95% Accuracy':<35} {fmt(fa_c95, 0):>15} {fmt(fp_c95, 0):>15}")
+    print(f"{'  Rounds to 95% Accuracy':<30} {'-':>12} {'-':>12} {fmt(fa_c95, 0):>12} {fmt(fp_c95, 0):>12}")
 
     fa_c98 = get_val(fedavg_results, "convergence", "round_to_98_acc")
     fp_c98 = get_val(fedprox_results, "convergence", "round_to_98_acc")
-    print(f"{'  Rounds to 98% Accuracy':<35} {fmt(fa_c98, 0):>15} {fmt(fp_c98, 0):>15}")
+    print(f"{'  Rounds to 98% Accuracy':<30} {'-':>12} {'-':>12} {fmt(fa_c98, 0):>12} {fmt(fp_c98, 0):>12}")
 
-    # Stability
-    print("-" * 80)
+    # Stability (FL only)
+    print("-" * 100)
     print("Stability (lower variance/oscillation = more stable):")
 
     fa_var = get_val(fedavg_results, "stability", "accuracy", "variance")
     fp_var = get_val(fedprox_results, "stability", "accuracy", "variance")
-    print(f"{'  Accuracy Variance':<35} {fmt(fa_var, 6):>15} {fmt(fp_var, 6):>15}")
+    print(f"{'  Accuracy Variance':<30} {'-':>12} {'-':>12} {fmt(fa_var, 6):>12} {fmt(fp_var, 6):>12}")
 
     fa_osc = get_val(fedavg_results, "stability", "accuracy", "max_oscillation")
     fp_osc = get_val(fedprox_results, "stability", "accuracy", "max_oscillation")
-    print(f"{'  Max Oscillation':<35} {fmt(fa_osc):>15} {fmt(fp_osc):>15}")
+    print(f"{'  Max Oscillation':<30} {'-':>12} {'-':>12} {fmt(fa_osc):>12} {fmt(fp_osc):>12}")
 
     fa_smooth = get_val(fedavg_results, "stability", "accuracy", "smoothness")
     fp_smooth = get_val(fedprox_results, "stability", "accuracy", "smoothness")
-    print(f"{'  Smoothness (higher = smoother)':<35} {fmt(fa_smooth):>15} {fmt(fp_smooth):>15}")
+    print(f"{'  Smoothness (higher=better)':<30} {'-':>12} {'-':>12} {fmt(fa_smooth):>12} {fmt(fp_smooth):>12}")
+
+    # Gap analysis
+    print("-" * 100)
+    print("Gap Analysis (showing benefit of federation):")
+
+    if cent_acc != "-" and local_acc != "-" and cent_acc and local_acc:
+        gap = cent_acc - local_acc
+        print(f"{'  Centralized - Local Gap':<30} {fmt(gap):>12} {'(potential gain from federation)':>50}")
+
+    if fa_acc != "-" and local_acc != "-" and fa_acc and local_acc:
+        gain_fa = fa_acc - local_acc
+        print(f"{'  FedAvg vs Local Gain':<30} {'-':>12} {'-':>12} {fmt(gain_fa):>12}")
+
+    if fp_acc != "-" and local_acc != "-" and fp_acc and local_acc:
+        gain_fp = fp_acc - local_acc
+        print(f"{'  FedProx vs Local Gain':<30} {'-':>12} {'-':>12} {'-':>12} {fmt(gain_fp):>12}")
+
+    if cent_acc != "-" and fa_acc != "-" and cent_acc and fa_acc:
+        gap_fa = cent_acc - fa_acc
+        print(f"{'  FedAvg vs Centralized Gap':<30} {'-':>12} {'-':>12} {fmt(gap_fa):>12}")
+
+    if cent_acc != "-" and fp_acc != "-" and cent_acc and fp_acc:
+        gap_fp = cent_acc - fp_acc
+        print(f"{'  FedProx vs Centralized Gap':<30} {'-':>12} {'-':>12} {'-':>12} {fmt(gap_fp):>12}")
 
     # Timing
-    print("-" * 80)
+    print("-" * 100)
+    cent_time = get_val(centralized_results, "final_metrics", "total_time_seconds")
+    local_time = get_val(local_results, "final_metrics", "total_time_seconds")
     fa_time = get_val(fedavg_results, "final_metrics", "total_time_seconds")
     fp_time = get_val(fedprox_results, "final_metrics", "total_time_seconds")
-    print(f"{'Total Time (seconds)':<35} {fmt(fa_time, 1):>15} {fmt(fp_time, 1):>15}")
+    print(f"{'Total Time (seconds)':<30} {fmt(cent_time, 1):>12} {fmt(local_time, 1):>12} {fmt(fa_time, 1):>12} {fmt(fp_time, 1):>12}")
 
-    # Experiment config
-    print("-" * 80)
-    print("Experiment Configuration:")
-    if fedavg_results:
-        exp = fedavg_results["experiment"]
-        print(f"  FedAvg: rounds={exp['rounds']}, lr={exp['learning_rate']}, local_epochs={exp['local_epochs']}")
-    if fedprox_results:
-        exp = fedprox_results["experiment"]
-        print(f"  FedProx: rounds={exp['rounds']}, lr={exp['learning_rate']}, local_epochs={exp['local_epochs']}, mu={exp['mu']}")
+    print("=" * 100)
 
-    print("=" * 80)
+    # Interpretation
+    print("\nInterpretation Guide:")
+    print("  - Centralized: Upper bound (best possible with all data)")
+    print("  - Local-Only:  Lower bound (no federation, each client trains alone)")
+    print("  - FedAvg/FedProx should fall between these bounds")
+    print("  - FedProx proximal term (mu) helps with non-IID data stability")
 
 
 def save_summary_csv(
@@ -338,6 +399,10 @@ def main():
                        help="Specific FedAvg results file (overrides auto-detection)")
     parser.add_argument("--fedprox_file", type=str, default=None,
                        help="Specific FedProx results file (overrides auto-detection)")
+    parser.add_argument("--centralized_file", type=str, default=None,
+                       help="Specific centralized baseline results file")
+    parser.add_argument("--local_file", type=str, default=None,
+                       help="Specific local-only baseline results file")
     parser.add_argument("--output_dir", type=str, default=None,
                        help="Output directory for plots (defaults to results_dir)")
     parser.add_argument("--show", action="store_true",
@@ -351,31 +416,62 @@ def main():
     # Find or load results
     fedavg_results = None
     fedprox_results = None
+    centralized_results = None
+    local_results = None
 
+    print("\n" + "=" * 60)
+    print("Loading Results...")
+    print("=" * 60)
+
+    # Load federated results
     if args.fedavg_file:
         fedavg_results = load_results(args.fedavg_file)
-        print(f"Loaded FedAvg results from: {args.fedavg_file}")
+        print(f"Loaded FedAvg from: {args.fedavg_file}")
     else:
         fedavg_file = find_latest_results(args.results_dir, "fedavg")
         if fedavg_file:
             fedavg_results = load_results(fedavg_file)
-            print(f"Loaded FedAvg results from: {fedavg_file}")
+            print(f"Loaded FedAvg from: {fedavg_file}")
         else:
             print("No FedAvg results found.")
 
     if args.fedprox_file:
         fedprox_results = load_results(args.fedprox_file)
-        print(f"Loaded FedProx results from: {args.fedprox_file}")
+        print(f"Loaded FedProx from: {args.fedprox_file}")
     else:
         fedprox_file = find_latest_results(args.results_dir, "fedprox")
         if fedprox_file:
             fedprox_results = load_results(fedprox_file)
-            print(f"Loaded FedProx results from: {fedprox_file}")
+            print(f"Loaded FedProx from: {fedprox_file}")
         else:
             print("No FedProx results found.")
 
-    if not fedavg_results and not fedprox_results:
+    # Load baseline results
+    if args.centralized_file:
+        centralized_results = load_results(args.centralized_file)
+        print(f"Loaded Centralized baseline from: {args.centralized_file}")
+    else:
+        centralized_file = find_baseline_results(args.results_dir, "centralized")
+        if centralized_file:
+            centralized_results = load_results(centralized_file)
+            print(f"Loaded Centralized baseline from: {centralized_file}")
+        else:
+            print("No Centralized baseline found. Run: ./run_baseline.sh centralized 30")
+
+    if args.local_file:
+        local_results = load_results(args.local_file)
+        print(f"Loaded Local-only baseline from: {args.local_file}")
+    else:
+        local_file = find_baseline_results(args.results_dir, "local")
+        if local_file:
+            local_results = load_results(local_file)
+            print(f"Loaded Local-only baseline from: {local_file}")
+        else:
+            print("No Local-only baseline found. Run: ./run_baseline.sh local 30")
+
+    if not fedavg_results and not fedprox_results and not centralized_results and not local_results:
         print("\nNo results to analyze. Run experiments first:")
+        print("  ./run_baseline.sh both 30")
         print("  ./run_flower_local.sh fedavg 30")
         print("  ./run_flower_local.sh fedprox 30 0.01")
         return
@@ -385,9 +481,11 @@ def main():
     print("Generating Analysis...")
     print("=" * 60)
 
-    plot_convergence(fedavg_results, fedprox_results, output_dir, show=args.show)
+    plot_convergence(fedavg_results, fedprox_results, output_dir, show=args.show,
+                    centralized_results=centralized_results, local_results=local_results)
     plot_stability(fedavg_results, fedprox_results, output_dir, show=args.show)
-    print_summary_table(fedavg_results, fedprox_results)
+    print_summary_table(fedavg_results, fedprox_results,
+                       centralized_results=centralized_results, local_results=local_results)
     save_summary_csv(fedavg_results, fedprox_results, output_dir)
 
     print(f"\nAll outputs saved to: {output_dir}")
