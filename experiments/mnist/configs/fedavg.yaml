@@ -1,0 +1,24 @@
+# FedAvg experiment configuration for MNIST 2-digit non-IID
+# All parameters should match FedProx for fair comparison
+
+# Federated learning settings
+strategy: fedavg
+num_clients: 10
+rounds: 30
+fraction_fit: 0.5          # Fraction of clients per round
+local_epochs: 5            # Local epochs per round
+
+# Model training
+learning_rate: 0.05
+batch_size: 32
+
+# FedProx-specific (ignored for FedAvg)
+mu: 0.0
+
+# Environment
+seed: 42
+use_cuda: true
+
+# Output
+output_dir: results/mnist
+run_name: null             # Auto-generated if null

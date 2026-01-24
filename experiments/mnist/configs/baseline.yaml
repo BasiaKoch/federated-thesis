@@ -1,0 +1,20 @@
+# Baseline experiment configuration for MNIST
+# Centralized (upper bound) and Local-only (lower bound)
+
+# Which baselines to run
+baseline: both             # centralized, local, or both
+
+# Training settings (match FL experiments for fair comparison)
+epochs: 30                 # Comparable to FL rounds
+learning_rate: 0.05
+batch_size: 32
+
+# For local baseline only
+num_clients: 10
+
+# Environment
+seed: 42
+use_cuda: true
+
+# Output
+output_dir: results/mnist
