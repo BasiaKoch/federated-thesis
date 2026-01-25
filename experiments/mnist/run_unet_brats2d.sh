@@ -1,81 +1,72 @@
 #!/bin/bash
 #! ==============================================================
-#!  CSD3 Ampere GPU job submission script for BraTS2020 2D U-Net
-#!  Train + Validate + Test on split PNG dataset
+#!  CSD3 Ampere GPU job submission script
+#!  Centralized 2D U-Net BraTS baseline (npz slices)
 #! ==============================================================
 
-#SBATCH -J unet_brats2d
-#SBATCH -A fergusson-sl3-gpu
+#SBATCH -J brats_unet2d
+#SBATCH -A FERGUSSON-SL3-GPU
 #SBATCH -p ampere
-#SBATCH --qos=gpu2
-#SBATCH --time=06:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=4
-#SBATCH --output=unet_brats2d_%j.out
-#SBATCH --error=unet_brats2d_%j.err
+#SBATCH --cpus-per-task=6
+#SBATCH --time=01:00:00
+#SBATCH --output=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.out
+#SBATCH --error=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.err
+#SBATCH --qos=INTR
 
+set -euo pipefail
 
-#! ======= Paths =======
-PROJECT_DIR="$HOME/federated/federated-thesis"
-SRC_FILE="${PROJECT_DIR}/unet/train_unet_brats2d.py"
+PROJECT_DIR="/home/bk489/federated/federated-thesis"
+SRC_FILE="${PROJECT_DIR}/unet/unet_new.py"
+DATA_DIR="${PROJECT_DIR}/data/brats2020_top10_slices_split_npz"
+LOG_DIR="${PROJECT_DIR}/unet/logs"
 
-TARBALL="$HOME/BraTS2020_2D_png_split.tar.gz"
-DATA_ROOT="$HOME/data/BraTS2020_2D_png_split"
+# Ensure log dir exists (also create it before sbatch ideally)
+mkdir -p "${LOG_DIR}"
 
-CKPT_DIR="${PROJECT_DIR}/results/brats2d_unet"
-CKPT_FILE="${CKPT_DIR}/unet_brats2d_best.pt"
-
-#! ======= Load required environment modules =======
 . /etc/profile.d/modules.sh
 module load rhel8/default-amp
-module load gcc/9 cuda/12.1 cudnn openmpi/gcc/9.3/4.0.4
+module load gcc/9
 
-#! ======= Activate environment =======
+# If your conda env already provides torch+cuda, you usually don't need cuda/cudnn modules.
+# module load cuda/12.1 cudnn
+
 source "$HOME/miniconda3/etc/profile.d/conda.sh" 2>/dev/null || \
 source "$HOME/anaconda3/etc/profile.d/conda.sh" 2>/dev/null
 conda activate fed
 
-#! ======= Diagnostics =======
+cd "${PROJECT_DIR}"
+
 echo "=============================================="
-echo "BraTS2020 2D U-Net"
+echo "BraTS 2D U-Net (centralized) baseline"
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Node(s): ${SLURM_NODELIST}"
-echo "Tarball: ${TARBALL}"
-echo "Data:    ${DATA_ROOT}"
-echo "Python:  $(which python)"
+echo "Workdir: $(pwd)"
+echo "Script: ${SRC_FILE}"
+echo "Data:   ${DATA_DIR}"
+echo "Python: $(which python)"
 python -c "import sys; print('Python', sys.version)"
-python -c "import torch; print('PyTorch', torch.__version__, 'CUDA available:', torch.cuda.is_available())"
+python -c "import torch; print('PyTorch', torch.__version__); print('CUDA available:', torch.cuda.is_available()); print('CUDA version:', torch.version.cuda); print('Device count:', torch.cuda.device_count())"
 nvidia-smi
 echo "=============================================="
 
-#! ======= Prepare data (extract once) =======
-mkdir -p "$HOME/data"
-if [ ! -d "${DATA_ROOT}/train" ]; then
-  echo "Extracting dataset to ${DATA_ROOT} ..."
-  tar -xzf "${TARBALL}" -C "$HOME/data"
-else
-  echo "Dataset already extracted."
+if [ ! -d "${DATA_DIR}" ]; then
+  echo "ERROR: DATA_DIR not found: ${DATA_DIR}"
+  exit 1
 fi
 
-#! ======= Create results directory =======
-mkdir -p "${CKPT_DIR}"
-cd "${PROJECT_DIR}"
+echo "Num npz files:"
+find "${DATA_DIR}" -name "*.npz" | wc -l
+echo "Example files:"
+find "${DATA_DIR}" -name "*.npz" | head -n 5
 
-echo "Starting BraTS 2D U-Net training..."
-python "${SRC_FILE}" \
-  --split_root "${DATA_ROOT}" \
-  --device cuda \
-  --amp \
-  --image_size 240 \
-  --epochs 30 \
-  --batch_size 8 \
-  --lr 3e-4 \
-  --base 32 \
-  --num_workers 4 \
-  --min_fg_train 50 \
-  --keep_empty_prob 0.05 \
-  --ckpt "${CKPT_FILE}"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+export PYTHONUNBUFFERED=1
+
+echo "Starting U-Net training..."
+python -u "${SRC_FILE}"
 
 echo "Job completed!"

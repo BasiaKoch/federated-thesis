@@ -16,8 +16,8 @@ from torch.utils.data import Dataset, DataLoader
 # Config (edit these)
 # =========================
 
-DATA_ROOT = Path("/Users/basiakoch/Downloads/brats2020_top10_slices_split_npz")
-
+from pathlib import Path
+DATA_ROOT = Path("/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz")
 # Output
 RUN_DIR = Path("./runs_unet_brats2d")
 RUN_DIR.mkdir(parents=True, exist_ok=True)
