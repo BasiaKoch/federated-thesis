@@ -22,8 +22,8 @@ set -euo pipefail
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train_10clients.py"
 
-# Pick config: you can pass it as arg1, otherwise default to FedAvg config
-CONFIG_FILE="${1:-${PROJECT_DIR}/federated_unet/unet/configs/unet_fedavg.yaml}"
+# Pick config: you can pass it as arg1, otherwise default to FedAvg 10-client config
+CONFIG_FILE="${1:-${PROJECT_DIR}/federated_unet/unet/configs/unet_fedavg_10clients.yaml}"
 
 # Data paths (used for quick checks + env)
 DATA_DIR="${PROJECT_DIR}/data/brats2020_top10_slices_split_npz"
@@ -96,13 +96,19 @@ find "${DATA_DIR}" -name "*.npz" | head -n 5 || true
 
 echo "Client partition sanity check:"
 for i in 0 1 2 3 4 5 6 7 8 9; do
-  cdir="${PARTITIONS_DIR}/client_${i}/train"
+  # Find client directory matching pattern client_${i}_* (e.g., client_0_HGG_full)
+  cdir_parent=$(find "${PARTITIONS_DIR}" -maxdepth 1 -type d -name "client_${i}_*" | head -n 1)
+  if [ -z "${cdir_parent}" ]; then
+    echo "ERROR: no directory matching client_${i}_* found in ${PARTITIONS_DIR}"
+    exit 1
+  fi
+  cdir="${cdir_parent}/train"
   if [ ! -d "${cdir}" ]; then
     echo "ERROR: missing ${cdir}"
     exit 1
   fi
   n=$(find "${cdir}" -name "*.npz" | wc -l)
-  echo "  client_${i}: ${n} slices"
+  echo "  $(basename ${cdir_parent}): ${n} slices"
 done
 
 #! ======= Run =======
