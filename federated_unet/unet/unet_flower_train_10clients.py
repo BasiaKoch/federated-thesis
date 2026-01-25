@@ -546,7 +546,7 @@ def parse_args_with_yaml() -> Tuple[argparse.Namespace, Dict[str, Any]]:
 # Client dir discovery + mapping (IMPORTANT FIX)
 # =========================
 
-_CLIENT_RE = re.compile(r"^client_(\d+)\b")
+_CLIENT_RE = re.compile(r"^client_(\d+)(?:_|$)")
 
 def discover_client_train_dirs(partitions_dir: Path) -> Dict[int, Path]:
     """
