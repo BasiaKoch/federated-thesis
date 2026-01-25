@@ -115,7 +115,11 @@ done
 # (Your python reads paths from the YAML, but we also export env for consistency)
 export BRATS_DATA_DIR="${DATA_DIR}"
 
+# Ray/Flower debugging - show full logs
+export RAY_DEDUP_LOGS=0
+export PYTHONFAULTHANDLER=1
+
 echo "Starting federated U-Net training..."
-python -u "${SRC_FILE}" --config "${CONFIG_FILE}"
+python -u "${SRC_FILE}" --config "${CONFIG_FILE}" 2>&1
 
 echo "Job completed!"

@@ -693,19 +693,14 @@ def main() -> None:
 
         }
 
-    # Support both Flower legacy client_fn(cid: str) and Context-based client_fn(Context)
-    try:
-        from flwr.common import Context
-    except Exception:
-        Context = None  # type: ignore
-
-    def client_fn_legacy(cid: str):
+    def make_client(cid: str) -> UNetClient:
+        """Create a UNetClient for the given client ID."""
         cid_i = int(cid)
         train_dir = client_train_map[cid_i]
         keep_channels = client_modalities.get(str(cid), None)
         force_mu = float(args.mu) if args.strategy == "fedprox" else None
 
-        client = UNetClient(
+        return UNetClient(
             cid=cid,
             train_dir=train_dir,
             device=device,
@@ -716,21 +711,38 @@ def main() -> None:
             keep_channels=keep_channels,
             force_mu=force_mu,
         )
-        # Flower 1.5+ requires Client, not NumPyClient
-        return client.to_client()
 
-    def client_fn_context(context):
-        cid = None
-        if hasattr(context, "node_config") and isinstance(context.node_config, dict):
-            if "partition-id" in context.node_config:
-                cid = str(context.node_config["partition-id"])
-        if cid is None and hasattr(context, "cid"):
-            cid = str(context.cid)
-        if cid is None:
-            cid = "0"
-        return client_fn_legacy(cid)
+    def client_fn(context_or_cid):
+        """
+        Client function compatible with both old and new Flower APIs.
+        - Old API (Flower < 1.9): receives cid as string
+        - New API (Flower >= 1.9): receives Context object
+        """
+        try:
+            # Check if it's a string (old API)
+            if isinstance(context_or_cid, str):
+                cid = context_or_cid
+            else:
+                # New API: extract cid from Context
+                context = context_or_cid
+                cid = None
+                # Try node_config["partition-id"] (Flower 1.9+)
+                if hasattr(context, "node_config") and isinstance(context.node_config, dict):
+                    cid = str(context.node_config.get("partition-id", ""))
+                # Fallback to node_id
+                if not cid and hasattr(context, "node_id"):
+                    cid = str(context.node_id)
+                # Default
+                if not cid:
+                    cid = "0"
 
-    client_fn = client_fn_context if Context is not None else client_fn_legacy
+            client = make_client(cid)
+            return client.to_client()
+        except Exception as e:
+            print(f"[ERROR] client_fn failed for {context_or_cid}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     min_fit = max(1, int(args.num_clients * args.fraction_fit))
 
@@ -751,12 +763,22 @@ def main() -> None:
     start_time = time.time()
     # Use fractional GPU so multiple clients can share the single GPU
     gpu_fraction = 1.0 / max(int(args.num_clients), 1) if device.type == "cuda" else 0.0
+
+    # Ray init args for better CUDA support
+    ray_init_args = {
+        "ignore_reinit_error": True,
+        "include_dashboard": False,
+    }
+
+    print(f"Starting simulation with {args.num_clients} clients, gpu_fraction={gpu_fraction:.3f}")
+
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=int(args.num_clients),
         config=fl.server.ServerConfig(num_rounds=int(args.rounds)),
         strategy=strategy,
         client_resources={"num_cpus": 1, "num_gpus": gpu_fraction},
+        ray_init_args=ray_init_args,
     )
     total_time = time.time() - start_time
 
