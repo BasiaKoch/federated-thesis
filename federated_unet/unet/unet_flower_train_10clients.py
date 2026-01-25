@@ -2,34 +2,30 @@
 """
 Flower federated simulation for BraTS2020 2D U-Net (NPZ slices) — 10 clients.
 
-- Same U-Net + loss + Dice as your centralized script.
-- Simulates N clients from a partition folder (default N=10).
-- FedAvg vs FedProx:
-    * Aggregation is FedAvg in both cases
-    * FedProx difference is client-side proximal term (mu)
+Fixes vs your previous version:
+- Works with client folder names like:
+    client_0_HGG_full, client_1_LGG_full_small, ..., client_9_mixed_per_sample
+  (i.e., NOT assuming folders are named exactly client_0, client_1, ...)
+- Robust client discovery + deterministic mapping cid -> folder via parsing the numeric prefix.
+- Optional client modality masking from YAML (client_modalities).
+- Clean fail-fast checks with helpful errors.
+- Centralized evaluation each round on global val or test (server-side).
+- Final evaluation on global test using the latest aggregated parameters.
 
-Config usage (YAML):
-    python -u unet_flower_train.py --config path/to/unet_fedavg.yaml
-    python -u unet_flower_train.py --config path/to/unet_fedprox.yaml
+Config usage:
+    python -u unet_flower_train.py --config /path/to/unet_fedavg.yaml
+    python -u unet_flower_train.py --config /path/to/unet_fedprox.yaml
 
-Expected partition layout (flexible naming):
+Expected partition layout:
   partitions_dir/
-    client_0*/train/<case_id>/*.npz
-    client_1*/train/<case_id>/*.npz
+    client_0_*/train/<case_id>/*.npz
+    client_1_*/train/<case_id>/*.npz
     ...
-This script discovers client_* directories and maps cid 0..N-1 to them in sorted order.
-
-Optional modality masking (non-IID by modalities):
-- Add to YAML (example):
-    client_modalities:
-      "0": [0,1,2,3]
-      "1": [2,3]
-      "2": [1]
-- The dataset will zero-out channels not in the list for that client.
 """
 
 import argparse
 import json
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -45,7 +41,7 @@ from torch.utils.data import Dataset, DataLoader
 
 
 # =========================
-# Dataset + metrics utils
+# Repro + metrics utils
 # =========================
 
 def seed_everything(seed: int) -> None:
@@ -108,6 +104,10 @@ def dice_per_class_from_logits(logits: torch.Tensor, y_true: torch.Tensor) -> Di
     return dices
 
 
+# =========================
+# Dataset
+# =========================
+
 class BratsNPZDataset(Dataset):
     """
     Reads .npz files saved as:
@@ -115,7 +115,7 @@ class BratsNPZDataset(Dataset):
       y: (H,W) uint8 labels {0,1,2,4} -> remapped to {0,1,2,3}
 
     Optional keep_channels:
-      - if provided, channels not in keep_channels are zeroed out (modality-missing simulation).
+      - if provided, channels not in keep_channels are zeroed out (simulate missing modalities).
     """
     def __init__(self, split_dir: Path, augment: bool = False, keep_channels: Optional[List[int]] = None):
         self.split_dir = split_dir
@@ -149,12 +149,13 @@ class BratsNPZDataset(Dataset):
         y = d["y"].astype(np.uint8)     # (H,W) in {0,1,2,4}
         y = remap_brats_labels(y).astype(np.int64)
 
-        # modality masking (simulate missing modalities)
+        # modality masking
         if self.keep_channels is not None:
             mask = np.zeros((x.shape[0],), dtype=np.float32)
             for ch in self.keep_channels:
-                if 0 <= int(ch) < x.shape[0]:
-                    mask[int(ch)] = 1.0
+                ch = int(ch)
+                if 0 <= ch < x.shape[0]:
+                    mask[ch] = 1.0
             x = x * mask[:, None, None]
 
         x_t = torch.from_numpy(x)
@@ -165,7 +166,7 @@ class BratsNPZDataset(Dataset):
 
 
 # =========================
-# U-Net (same as centralized)
+# U-Net
 # =========================
 
 class DoubleConv(nn.Module):
@@ -228,7 +229,7 @@ class UNet2D(nn.Module):
 
 
 # =========================
-# Loss (same as centralized)
+# Loss
 # =========================
 
 def soft_dice_loss(logits: torch.Tensor, y_true: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
@@ -340,7 +341,6 @@ def train_one_epoch_fedprox(
         logits = model(x)
         loss = combined_loss(logits, y)
 
-        # proximal term
         prox = 0.0
         for p, p0 in zip(model.parameters(), global_params):
             prox = prox + torch.sum((p - p0) ** 2)
@@ -432,7 +432,6 @@ class UNetClient(fl.client.NumPyClient):
         mu = float(self.force_mu) if self.force_mu is not None else _get_mu_from_config(config)
         opt = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=1e-5)
 
-        # snapshot global params once per round (FedProx reference)
         global_params = [p.detach().clone() for p in self.model.parameters()]
 
         last_loss, last_d = 0.0, {"Mean": 0.0, "WT": 0.0, "TC": 0.0, "ET": 0.0}
@@ -460,7 +459,7 @@ class UNetClient(fl.client.NumPyClient):
 
 
 # =========================
-# Strategy that keeps latest parameters (for final test eval)
+# Strategy that keeps latest params (for final test eval)
 # =========================
 
 class FedAvgKeepParams(fl.server.strategy.FedAvg):
@@ -477,12 +476,11 @@ class FedAvgKeepParams(fl.server.strategy.FedAvg):
 
 
 # =========================
-# Config loading (MNIST-style, clean)
+# Config loading
 # =========================
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
-
     ap.add_argument("--config", type=str, default=None, help="Path to YAML config")
 
     # Data
@@ -490,7 +488,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--partitions_dir",
         type=str,
         default="/home/bk489/federated/federated-thesis/data/partitions/federated_clients_10_mixed/client_data",
-        help="Folder containing client_*/train/... (client dirs can have extra suffixes).",
+        help="Folder containing client_* directories (with suffixes), each has train/ with .npz slices.",
     )
     ap.add_argument(
         "--data_root",
@@ -501,7 +499,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # FL
     ap.add_argument("--num_clients", type=int, default=10)
-    ap.add_argument("--rounds", type=int, default=2)
+    ap.add_argument("--rounds", type=int, default=30)
     ap.add_argument("--fraction_fit", type=float, default=1.0)
     ap.add_argument("--local_epochs", type=int, default=1)
 
@@ -519,10 +517,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--use_cuda", action="store_true")
 
     # Eval/output
-    ap.add_argument("--eval_split", choices=["val", "test"], default="val",
-                    help="Which split to evaluate each round (centralized).")
-    ap.add_argument("--output_dir", type=str,
-                    default="/home/bk489/federated/federated-thesis/results/unet_flower")
+    ap.add_argument("--eval_split", choices=["val", "test"], default="val")
+    ap.add_argument("--output_dir", type=str, default="/home/bk489/federated/federated-thesis/results/unet_flower")
     ap.add_argument("--run_name", type=str, default=None)
 
     return ap
@@ -530,8 +526,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def parse_args_with_yaml() -> Tuple[argparse.Namespace, Dict[str, Any]]:
     ap = build_parser()
-
-    # Stage 1: read --config only
     args0, _ = ap.parse_known_args()
 
     cfg: Dict[str, Any] = {}
@@ -541,12 +535,57 @@ def parse_args_with_yaml() -> Tuple[argparse.Namespace, Dict[str, Any]]:
             raise FileNotFoundError(f"Config not found: {cfg_path}")
         cfg = yaml.safe_load(cfg_path.read_text()) or {}
         if not isinstance(cfg, dict):
-            raise ValueError("YAML config must be a mapping/dict at top level")
+            raise ValueError("YAML config must be a dict at top level")
         ap.set_defaults(**cfg)
 
-    # Stage 2: parse full args (CLI overrides YAML defaults)
     args = ap.parse_args()
     return args, cfg
+
+
+# =========================
+# Client dir discovery + mapping (IMPORTANT FIX)
+# =========================
+
+_CLIENT_RE = re.compile(r"^client_(\d+)\b")
+
+def discover_client_train_dirs(partitions_dir: Path) -> Dict[int, Path]:
+    """
+    Returns mapping: client_index -> train_dir
+    Accepts folder names like:
+      client_0_HGG_full, client_7_mixed_3mods_noCE, client_7_mixed_3mods_noCE,
+    but requires the prefix 'client_<int>'.
+
+    If duplicates for the same index exist, we raise (safety).
+    """
+    if not partitions_dir.exists():
+        raise FileNotFoundError(f"partitions_dir not found: {partitions_dir}")
+
+    mapping: Dict[int, Path] = {}
+    candidates = [d for d in partitions_dir.iterdir() if d.is_dir() and d.name.startswith("client_")]
+    if not candidates:
+        raise RuntimeError(f"No client_* directories found under: {partitions_dir}")
+
+    for d in candidates:
+        m = _CLIENT_RE.match(d.name)
+        if not m:
+            # ignore weird dirs that start with client_ but don't have numeric id
+            continue
+        idx = int(m.group(1))
+        train_dir = d / "train"
+        if idx in mapping:
+            raise RuntimeError(f"Duplicate client index {idx}: {mapping[idx].parent.name} and {d.name}")
+        mapping[idx] = train_dir
+
+    if not mapping:
+        raise RuntimeError(f"Found client_* dirs but none matched pattern { _CLIENT_RE.pattern } under {partitions_dir}")
+
+    # Ensure all train dirs exist
+    missing = [(i, p) for i, p in mapping.items() if not p.exists()]
+    if missing:
+        msg = "\n".join([f"  client_{i}: missing train dir {p}" for i, p in sorted(missing)])
+        raise RuntimeError("Some client train dirs are missing:\n" + msg)
+
+    return mapping
 
 
 # =========================
@@ -567,22 +606,36 @@ def main() -> None:
         mu_tag = f"mu{args.mu}" if args.strategy == "fedprox" else "muNA"
         args.run_name = f"{args.strategy}_clients{args.num_clients}_rounds{args.rounds}_{mu_tag}_{ts}"
 
-    # Optional: client modality plan from YAML
-    # Expected:
+    # Optional per-client modalities from YAML:
     # client_modalities:
-    #   "0": [1]     # keep only channel 1
+    #   "2": [1]     # keep only channel 1 for cid=2
     client_modalities: Dict[str, List[int]] = {}
-    if "client_modalities" in cfg and isinstance(cfg["client_modalities"], dict):
+    if isinstance(cfg.get("client_modalities", None), dict):
         for k, v in cfg["client_modalities"].items():
             if isinstance(v, list):
                 client_modalities[str(k)] = [int(x) for x in v]
 
-    print("\n" + "=" * 70)
-    print("Flower BraTS 2D U-Net Federated Simulation (10 clients default)")
-    print("=" * 70)
+    partitions_dir = Path(args.partitions_dir)
+    client_train_map = discover_client_train_dirs(partitions_dir)
+
+    # Validate requested num_clients exists in mapping
+    requested = list(range(int(args.num_clients)))
+    missing_ids = [i for i in requested if i not in client_train_map]
+    if missing_ids:
+        found = sorted(client_train_map.keys())
+        raise RuntimeError(
+            f"num_clients={args.num_clients} but missing these client indices in partitions_dir: {missing_ids}\n"
+            f"Found client indices: {found}\n"
+            f"Your folder names must start with client_<id> (e.g., client_0_HGG_full)."
+        )
+
+    # Print mapping (helps debugging and thesis reproducibility)
+    print("\n" + "=" * 80)
+    print("Flower BraTS 2D U-Net Federated Simulation (robust client naming)")
+    print("=" * 80)
     if args.config:
         print("Config:", args.config)
-    print("Partitions:", args.partitions_dir)
+    print("Partitions:", partitions_dir)
     print("Global data:", args.data_root)
     print("Strategy:", args.strategy.upper(), (f"(mu={args.mu})" if args.strategy == "fedprox" else ""))
     print("Clients:", args.num_clients, "| Rounds:", args.rounds, "| Fraction fit:", args.fraction_fit)
@@ -591,25 +644,20 @@ def main() -> None:
     print("Eval split per round:", args.eval_split)
     print("Output:", out_dir)
     print("Run name:", args.run_name)
+    print("\nClient mapping (cid -> folder):")
+    for i in range(int(args.num_clients)):
+        train_dir = client_train_map[i]
+        print(f"  cid {i}: {train_dir.parent.name}  (train_dir={train_dir})")
     if client_modalities:
-        print("Client modality masks provided for:", sorted(client_modalities.keys()))
-    print("=" * 70 + "\n")
-
-    # Discover client directories and map cid->dir by sorted order
-    partitions = Path(args.partitions_dir)
-    if not partitions.exists():
-        raise FileNotFoundError(f"partitions_dir not found: {partitions}")
-
-    client_dirs = sorted([d for d in partitions.iterdir() if d.is_dir() and d.name.startswith("client_")])
-    if len(client_dirs) < int(args.num_clients):
-        raise RuntimeError(
-            f"Found only {len(client_dirs)} client_* dirs in {partitions}, "
-            f"but num_clients={args.num_clients}"
-        )
+        print("\nClient modality masks provided for:", sorted(client_modalities.keys()))
+    print("=" * 80 + "\n")
 
     # Centralized evaluation loader
     data_root = Path(args.data_root)
     eval_dir = data_root / args.eval_split
+    if not eval_dir.exists():
+        raise FileNotFoundError(f"Eval split dir not found: {eval_dir}")
+
     pin_memory = (device.type == "cuda")
     eval_ds = BratsNPZDataset(eval_dir, augment=False)
     eval_loader = DataLoader(
@@ -621,7 +669,7 @@ def main() -> None:
     )
     print(f"Centralized {args.eval_split} slices: {len(eval_ds)}")
 
-    def evaluate_fn(server_round: int, parameters: List[np.ndarray], config: Dict[str, Any]):
+    def evaluate_fn(server_round: int, parameters: List[np.ndarray], _config: Dict[str, Any]):
         model = UNet2D(in_channels=4, num_classes=4, base=32).to(device)
         set_parameters(model, parameters)
         loss, d = evaluate_model(model, eval_loader, device)
@@ -638,30 +686,25 @@ def main() -> None:
             f"global_{args.eval_split}_ET": float(d["ET"]),
         }
 
-    def fit_config_fn(server_round: int) -> Dict[str, float]:
+    def fit_config_fn(_server_round: int) -> Dict[str, float]:
         if args.strategy == "fedprox":
             return {"proximal-mu": float(args.mu), "proximal_mu": float(args.mu), "mu": float(args.mu)}
-        return {"proximal-mu": 0.0, "proximal_mu": 0.0, "mu": 0.0}
+        return {"proximal-mu": 0.0, "proximal_mu": 0.0, "mu": 0.0
 
-    # Flower newer API prefers client_fn(Context). We'll support both.
+        }
+
+    # Support both Flower legacy client_fn(cid: str) and Context-based client_fn(Context)
     try:
         from flwr.common import Context
     except Exception:
         Context = None  # type: ignore
 
-    def _train_dir_for_cid(cid_str: str) -> Path:
-        idx = int(cid_str)
-        cdir = client_dirs[idx]
-        return cdir / "train"
-
     def client_fn_legacy(cid: str):
-        train_dir = _train_dir_for_cid(cid)
-        if not train_dir.exists():
-            raise FileNotFoundError(f"Missing train dir for cid={cid}: {train_dir}")
-
+        cid_i = int(cid)
+        train_dir = client_train_map[cid_i]
         keep_channels = client_modalities.get(str(cid), None)
-
         force_mu = float(args.mu) if args.strategy == "fedprox" else None
+
         return UNetClient(
             cid=cid,
             train_dir=train_dir,
@@ -694,7 +737,7 @@ def main() -> None:
         min_fit_clients=min_fit,
         min_available_clients=int(args.num_clients),
 
-        # Disable client-side evaluation (client returns 0 examples)
+        # Disable client-side evaluation (clients return 0 examples)
         fraction_evaluate=0.0,
         min_evaluate_clients=0,
 
@@ -709,7 +752,7 @@ def main() -> None:
         num_clients=int(args.num_clients),
         config=fl.server.ServerConfig(num_rounds=int(args.rounds)),
         strategy=strategy,
-        # On a single-GPU node this will effectively run one client at a time.
+        # On a single-GPU node, this effectively runs clients sequentially (safe).
         client_resources={"num_cpus": 1, "num_gpus": 1 if device.type == "cuda" else 0},
     )
     total_time = time.time() - start_time
@@ -732,7 +775,9 @@ def main() -> None:
             "eval_split": args.eval_split,
             "partitions_dir": str(args.partitions_dir),
             "data_root": str(args.data_root),
-            "client_dirs_mapped": [str(d) for d in client_dirs[: int(args.num_clients)]],
+            "client_mapping": {
+                str(i): client_train_map[i].parent.name for i in range(int(args.num_clients))
+            },
             "client_modalities": client_modalities,
             "total_time_sec": float(total_time),
             "timestamp": datetime.now().isoformat(),
@@ -746,9 +791,11 @@ def main() -> None:
         },
     }
 
-    # Final test evaluation (always on global "test" split)
+    # Final global test eval
     if strategy.latest_parameters is not None:
         test_dir = Path(args.data_root) / "test"
+        if not test_dir.exists():
+            raise FileNotFoundError(f"Global test dir missing: {test_dir}")
         test_ds = BratsNPZDataset(test_dir, augment=False)
         test_loader = DataLoader(
             test_ds,
