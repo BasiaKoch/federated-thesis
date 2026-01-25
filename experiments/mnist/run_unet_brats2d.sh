@@ -9,9 +9,8 @@
 #SBATCH -p ampere
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=01:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.err
 #SBATCH --qos=INTR
@@ -65,8 +64,10 @@ find "${DATA_DIR}" -name "*.npz" | head -n 5
 export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
 export PYTHONUNBUFFERED=1
+export BRATS_DATA_DIR="${DATA_DIR}"
 
 echo "Starting U-Net training..."
+echo "BRATS_DATA_DIR=${BRATS_DATA_DIR}"
 python -u "${SRC_FILE}"
 
 echo "Job completed!"

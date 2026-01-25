@@ -16,8 +16,10 @@ from torch.utils.data import Dataset, DataLoader
 # Config (edit these)
 # =========================
 
-from pathlib import Path
-DATA_ROOT = Path("/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz")
+DATA_ROOT = Path(os.environ.get(
+    "BRATS_DATA_DIR",
+    "/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz"
+))
 # Output
 RUN_DIR = Path("./runs_unet_brats2d")
 RUN_DIR.mkdir(parents=True, exist_ok=True)
@@ -26,7 +28,7 @@ RUN_DIR.mkdir(parents=True, exist_ok=True)
 SEED = 42
 
 # Training
-EPOCHS = 1
+EPOCHS = 100
 BATCH_SIZE = 4
 LR = 1e-3
 WEIGHT_DECAY = 1e-5
