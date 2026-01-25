@@ -20,14 +20,14 @@ set -euo pipefail
 
 #! ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
-SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train.py"
+SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train_10clients.py"
 
 # Pick config: you can pass it as arg1, otherwise default to FedAvg config
 CONFIG_FILE="${1:-${PROJECT_DIR}/federated_unet/unet/configs/unet_fedavg.yaml}"
 
 # Data paths (used for quick checks + env)
 DATA_DIR="${PROJECT_DIR}/data/brats2020_top10_slices_split_npz"
-PARTITIONS_DIR="${PROJECT_DIR}/data/partitions/federated_clients_5_lgg_hgg/client_data"
+PARTITIONS_DIR="${PROJECT_DIR}/data/partitions/federated_clients_10_mixed/client_data"
 
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 RESULTS_DIR="${PROJECT_DIR}/results/unet_flower"
@@ -95,7 +95,7 @@ echo "Example global npz files:"
 find "${DATA_DIR}" -name "*.npz" | head -n 5 || true
 
 echo "Client partition sanity check:"
-for i in 0 1 2 3 4; do
+for i in 0 1 2 3 4 5 6 7 8 9; do
   cdir="${PARTITIONS_DIR}/client_${i}/train"
   if [ ! -d "${cdir}" ]; then
     echo "ERROR: missing ${cdir}"
