@@ -334,13 +334,19 @@ def mean_fg_dice_ignore_empty_target(pred_hw: torch.Tensor, target_hw: torch.Ten
 # -------------------------
 # Train / eval loops
 # -------------------------
-def train_one_epoch(model, loader, opt, scaler, device, use_amp: bool) -> float:
+def train_one_epoch(model, loader, opt, scaler, device, use_amp: bool, log_every: int = 0) -> float:
     model.train()
     ce = nn.CrossEntropyLoss()
     total = 0.0
     n = 0
 
-    for x, y in loader:
+    running_loss = 0.0
+    running_fg = []
+    running_wt = []
+    running_tc = []
+    running_et = []
+
+    for step, (x, y) in enumerate(loader, start=1):
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
 
@@ -358,52 +364,42 @@ def train_one_epoch(model, loader, opt, scaler, device, use_amp: bool) -> float:
             loss.backward()
             opt.step()
 
-        total += loss.item() * x.size(0)
-        n += x.size(0)
+        bs = x.size(0)
+        total += loss.item() * bs
+        n += bs
+
+        # --- running stats for live logging ---
+        running_loss += loss.item()
+
+        # compute quick dice on this batch (no grad)
+        with torch.no_grad():
+            pred = torch.argmax(logits, dim=1).detach().cpu()
+            targ = y.detach().cpu()
+            for i in range(pred.size(0)):
+                running_fg.append(mean_fg_dice_ignore_empty_target(pred[i], targ[i]))
+                r = brats_region_dice_per_sample(pred[i], targ[i])
+                if r["WT"] is not None: running_wt.append(r["WT"])
+                if r["TC"] is not None: running_tc.append(r["TC"])
+                if r["ET"] is not None: running_et.append(r["ET"])
+
+        if log_every and (step % log_every == 0):
+            fg = float(np.mean(running_fg)) if running_fg else 0.0
+            wt = float(np.mean(running_wt)) if running_wt else 0.0
+            tc = float(np.mean(running_tc)) if running_tc else 0.0
+            et = float(np.mean(running_et)) if running_et else 0.0
+            avg_loss = running_loss / log_every
+
+            print(
+                f"  [train] step {step:05d}/{len(loader):05d} "
+                f"loss={avg_loss:.4f} fgDice={fg:.4f} WT={wt:.4f} TC={tc:.4f} ET={et:.4f}",
+                flush=True,
+            )
+
+            # reset window
+            running_loss = 0.0
+            running_fg.clear(); running_wt.clear(); running_tc.clear(); running_et.clear()
 
     return total / max(1, n)
-
-@torch.no_grad()
-def evaluate(model, loader, device) -> Dict[str, float]:
-    model.eval()
-    ce = nn.CrossEntropyLoss()
-
-    total_loss = 0.0
-    n = 0
-
-    fg_dices: List[float] = []
-    wt: List[float] = []
-    tc: List[float] = []
-    et: List[float] = []
-
-    for x, y in loader:
-        x = x.to(device, non_blocking=True)
-        y = y.to(device, non_blocking=True)
-
-        logits = model(x)
-        loss = ce(logits, y) + soft_dice_loss(logits, y, num_classes=4)
-        total_loss += loss.item() * x.size(0)
-        n += x.size(0)
-
-        pred = torch.argmax(logits, dim=1).cpu()
-        targ = y.cpu()
-
-        # IMPORTANT: compute per-sample dice and IGNORE empty-target cases
-        for i in range(pred.size(0)):
-            fg_dices.append(mean_fg_dice_ignore_empty_target(pred[i], targ[i]))
-
-            r = brats_region_dice_per_sample(pred[i], targ[i])
-            if r["WT"] is not None: wt.append(r["WT"])
-            if r["TC"] is not None: tc.append(r["TC"])
-            if r["ET"] is not None: et.append(r["ET"])
-
-    return {
-        "loss": total_loss / max(1, n),
-        "mean_fg_dice": float(np.mean(fg_dices)) if fg_dices else 0.0,
-        "WT": float(np.mean(wt)) if wt else 0.0,
-        "TC": float(np.mean(tc)) if tc else 0.0,
-        "ET": float(np.mean(et)) if et else 0.0,
-    }
 
 
 def main() -> None:
@@ -422,6 +418,8 @@ def main() -> None:
     ap.add_argument("--keep_empty_prob", type=float, default=0.1)
     ap.add_argument("--ckpt", type=str, default="unet_brats2d_best.pt")
     ap.add_argument("--smoke", action="store_true", help="Run a tiny 1-epoch sanity test on a few batches")
+    ap.add_argument("--log_every", type=int, default=50, help="Print train dice/loss every N batches (0 disables)")
+
     args = ap.parse_args()
 
     set_seed(args.seed)
@@ -482,7 +480,8 @@ def main() -> None:
     best_epoch = -1
 
     for epoch in range(1, args.epochs + 1):
-        tr_loss = train_one_epoch(model, train_loader, opt, scaler, device, use_amp=use_amp)
+        tr_loss = train_one_epoch(model, train_loader, opt, scaler, device, use_amp=use_amp, log_every=args.log_every)
+
         val_metrics = evaluate(model, val_loader, device)
 
         brats_mean = (val_metrics["WT"] + val_metrics["TC"] + val_metrics["ET"]) / 3.0
