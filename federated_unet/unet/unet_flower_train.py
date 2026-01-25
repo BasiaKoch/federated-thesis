@@ -639,9 +639,16 @@ def main() -> None:
         fraction_fit=float(args.fraction_fit),
         min_fit_clients=min_fit,
         min_available_clients=int(args.num_clients),
+
+        # Disable client-side evaluation (your clients return 0 eval examples)
+        fraction_evaluate=0.0,
+        min_evaluate_clients=0,
+
+        # Keep centralized evaluation each round
         evaluate_fn=evaluate_fn,
         on_fit_config_fn=fit_config_fn,
-    )
+)
+
 
     start_time = time.time()
     history = fl.simulation.start_simulation(
