@@ -705,7 +705,7 @@ def main() -> None:
         keep_channels = client_modalities.get(str(cid), None)
         force_mu = float(args.mu) if args.strategy == "fedprox" else None
 
-        return UNetClient(
+        client = UNetClient(
             cid=cid,
             train_dir=train_dir,
             device=device,
@@ -716,6 +716,8 @@ def main() -> None:
             keep_channels=keep_channels,
             force_mu=force_mu,
         )
+        # Flower 1.5+ requires Client, not NumPyClient
+        return client.to_client()
 
     def client_fn_context(context):
         cid = None
@@ -747,13 +749,14 @@ def main() -> None:
     )
 
     start_time = time.time()
+    # Use fractional GPU so multiple clients can share the single GPU
+    gpu_fraction = 1.0 / max(int(args.num_clients), 1) if device.type == "cuda" else 0.0
     history = fl.simulation.start_simulation(
         client_fn=client_fn,
         num_clients=int(args.num_clients),
         config=fl.server.ServerConfig(num_rounds=int(args.rounds)),
         strategy=strategy,
-        # On a single-GPU node, this effectively runs clients sequentially (safe).
-        client_resources={"num_cpus": 1, "num_gpus": 1 if device.type == "cuda" else 0},
+        client_resources={"num_cpus": 1, "num_gpus": gpu_fraction},
     )
     total_time = time.time() - start_time
 
