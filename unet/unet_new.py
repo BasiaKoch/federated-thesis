@@ -28,7 +28,7 @@ RUN_DIR.mkdir(parents=True, exist_ok=True)
 SEED = 42
 
 # Training
-EPOCHS = 100
+EPOCHS = 30
 BATCH_SIZE = 4
 LR = 1e-3
 WEIGHT_DECAY = 1e-5

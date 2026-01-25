@@ -54,3 +54,4 @@ jobs/*/logs/
 jobs/*/checkpoints/
 
 results/
+data/
