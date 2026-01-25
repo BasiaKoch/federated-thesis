@@ -1,0 +1,22 @@
+num_clients: 5
+rounds: 2
+fraction_fit: 1.0
+
+local_epochs: 1
+batch_size: 4
+lr: 0.001
+num_workers: 0
+
+use_cuda: true
+
+strategy: fedprox
+mu: 0.01
+
+partitions_dir: /home/bk489/federated/federated-thesis/data/partitions/federated_clients_5_lgg_hgg/client_data
+data_root: /home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz
+
+eval_split: val
+
+output_dir: /home/bk489/federated/federated-thesis/results/unet_flower
+run_name: fedprox_5clients_lgg_hgg_mu0p01
+seed: 42

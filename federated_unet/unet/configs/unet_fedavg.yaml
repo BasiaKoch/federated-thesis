@@ -1,0 +1,29 @@
+# Central FL settings
+num_clients: 5
+rounds: 2
+fraction_fit: 1.0
+
+# Local training
+local_epochs: 1
+batch_size: 4
+lr: 0.001
+num_workers: 0
+
+# Device
+use_cuda: true
+
+# Strategy
+strategy: fedavg
+mu: 0.0
+
+# Data paths
+partitions_dir: /home/bk489/federated/federated-thesis/data/partitions/federated_clients_5_lgg_hgg/client_data
+data_root: /home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz
+
+# Evaluation
+eval_split: val
+
+# Output
+output_dir: /home/bk489/federated/federated-thesis/results/unet_flower
+run_name: fedavg_5clients_lgg_hgg
+seed: 42
