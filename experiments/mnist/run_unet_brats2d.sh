@@ -10,6 +10,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=6
+#SBATCH --gres=gpu:1
 #SBATCH --time=06:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.err
@@ -61,8 +62,8 @@ find "${DATA_DIR}" -name "*.npz" | wc -l
 echo "Example files:"
 find "${DATA_DIR}" -name "*.npz" | head -n 5
 
-export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
-export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-6}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-6}"
 export PYTHONUNBUFFERED=1
 export BRATS_DATA_DIR="${DATA_DIR}"
 
