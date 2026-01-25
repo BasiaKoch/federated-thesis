@@ -14,6 +14,10 @@
 #SBATCH --time=01:00:00
 #SBATCH --output=brats_unet2d_%j.out
 #SBATCH --error=brats_unet2d_%j.err
+#SBATCH --gres=gpu:1
+#SBATCH --time=06:00:00
+#SBATCH --output=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.out
+#SBATCH --error=/home/bk489/federated/federated-thesis/unet/logs/brats_unet2d_%j.err
 #SBATCH --qos=INTR
 
 #! ======= Paths =======
@@ -23,8 +27,7 @@ DATA_DIR="${PROJECT_DIR}/data/brats2020_top10_slices_split_npz"
 RESULTS_DIR="${PROJECT_DIR}/unet/runs_unet_brats2d"
 LOG_DIR="${PROJECT_DIR}/unet/logs"
 
-#! ======= Load required environment modules =======
-. /etc/profile.d/modules.sh
+#! ======= Load required environment modules =======. /etc/profile.d/modules.sh
 module load rhel8/default-amp
 module load gcc/9 cuda/12.1 cudnn
 
@@ -64,7 +67,13 @@ echo "Example files:"
 # Avoid premature exit due to SIGPIPE issues by capturing then printing
 find "${DATA_DIR}" -name "*.npz" | head -n 5 || true
 
+<<<<<<< HEAD
 #! ======= Run (unbuffered so epoch/Dice prints appear immediately) =======
+=======
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK:-6}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK:-6}"
+export PYTHONUNBUFFERED=1
+>>>>>>> 901f1ef6c21ee475e67743b7bc3773bf33c499f8
 export BRATS_DATA_DIR="${DATA_DIR}"
 export PYTHONUNBUFFERED=1
 
