@@ -432,6 +432,22 @@ def main() -> None:
         pin_memory=(device.type == "cuda"),
     )
 
+    # Create per-client test loaders for server-side evaluation
+    c0_test_loader = DataLoader(
+        BratsNPZSliceDataset(partition_dir / "client_0" / "test"),
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=(device.type == "cuda"),
+    )
+    c1_test_loader = DataLoader(
+        BratsNPZSliceDataset(partition_dir / "client_1" / "test"),
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=(device.type == "cuda"),
+    )
+
     def evaluate_fn(server_round: int, parameters, config):
         # Build a fresh model with correct in_ch (infer from client_0 train)
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
@@ -439,13 +455,34 @@ def main() -> None:
         in_ch = int(x0.shape[0])
         model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
         set_parameters(model, parameters)
-        te = evaluate_model(model, global_test_loader, device)
-        print(f"[Round {server_round}] GLOBAL pooled test meanDice={te['Mean']:.4f} (WT={te['WT']:.4f} TC={te['TC']:.4f} ET={te['ET']:.4f})")
-        return float(te["loss"]), {
-            "global_meanDice": float(te["Mean"]),
-            "global_WT": float(te["WT"]),
-            "global_TC": float(te["TC"]),
-            "global_ET": float(te["ET"]),
+
+        # Evaluate global model on each client's test set (for thesis comparison)
+        c0_metrics = evaluate_model(model, c0_test_loader, device)
+        c1_metrics = evaluate_model(model, c1_test_loader, device)
+
+        # Also evaluate on pooled test
+        pooled_metrics = evaluate_model(model, global_test_loader, device)
+
+        print(f"[Round {server_round}] "
+              f"Client0 Mean={c0_metrics['Mean']:.4f} | "
+              f"Client1 Mean={c1_metrics['Mean']:.4f} | "
+              f"Pooled Mean={pooled_metrics['Mean']:.4f}")
+
+        return float(pooled_metrics["loss"]), {
+            # Per-client metrics (comparable to local-only training)
+            "client0_meanDice": float(c0_metrics["Mean"]),
+            "client0_WT": float(c0_metrics["WT"]),
+            "client0_TC": float(c0_metrics["TC"]),
+            "client0_ET": float(c0_metrics["ET"]),
+            "client1_meanDice": float(c1_metrics["Mean"]),
+            "client1_WT": float(c1_metrics["WT"]),
+            "client1_TC": float(c1_metrics["TC"]),
+            "client1_ET": float(c1_metrics["ET"]),
+            # Pooled (global) metrics
+            "global_meanDice": float(pooled_metrics["Mean"]),
+            "global_WT": float(pooled_metrics["WT"]),
+            "global_TC": float(pooled_metrics["TC"]),
+            "global_ET": float(pooled_metrics["ET"]),
         }
 
     def client_fn(cid: str):
@@ -480,40 +517,54 @@ def main() -> None:
     )
     total = time.time() - t0
 
-    # Extract centralized metrics
+    # Extract centralized metrics (per-client + pooled)
     rounds = []
-    global_mean = []
-    global_wt = []
-    global_tc = []
-    global_et = []
+    metrics_store = {
+        "client0_meanDice": [], "client0_WT": [], "client0_TC": [], "client0_ET": [],
+        "client1_meanDice": [], "client1_WT": [], "client1_TC": [], "client1_ET": [],
+        "global_meanDice": [], "global_WT": [], "global_TC": [], "global_ET": [],
+    }
 
     if history.metrics_centralized:
         for key, store in history.metrics_centralized.items():
-            if key == "global_meanDice":
-                rounds = [int(r) for r, _ in store]
-                global_mean = [float(v) for _, v in store]
-            elif key == "global_WT":
-                global_wt = [float(v) for _, v in store]
-            elif key == "global_TC":
-                global_tc = [float(v) for _, v in store]
-            elif key == "global_ET":
-                global_et = [float(v) for _, v in store]
+            if key in metrics_store:
+                if not rounds:  # extract rounds from first metric
+                    rounds = [int(r) for r, _ in store]
+                metrics_store[key] = [float(v) for _, v in store]
 
     result = {
         "config": asdict(cfg),
         "timing": {"total_seconds": total, "seconds_per_round": total / max(args.rounds, 1)},
         "per_round": {
             "rounds": rounds,
-            "global_meanDice": global_mean,
-            "global_WT": global_wt,
-            "global_TC": global_tc,
-            "global_ET": global_et,
+            **metrics_store,
         },
         "final": {
-            "last_global_meanDice": global_mean[-1] if global_mean else None,
-            "best_global_meanDice": max(global_mean) if global_mean else None,
+            # Per-client final metrics (for thesis comparison with local-only)
+            "client0_meanDice": metrics_store["client0_meanDice"][-1] if metrics_store["client0_meanDice"] else None,
+            "client0_best_meanDice": max(metrics_store["client0_meanDice"]) if metrics_store["client0_meanDice"] else None,
+            "client1_meanDice": metrics_store["client1_meanDice"][-1] if metrics_store["client1_meanDice"] else None,
+            "client1_best_meanDice": max(metrics_store["client1_meanDice"]) if metrics_store["client1_meanDice"] else None,
+            # Pooled final metrics
+            "global_meanDice": metrics_store["global_meanDice"][-1] if metrics_store["global_meanDice"] else None,
+            "global_best_meanDice": max(metrics_store["global_meanDice"]) if metrics_store["global_meanDice"] else None,
         },
     }
+
+    # Print summary for thesis comparison
+    print("\n" + "="*60)
+    print("FEDERATED TRAINING COMPLETE - Per-Client Results")
+    print("="*60)
+    if metrics_store["client0_meanDice"]:
+        print(f"Client 0 (global model): Final Mean Dice = {result['final']['client0_meanDice']:.4f}, "
+              f"Best = {result['final']['client0_best_meanDice']:.4f}")
+    if metrics_store["client1_meanDice"]:
+        print(f"Client 1 (global model): Final Mean Dice = {result['final']['client1_meanDice']:.4f}, "
+              f"Best = {result['final']['client1_best_meanDice']:.4f}")
+    if metrics_store["global_meanDice"]:
+        print(f"Pooled (global model):   Final Mean Dice = {result['final']['global_meanDice']:.4f}, "
+              f"Best = {result['final']['global_best_meanDice']:.4f}")
+    print("="*60)
 
     (out_dir / "results.json").write_text(json.dumps(result, indent=2))
     print(f"\nSaved: {out_dir / 'results.json'}")
