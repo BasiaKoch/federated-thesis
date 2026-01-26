@@ -16,10 +16,10 @@ Config usage:
     python -u unet_flower_train.py --config /path/to/unet_fedavg.yaml
     python -u unet_flower_train.py --config /path/to/unet_fedprox.yaml
 
-Expected partition layout:
+Expected partition layout (manifest-based):
   partitions_dir/
-    client_0_*/train/<case_id>/*.npz
-    client_1_*/train/<case_id>/*.npz
+    client_0_*/manifest_train.json  (JSON with {"files": ["/path/to/file1.npz", ...]})
+    client_1_*/manifest_train.json
     ...
 """
 
@@ -162,6 +162,71 @@ class BratsNPZDataset(Dataset):
         y_t = torch.from_numpy(y)
         if self.augment:
             x_t, y_t = self._augment(x_t, y_t)
+        return x_t, y_t
+
+
+class BratsManifestDataset(Dataset):
+    """
+    Dataset backed by a manifest JSON containing a list of .npz file paths.
+    Each .npz must contain: x (4,H,W), y (H,W).
+    No data copying needed - reads directly from source paths.
+    """
+    def __init__(self, manifest_path: Path, augment: bool = False, keep_channels: Optional[List[int]] = None):
+        self.manifest_path = manifest_path
+        self.augment = augment
+        self.keep_channels = keep_channels
+
+        data = json.loads(manifest_path.read_text())
+        # support either {"files":[...]} or plain [...]
+        if isinstance(data, dict) and "files" in data:
+            self.files = [str(p) for p in data["files"]]
+        elif isinstance(data, list):
+            self.files = [str(p) for p in data]
+        else:
+            raise ValueError(f"Unknown manifest format in {manifest_path}")
+
+        if len(self.files) == 0:
+            raise RuntimeError(f"Manifest is empty: {manifest_path}")
+
+    def __len__(self) -> int:
+        return len(self.files)
+
+    def _augment(self, x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        if np.random.rand() < 0.5:
+            x = torch.flip(x, dims=[2])
+            y = torch.flip(y, dims=[1])
+        if np.random.rand() < 0.5:
+            x = torch.flip(x, dims=[1])
+            y = torch.flip(y, dims=[0])
+        k = int(np.random.randint(0, 4))
+        if k > 0:
+            x = torch.rot90(x, k=k, dims=[1, 2])
+            y = torch.rot90(y, k=k, dims=[0, 1])
+        return x, y
+
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        p = self.files[idx]
+        d = np.load(p, allow_pickle=False)
+
+        x = d["x"].astype(np.float32)   # (4,H,W)
+        y = d["y"].astype(np.uint8)     # (H,W) in {0,1,2,4}
+
+        # remap {0,1,2,4} -> {0,1,2,3}
+        y = remap_brats_labels(y).astype(np.int64)
+
+        if self.keep_channels is not None:
+            mask = np.zeros((x.shape[0],), dtype=np.float32)
+            for ch in self.keep_channels:
+                if 0 <= int(ch) < x.shape[0]:
+                    mask[int(ch)] = 1.0
+            x = x * mask[:, None, None]
+
+        x_t = torch.from_numpy(x)
+        y_t = torch.from_numpy(y)
+
+        if self.augment:
+            x_t, y_t = self._augment(x_t, y_t)
+
         return x_t, y_t
 
 
@@ -396,7 +461,7 @@ class UNetClient(fl.client.NumPyClient):
     def __init__(
         self,
         cid: str,
-        train_dir: Path,
+        client_dir: Path,
         device: torch.device,
         lr: float,
         batch_size: int,
@@ -410,7 +475,8 @@ class UNetClient(fl.client.NumPyClient):
         self.model = UNet2D(in_channels=4, num_classes=4, base=32).to(device)
 
         pin_memory = (device.type == "cuda")
-        self.train_ds = BratsNPZDataset(train_dir, augment=True, keep_channels=keep_channels)
+        manifest_path = client_dir / "manifest_train.json"
+        self.train_ds = BratsManifestDataset(manifest_path, augment=True, keep_channels=keep_channels)
         self.train_loader = DataLoader(
             self.train_ds,
             batch_size=batch_size,
@@ -543,17 +609,17 @@ def parse_args_with_yaml() -> Tuple[argparse.Namespace, Dict[str, Any]]:
 
 
 # =========================
-# Client dir discovery + mapping (IMPORTANT FIX)
+# Client dir discovery + mapping
 # =========================
 
 _CLIENT_RE = re.compile(r"^client_(\d+)(?:_|$)")
 
-def discover_client_train_dirs(partitions_dir: Path) -> Dict[int, Path]:
+def discover_client_dirs(partitions_dir: Path) -> Dict[int, Path]:
     """
-    Returns mapping: client_index -> train_dir
+    Returns mapping: client_index -> client_dir
     Accepts folder names like:
-      client_0_HGG_full, client_7_mixed_3mods_noCE, client_7_mixed_3mods_noCE,
-    but requires the prefix 'client_<int>'.
+      client_0_HGG_full, client_7_mixed_3mods_noCE, etc.
+    Requires the prefix 'client_<int>' and a manifest_train.json file.
 
     If duplicates for the same index exist, we raise (safety).
     """
@@ -571,19 +637,18 @@ def discover_client_train_dirs(partitions_dir: Path) -> Dict[int, Path]:
             # ignore weird dirs that start with client_ but don't have numeric id
             continue
         idx = int(m.group(1))
-        train_dir = d / "train"
         if idx in mapping:
-            raise RuntimeError(f"Duplicate client index {idx}: {mapping[idx].parent.name} and {d.name}")
-        mapping[idx] = train_dir
+            raise RuntimeError(f"Duplicate client index {idx}: {mapping[idx].name} and {d.name}")
+        mapping[idx] = d
 
     if not mapping:
         raise RuntimeError(f"Found client_* dirs but none matched pattern { _CLIENT_RE.pattern } under {partitions_dir}")
 
-    # Ensure all train dirs exist
-    missing = [(i, p) for i, p in mapping.items() if not p.exists()]
+    # Ensure all clients have manifest_train.json
+    missing = [(i, p) for i, p in mapping.items() if not (p / "manifest_train.json").exists()]
     if missing:
-        msg = "\n".join([f"  client_{i}: missing train dir {p}" for i, p in sorted(missing)])
-        raise RuntimeError("Some client train dirs are missing:\n" + msg)
+        msg = "\n".join([f"  client_{i}: missing manifest_train.json in {p}" for i, p in sorted(missing)])
+        raise RuntimeError("Some client manifests are missing:\n" + msg)
 
     return mapping
 
@@ -616,13 +681,13 @@ def main() -> None:
                 client_modalities[str(k)] = [int(x) for x in v]
 
     partitions_dir = Path(args.partitions_dir)
-    client_train_map = discover_client_train_dirs(partitions_dir)
+    client_dir_map = discover_client_dirs(partitions_dir)
 
     # Validate requested num_clients exists in mapping
     requested = list(range(int(args.num_clients)))
-    missing_ids = [i for i in requested if i not in client_train_map]
+    missing_ids = [i for i in requested if i not in client_dir_map]
     if missing_ids:
-        found = sorted(client_train_map.keys())
+        found = sorted(client_dir_map.keys())
         raise RuntimeError(
             f"num_clients={args.num_clients} but missing these client indices in partitions_dir: {missing_ids}\n"
             f"Found client indices: {found}\n"
@@ -631,7 +696,7 @@ def main() -> None:
 
     # Print mapping (helps debugging and thesis reproducibility)
     print("\n" + "=" * 80)
-    print("Flower BraTS 2D U-Net Federated Simulation (robust client naming)")
+    print("Flower BraTS 2D U-Net Federated Simulation (manifest-based)")
     print("=" * 80)
     if args.config:
         print("Config:", args.config)
@@ -646,8 +711,8 @@ def main() -> None:
     print("Run name:", args.run_name)
     print("\nClient mapping (cid -> folder):")
     for i in range(int(args.num_clients)):
-        train_dir = client_train_map[i]
-        print(f"  cid {i}: {train_dir.parent.name}  (train_dir={train_dir})")
+        client_dir = client_dir_map[i]
+        print(f"  cid {i}: {client_dir.name}")
     if client_modalities:
         print("\nClient modality masks provided for:", sorted(client_modalities.keys()))
     print("=" * 80 + "\n")
@@ -689,20 +754,28 @@ def main() -> None:
     def fit_config_fn(_server_round: int) -> Dict[str, float]:
         if args.strategy == "fedprox":
             return {"proximal-mu": float(args.mu), "proximal_mu": float(args.mu), "mu": float(args.mu)}
-        return {"proximal-mu": 0.0, "proximal_mu": 0.0, "mu": 0.0
-
-        }
+        return {"proximal-mu": 0.0, "proximal_mu": 0.0, "mu": 0.0}
 
     def make_client(cid: str) -> UNetClient:
         """Create a UNetClient for the given client ID."""
-        cid_i = int(cid)
-        train_dir = client_train_map[cid_i]
+        try:
+            cid_i = int(cid)
+        except ValueError:
+            raise ValueError(f"Invalid client ID '{cid}' - must be an integer")
+
+        if cid_i not in client_dir_map:
+            raise KeyError(
+                f"Client ID {cid_i} not found in client_dir_map. "
+                f"Available IDs: {sorted(client_dir_map.keys())}"
+            )
+
+        client_dir = client_dir_map[cid_i]
         keep_channels = client_modalities.get(str(cid), None)
         force_mu = float(args.mu) if args.strategy == "fedprox" else None
 
         return UNetClient(
             cid=cid,
-            train_dir=train_dir,
+            client_dir=client_dir,
             device=device,
             lr=args.lr,
             batch_size=args.batch_size,
@@ -722,20 +795,30 @@ def main() -> None:
             # Check if it's a string (old API)
             if isinstance(context_or_cid, str):
                 cid = context_or_cid
+            elif isinstance(context_or_cid, int):
+                cid = str(context_or_cid)
             else:
                 # New API: extract cid from Context
                 context = context_or_cid
                 cid = None
+
                 # Try node_config["partition-id"] (Flower 1.9+)
                 if hasattr(context, "node_config") and isinstance(context.node_config, dict):
-                    cid = str(context.node_config.get("partition-id", ""))
-                # Fallback to node_id
-                if not cid and hasattr(context, "node_id"):
-                    cid = str(context.node_id)
-                # Default
-                if not cid:
-                    cid = "0"
+                    # Try both hyphen and underscore variants
+                    partition_id = context.node_config.get("partition-id")
+                    if partition_id is None:
+                        partition_id = context.node_config.get("partition_id")
+                    if partition_id is not None:
+                        cid = str(partition_id)
 
+                # If still no cid, raise an error (don't use node_id - it's not the partition ID)
+                if cid is None:
+                    raise ValueError(
+                        f"Could not extract partition ID from context. "
+                        f"node_config={getattr(context, 'node_config', None)}"
+                    )
+
+            print(f"[client_fn] Creating client with cid={cid}")
             client = make_client(cid)
             return client.to_client()
         except Exception as e:
@@ -801,7 +884,7 @@ def main() -> None:
             "partitions_dir": str(args.partitions_dir),
             "data_root": str(args.data_root),
             "client_mapping": {
-                str(i): client_train_map[i].parent.name for i in range(int(args.num_clients))
+                str(i): client_dir_map[i].name for i in range(int(args.num_clients))
             },
             "client_modalities": client_modalities,
             "total_time_sec": float(total_time),

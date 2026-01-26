@@ -94,7 +94,7 @@ find "${DATA_DIR}" -name "*.npz" | wc -l
 echo "Example global npz files:"
 find "${DATA_DIR}" -name "*.npz" | head -n 5 || true
 
-echo "Client partition sanity check:"
+echo "Client manifest sanity check:"
 for i in 0 1 2 3 4 5 6 7 8 9; do
   # Find client directory matching pattern client_${i}_* (e.g., client_0_HGG_full)
   cdir_parent=$(find "${PARTITIONS_DIR}" -maxdepth 1 -type d -name "client_${i}_*" | head -n 1)
@@ -102,13 +102,20 @@ for i in 0 1 2 3 4 5 6 7 8 9; do
     echo "ERROR: no directory matching client_${i}_* found in ${PARTITIONS_DIR}"
     exit 1
   fi
-  cdir="${cdir_parent}/train"
-  if [ ! -d "${cdir}" ]; then
-    echo "ERROR: missing ${cdir}"
+  manifest="${cdir_parent}/manifest_train.json"
+  if [ ! -f "${manifest}" ]; then
+    echo "ERROR: missing manifest: ${manifest}"
+    echo "Contents of ${cdir_parent}:"
+    ls -la "${cdir_parent}"
     exit 1
   fi
-  n=$(find "${cdir}" -name "*.npz" | wc -l)
-  echo "  $(basename ${cdir_parent}): ${n} slices"
+  # Count files in manifest
+  n=$(python3 -c "import json; data=json.load(open('${manifest}')); files=data.get('files', data) if isinstance(data, dict) else data; print(len(files))")
+  if [ "${n}" -eq 0 ]; then
+    echo "ERROR: manifest is empty: ${manifest}"
+    exit 1
+  fi
+  echo "  $(basename ${cdir_parent}): ${n} files in manifest"
 done
 
 #! ======= Run =======
