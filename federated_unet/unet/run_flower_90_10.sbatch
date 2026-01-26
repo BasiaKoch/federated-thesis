@@ -1,10 +1,10 @@
 #!/bin/bash
 #! ==============================================================
-#!  CSD3 Ampere GPU job: Federated U-Net (2 clients, 70/30)
+#!  CSD3 Ampere GPU job: Federated U-Net (2 clients, 90/10)
 #!  Trains global model using FedAvg/FedProx, evaluates per-client
 #! ==============================================================
 
-#SBATCH -J brats_fed_70_30
+#SBATCH -J brats_fed_90_10
 #SBATCH -A FERGUSSON-SL3-GPU
 #SBATCH -p ampere
 #SBATCH --nodes=1
@@ -12,8 +12,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
 #SBATCH --time=01:00:00
-#SBATCH --output=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/brats_fed_70_30_%j.out
-#SBATCH --error=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/brats_fed_70_30_%j.err
+#SBATCH --output=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/brats_fed_90_10_%j.out
+#SBATCH --error=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/brats_fed_90_10_%j.err
 #SBATCH --qos=INTR
 
 set -euo pipefail
@@ -22,19 +22,15 @@ set -euo pipefail
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train_70_30.py"
 
-PARTITION_DIR="${PROJECT_DIR}/data/partitions/federated_clients_2_70_30/client_data"
+PARTITION_DIR="${PROJECT_DIR}/data/partitions/federated_clients_2_90_10/client_data"
 
-OUT_BASE="${PROJECT_DIR}/results/federated/clients_2_70_30"
+OUT_BASE="${PROJECT_DIR}/results/federated/clients_2_90_10"
 
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # Hyperparams (override by exporting before sbatch if desired)
 # Following reference repo practices: https://github.com/nedeljkovicmajaa/Federated-Learning-And-Class-Imbalances
-STRATEGY="${STRATEGY:-fedavg}"       # fedavg or fedprox<<<<<<< HEAD
-MU="${MU:-0.01}"                     # FedProx mu (ignored if fedavg)
-ROUNDS="${ROUNDS:-10}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"
-BATCH_SIZE="${BATCH_SIZE:-32}"
+STRATEGY="${STRATEGY:-fedavg}"       # fedavg or fedprox
 MU="${MU:-0.1}"                      # FedProx mu (0.1-1.0 for heterogeneous data)
 ROUNDS="${ROUNDS:-20}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"    # Reference repo uses 3 local epochs
@@ -65,7 +61,7 @@ cd "${PROJECT_DIR}"
 
 # ======= Diagnostics =======
 echo "=============================================="
-echo "BraTS 2D U-Net FEDERATED (70/30) training"
+echo "BraTS 2D U-Net FEDERATED (90/10) training"
 echo "Job ID: ${SLURM_JOB_ID}"
 echo "Node(s): ${SLURM_NODELIST}"
 echo "Workdir: $(pwd)"
@@ -89,6 +85,8 @@ if [ ! -f "${SRC_FILE}" ]; then
 fi
 if [ ! -d "${PARTITION_DIR}" ]; then
   echo "ERROR: PARTITION_DIR not found: ${PARTITION_DIR}"
+  echo "Run this first to create the partition:"
+  echo "  python ${PROJECT_DIR}/federated_unet/unet/create_90_10_partition.py --rebuild"
   exit 1
 fi
 
