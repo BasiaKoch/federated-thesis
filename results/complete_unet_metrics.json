@@ -1,0 +1,15 @@
+{
+  "source_log": "/home/bk489/federated/federated-thesis/brats_unet2d_21235405.out",
+  "device": "cuda",
+  "train_slices": 2940,
+  "val_slices": 370,
+  "test_slices": 370,
+  "best_epoch": 30,
+  "best_val_meanDice": 0.8570398060619375,
+  "test_loss": 0.3288,
+  "test_meanDice": 0.8515,
+  "test_WT_Dice": 0.9296,
+  "test_TC_Dice": 0.8242,
+  "test_ET_Dice": 0.8007,
+  "avg_epoch_time_sec": 22.493333333333336
+}

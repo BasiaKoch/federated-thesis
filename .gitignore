@@ -30,7 +30,7 @@ __pycache__/
 # Large data files (keep partition script, ignore data)
 data/mnist.npz
 data/mnist_data/
-data/partitions/
+
 
 # macOS
 .DS_Store
@@ -53,5 +53,4 @@ jobs/*/workspace/
 jobs/*/logs/
 jobs/*/checkpoints/
 
-results/
 data/

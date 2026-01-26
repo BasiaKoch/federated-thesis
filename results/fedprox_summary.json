@@ -1,0 +1,29 @@
+{
+  "workspace": "workspace/mnist_fedprox",
+  "experiment": "fedprox",
+  "num_client_logs": 30,
+  "global_curve_source": "none",
+  "global_convergence": {
+    "total_rounds": 0,
+    "final_round": null,
+    "final_acc": null,
+    "best_acc": null,
+    "best_round": null,
+    "rounds_to_threshold": null,
+    "threshold": 0.8
+  },
+  "post_local_convergence": {
+    "total_rounds": 0,
+    "final_round": null,
+    "final_acc": null,
+    "best_acc": null,
+    "best_round": null,
+    "rounds_to_threshold": null,
+    "threshold": 0.8
+  },
+  "has_validation_lines": false,
+  "has_cross_site_val_json": true,
+  "server_logs": [
+    "workspace/mnist_fedprox/server/log.txt"
+  ]
+}

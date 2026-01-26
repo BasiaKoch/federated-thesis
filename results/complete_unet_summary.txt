@@ -1,0 +1,12 @@
+]633;E;echo "=== Centralized 2D U-Net baseline (BraTS2020 Top-10 slices) ===";b45b1359-d5d5-4b02-83ec-4c4e09a46aad]633;C=== Centralized 2D U-Net baseline (BraTS2020 Top-10 slices) ===
+Source log: /home/bk489/federated/federated-thesis/brats_unet2d_21235405.out
+
+Device: cuda
+Train slices: 2940 | Val slices: 370 | Test slices: 370
+Saving best model to: runs_unet_brats2d/best_unet2d.pt
+
+=== Best checkpoint (as reported) ===
+Epoch: 30 | val meanDice: 0.8570398060619375
+
+=== Test results (as reported) ===
+test loss 0.3288 | meanDice 0.8515 (WT 0.9296 TC 0.8242 ET 0.8007)
