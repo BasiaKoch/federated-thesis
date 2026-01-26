@@ -217,10 +217,24 @@ def evaluate_model(model: nn.Module, loader: DataLoader, device: torch.device) -
     }
 
 
-def train_epochs_standard(model: nn.Module, loader: DataLoader, device: torch.device, lr: float, epochs: int) -> None:
+def train_epochs_standard(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    lr: float,
+    epochs: int,
+    cid: str = "",
+) -> Dict[str, List[float]]:
+    """Standard FedAvg local training. Returns per-epoch metrics for logging."""
     model.train()
     opt = torch.optim.Adam(model.parameters(), lr=lr)
-    for _ in range(epochs):
+    epoch_losses = []
+    epoch_dices = []
+
+    for ep in range(epochs):
+        running_loss = 0.0
+        running_dice = 0.0
+        n_batches = 0
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
@@ -229,6 +243,20 @@ def train_epochs_standard(model: nn.Module, loader: DataLoader, device: torch.de
             loss = loss_bce_dice(logits, y)
             loss.backward()
             opt.step()
+
+            running_loss += loss.item()
+            with torch.no_grad():
+                dice = dice_per_channel_from_logits(logits, y).mean().item()
+                running_dice += dice
+            n_batches += 1
+
+        avg_loss = running_loss / max(n_batches, 1)
+        avg_dice = running_dice / max(n_batches, 1)
+        epoch_losses.append(avg_loss)
+        epoch_dices.append(avg_dice)
+        print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}")
+
+    return {"losses": epoch_losses, "dices": epoch_dices}
 
 
 def train_epochs_fedprox(
@@ -239,23 +267,53 @@ def train_epochs_fedprox(
     epochs: int,
     mu: float,
     global_params: List[torch.Tensor],
-) -> None:
+    cid: str = "",
+) -> Dict[str, List[float]]:
+    """FedProx local training with proximal term. Returns per-epoch metrics for logging."""
     model.train()
     opt = torch.optim.Adam(model.parameters(), lr=lr)
-    for _ in range(epochs):
+    epoch_losses = []
+    epoch_dices = []
+    epoch_prox_terms = []
+
+    for ep in range(epochs):
+        running_loss = 0.0
+        running_dice = 0.0
+        running_prox = 0.0
+        n_batches = 0
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
             opt.zero_grad(set_to_none=True)
             logits = model(x)
-            loss = loss_bce_dice(logits, y)
-            if mu > 0.0:
-                prox = 0.0
-                for p, p0 in zip(model.parameters(), global_params):
-                    prox = prox + torch.sum((p - p0) ** 2)
-                loss = loss + (mu / 2.0) * prox
-            loss.backward()
+            base_loss = loss_bce_dice(logits, y)
+
+            # Compute proximal term: (mu/2) * ||w - w_global||^2
+            prox = 0.0
+            for p, p0 in zip(model.parameters(), global_params):
+                prox = prox + torch.sum((p - p0) ** 2)
+            prox_penalty = (mu / 2.0) * prox
+
+            total_loss = base_loss + prox_penalty
+            total_loss.backward()
             opt.step()
+
+            running_loss += total_loss.item()
+            running_prox += prox.item()
+            with torch.no_grad():
+                dice = dice_per_channel_from_logits(logits, y).mean().item()
+                running_dice += dice
+            n_batches += 1
+
+        avg_loss = running_loss / max(n_batches, 1)
+        avg_dice = running_dice / max(n_batches, 1)
+        avg_prox = running_prox / max(n_batches, 1)
+        epoch_losses.append(avg_loss)
+        epoch_dices.append(avg_dice)
+        epoch_prox_terms.append(avg_prox)
+        print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}, prox_term={avg_prox:.4f}")
+
+    return {"losses": epoch_losses, "dices": epoch_dices, "prox_terms": epoch_prox_terms}
 
 
 # -------------------------
@@ -321,19 +379,30 @@ class BratsClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         set_parameters(self.model, parameters)
 
-        # snapshot global params once per round
+        # snapshot global params once per round (for FedProx proximal term)
         global_params = [p.detach().clone() for p in self.model.parameters()]
 
+        # Train locally and get per-epoch metrics
         if self.mu > 0:
-            train_epochs_fedprox(self.model, self.train_loader, self.device, self.lr, self.local_epochs, self.mu, global_params)
+            train_metrics = train_epochs_fedprox(
+                self.model, self.train_loader, self.device,
+                self.lr, self.local_epochs, self.mu, global_params, cid=self.cid
+            )
         else:
-            train_epochs_standard(self.model, self.train_loader, self.device, self.lr, self.local_epochs)
+            train_metrics = train_epochs_standard(
+                self.model, self.train_loader, self.device,
+                self.lr, self.local_epochs, cid=self.cid
+            )
 
-        # optional: return client-val metrics for debugging
+        # Validation metrics for debugging
         va = evaluate_model(self.model, self.val_loader, self.device)
+
+        # Return training stats (following reference repo practice)
         return get_parameters(self.model), len(self.train_loader.dataset), {
             "cid": self.cid,
             "mu": float(self.mu),
+            "final_train_loss": float(train_metrics["losses"][-1]) if train_metrics["losses"] else 0.0,
+            "final_train_dice": float(train_metrics["dices"][-1]) if train_metrics["dices"] else 0.0,
             "val_meanDice": float(va["Mean"]),
             "val_WT": float(va["WT"]),
             "val_TC": float(va["TC"]),
@@ -355,6 +424,27 @@ class BratsClient(fl.client.NumPyClient):
 # -------------------------
 # Run + save results
 # -------------------------
+# -------------------------
+# Custom Strategy to save final model (following reference repo)
+# -------------------------
+class SaveModelStrategy(fl.server.strategy.FedAvg):
+    """FedAvg strategy that captures final parameters for model saving."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.final_parameters = None
+
+    def aggregate_fit(self, server_round, results, failures):
+        # Call parent aggregation
+        aggregated_parameters, aggregated_metrics = super().aggregate_fit(
+            server_round, results, failures
+        )
+        # Store the latest aggregated parameters
+        if aggregated_parameters is not None:
+            self.final_parameters = aggregated_parameters
+        return aggregated_parameters, aggregated_metrics
+
+
 @dataclass
 class RunCfg:
     strategy: str
@@ -372,15 +462,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--partition_dir", required=True, help=".../client_data (contains client_0, client_1)")
     ap.add_argument("--rounds", type=int, default=20)
-    ap.add_argument("--local_epochs", type=int, default=1)
+    ap.add_argument("--local_epochs", type=int, default=3, help="Local epochs per round (ref repo uses 3)")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--batch_size", type=int, default=4)
     ap.add_argument("--num_workers", type=int, default=0)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
-    ap.add_argument("--mu", type=float, default=0.01)
+    ap.add_argument("--mu", type=float, default=0.1, help="FedProx mu (proximal term weight). Use 0.1-1.0 for heterogeneous data")
     ap.add_argument("--out_dir", default="./results/unet_flower_2clients")
+    ap.add_argument("--save_model", action="store_true", default=True, help="Save final global model")
     args = ap.parse_args()
 
     # Repro
@@ -499,7 +590,8 @@ def main() -> None:
         )
 
     # 2 clients, always fit both
-    strategy = fl.server.strategy.FedAvg(
+    # Use custom strategy that saves final parameters (following reference repo)
+    strategy = SaveModelStrategy(
         fraction_fit=1.0,
         min_fit_clients=2,
         min_available_clients=2,
@@ -568,6 +660,51 @@ def main() -> None:
 
     (out_dir / "results.json").write_text(json.dumps(result, indent=2))
     print(f"\nSaved: {out_dir / 'results.json'}")
+
+    # Save final global model (following reference repo practice)
+    if args.save_model and strategy.final_parameters is not None:
+        # Get final parameters from strategy
+        ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
+        x0, _ = ds0[0]
+        in_ch = int(x0.shape[0])
+        final_model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+
+        # Convert Flower parameters to numpy and set model weights
+        final_weights = fl.common.parameters_to_ndarrays(strategy.final_parameters)
+        set_parameters(final_model, final_weights)
+
+        # Save the trained model
+        model_path = out_dir / "global_model.pt"
+        torch.save({
+            "model_state_dict": final_model.state_dict(),
+            "config": asdict(cfg),
+            "in_ch": in_ch,
+            "final_metrics": result["final"],
+        }, model_path)
+        print(f"Saved final global model: {model_path}")
+
+    # Write training log summary (following reference repo practice)
+    log_path = out_dir / "training_log.txt"
+    with open(log_path, "w") as f:
+        f.write(f"Federated Learning Training Log\n")
+        f.write(f"{'='*60}\n")
+        f.write(f"Strategy: {cfg.strategy}\n")
+        f.write(f"Mu (FedProx): {cfg.mu}\n")
+        f.write(f"Rounds: {cfg.rounds}\n")
+        f.write(f"Local Epochs: {cfg.local_epochs}\n")
+        f.write(f"Learning Rate: {cfg.lr}\n")
+        f.write(f"Batch Size: {cfg.batch_size}\n")
+        f.write(f"Seed: {cfg.seed}\n")
+        f.write(f"{'='*60}\n")
+        f.write(f"Total Time: {total:.2f}s ({total/60:.2f} min)\n")
+        f.write(f"Time per Round: {total/max(args.rounds,1):.2f}s\n")
+        f.write(f"{'='*60}\n")
+        f.write(f"Final Results:\n")
+        f.write(f"  Client 0 Mean Dice: {result['final']['client0_meanDice']:.4f}\n")
+        f.write(f"  Client 1 Mean Dice: {result['final']['client1_meanDice']:.4f}\n")
+        f.write(f"  Global Mean Dice:   {result['final']['global_meanDice']:.4f}\n")
+        f.write(f"{'='*60}\n")
+    print(f"Saved training log: {log_path}")
 
 
 if __name__ == "__main__":

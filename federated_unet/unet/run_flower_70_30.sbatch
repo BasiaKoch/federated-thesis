@@ -29,10 +29,11 @@ OUT_BASE="${PROJECT_DIR}/results/federated/clients_2_70_30"
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # Hyperparams (override by exporting before sbatch if desired)
+# Following reference repo practices: https://github.com/nedeljkovicmajaa/Federated-Learning-And-Class-Imbalances
 STRATEGY="${STRATEGY:-fedavg}"       # fedavg or fedprox
-MU="${MU:-0.01}"                     # FedProx mu (ignored if fedavg)
+MU="${MU:-0.1}"                      # FedProx mu (0.1-1.0 for heterogeneous data)
 ROUNDS="${ROUNDS:-20}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-1}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"    # Reference repo uses 3 local epochs
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-1e-3}"
 NUM_WORKERS="${NUM_WORKERS:-0}"
