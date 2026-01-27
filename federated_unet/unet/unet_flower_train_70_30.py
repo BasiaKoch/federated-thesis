@@ -538,7 +538,6 @@ def main() -> None:
         num_workers=args.num_workers,
         pin_memory=(device.type == "cuda"),
     )
-
     def evaluate_fn(server_round: int, parameters, config):
         # Build a fresh model with correct in_ch (infer from client_0 train)
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
@@ -546,6 +545,30 @@ def main() -> None:
         in_ch = int(x0.shape[0])
         model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
         set_parameters(model, parameters)
+
+        # -------------------------
+        # DEBUG: verify loaders + shapes + channel counts
+        # -------------------------
+        x0b, y0b = next(iter(c0_test_loader))
+        x1b, y1b = next(iter(c1_test_loader))
+        print(f"DEBUG Round {server_round}: model in_ch={in_ch}")
+        print(f"  client_0 test batch: x={tuple(x0b.shape)} y={tuple(y0b.shape)}")
+        print(f"  client_1 test batch: x={tuple(x1b.shape)} y={tuple(y1b.shape)}")
+
+        # These will crash early if a client has wrong channel count
+        assert x0b.shape[1] == in_ch, f"client_0 channels {x0b.shape[1]} != model in_ch {in_ch}"
+        assert x1b.shape[1] == in_ch, f"client_1 channels {x1b.shape[1]} != model in_ch {in_ch}"
+
+        # Optional: show first few file paths to detect identical test sets
+        try:
+            print("  client_0 test first files:", [str(p) for p in c0_test_loader.dataset.files[:3]])
+            print("  client_1 test first files:", [str(p) for p in c1_test_loader.dataset.files[:3]])
+        except Exception as e:
+            print("  DEBUG: could not print dataset files:", e)
+
+        # -------------------------
+        # Normal evaluation
+        # -------------------------
 
         # Evaluate global model on each client's test set (for thesis comparison)
         c0_metrics = evaluate_model(model, c0_test_loader, device)
@@ -555,12 +578,11 @@ def main() -> None:
         pooled_metrics = evaluate_model(model, global_test_loader, device)
 
         print(f"[Round {server_round}] "
-              f"Client0 Mean={c0_metrics['Mean']:.4f} | "
-              f"Client1 Mean={c1_metrics['Mean']:.4f} | "
-              f"Pooled Mean={pooled_metrics['Mean']:.4f}")
+            f"Client0 Mean={c0_metrics['Mean']:.4f} | "
+            f"Client1 Mean={c1_metrics['Mean']:.4f} | "
+            f"Pooled Mean={pooled_metrics['Mean']:.4f}")
 
         return float(pooled_metrics["loss"]), {
-            # Per-client metrics (comparable to local-only training)
             "client0_meanDice": float(c0_metrics["Mean"]),
             "client0_WT": float(c0_metrics["WT"]),
             "client0_TC": float(c0_metrics["TC"]),
@@ -569,7 +591,6 @@ def main() -> None:
             "client1_WT": float(c1_metrics["WT"]),
             "client1_TC": float(c1_metrics["TC"]),
             "client1_ET": float(c1_metrics["ET"]),
-            # Pooled (global) metrics
             "global_meanDice": float(pooled_metrics["Mean"]),
             "global_WT": float(pooled_metrics["WT"]),
             "global_TC": float(pooled_metrics["TC"]),
