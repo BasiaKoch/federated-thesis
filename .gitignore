@@ -30,6 +30,8 @@ __pycache__/
 # Large data files (keep partition script, ignore data)
 data/mnist.npz
 data/mnist_data/
+data/brats2020_top10_slices_split_npz
+data/brats2020_top10_slices_npz
 
 
 # macOS
@@ -53,4 +55,4 @@ jobs/*/workspace/
 jobs/*/logs/
 jobs/*/checkpoints/
 
-data/
+
