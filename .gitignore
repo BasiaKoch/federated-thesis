@@ -10,7 +10,8 @@ env/
 fed/
 
 # Slurm output
-
+*.out
+*.err
 
 # Accidental files
 =*
