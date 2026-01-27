@@ -21,15 +21,15 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train_70_30.py"
-PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_c0ET10"
+PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_et_skewed/client_data"
 OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_7030_c0ET10"
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-fedavg}"   # fedavg or fedprox
-MU="${MU:-0.001}"                  # only used if STRATEGY=fedprox
+MU="${MU:-0.1}"                  # only used if STRATEGY=fedprox
 ROUNDS="${ROUNDS:-30}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-1e-3}"
 NUM_WORKERS="${NUM_WORKERS:-0}"
