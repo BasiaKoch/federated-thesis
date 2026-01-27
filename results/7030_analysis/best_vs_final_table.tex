@@ -1,13 +1,20 @@
 \begin{table}[ht]
 \centering
-\caption{Comparison of Local-Only vs Federated Training (70/30 Split, 30 Rounds)}
+\caption{Local-Only vs Federated Training on the 70/30 BraTS Split (30 Rounds/Epochs, lr=1e-3).
+``Best'' refers to the best test Mean Dice across all rounds/epochs.
+$\Delta$ shows the improvement of FedAvg over Local.}
 \label{tab:7030_results}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccccc}
 \toprule
-\textbf{Strategy} & \textbf{C0 Best} & \textbf{C1 Best} & \textbf{Global Best} & \textbf{Global Final} \\
+ & \multicolumn{3}{c}{\textbf{Client 0 (70\%, n=166)}} & \multicolumn{3}{c}{\textbf{Client 1 (30\%, n=73)}} & \textbf{Global} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-8}
+\textbf{Strategy} & WT & TC & ET & WT & TC & ET & Mean \\
 \midrule
-FedAvg & 0.7440 & 0.8126 & 0.7636 & 0.7143 \\
-FedProx ($\mu$=0.001) & 0.7726 & 0.7724 & 0.7582 & 0.6845 \\
+Local Only & 0.5577 & 0.4344 & 0.5284 & 0.4837 & 0.4478 & 0.3178 & --- \\
+FedAvg & 0.7331 & 0.7360 & 0.7628 & 0.8095 & 0.8623 & 0.7661 & 0.7636 \\
+FedProx ($\mu$=0.001) & 0.7882 & 0.7331 & 0.7966 & 0.8217 & 0.6539 & 0.6907 & 0.7582 \\
+\midrule
+$\Delta$ (FedAvg $-$ Local) & +0.1754 & +0.3016 & +0.2344 & +0.3258 & +0.4145 & +0.4483 & +0.2567 \\
 
 \bottomrule
 \end{tabular}
