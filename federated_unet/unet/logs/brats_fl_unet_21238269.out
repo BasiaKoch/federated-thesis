@@ -1,0 +1,1278 @@
+==============================================
+BraTS 2D U-Net (Flower Federated)
+Job ID: 21238269
+Node(s): gpu-q-5
+Workdir: /home/bk489/federated/federated-thesis
+Script:  /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_10clients.py
+Config:  /home/bk489/federated/federated-thesis/federated_unet/unet/configs/unet_fedavg_10clients.yaml
+Data:    /home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz
+Parts:   /home/bk489/federated/federated-thesis/data/partitions/federated_clients_10_mixed/client_data
+Python:  /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA available: True CUDA: 12.8
+Device count: 1
+Flower 1.23.0
+Mon Jan 26 00:08:11 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   39C    P0             69W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Num global npz files:
+3680
+Example global npz files:
+/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz/test/BraTS20_Training_053/slice_091_rank03.npz
+/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz/test/BraTS20_Training_053/slice_094_rank08.npz
+/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz/test/BraTS20_Training_053/slice_087_rank04.npz
+/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz/test/BraTS20_Training_053/slice_093_rank06.npz
+/home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz/test/BraTS20_Training_053/slice_089_rank01.npz
+Client manifest sanity check:
+  client_0_HGG_full: 40 files in manifest
+  client_1_LGG_full_small: 20 files in manifest
+  client_2_HGG_T1ce_big: 80 files in manifest
+  client_3_HGG_FLAIR: 40 files in manifest
+  client_4_LGG_T2: 40 files in manifest
+  client_5_HGG_T1_T1ce: 40 files in manifest
+  client_6_mixed_T2_FLAIR: 40 files in manifest
+  client_7_mixed_3mods_noCE: 40 files in manifest
+  client_8_HGG_tiny_full: 10 files in manifest
+  client_9_mixed_per_sample: 10 files in manifest
+Starting federated U-Net training...
+
+================================================================================
+Flower BraTS 2D U-Net Federated Simulation (manifest-based)
+================================================================================
+Config: /home/bk489/federated/federated-thesis/federated_unet/unet/configs/unet_fedavg_10clients.yaml
+Partitions: /home/bk489/federated/federated-thesis/data/partitions/federated_clients_10_mixed/client_data
+Global data: /home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz
+Strategy: FEDAVG 
+Clients: 10 | Rounds: 50 | Fraction fit: 1.0
+Local epochs: 1 | Batch: 4 | LR: 0.001
+Device: cuda
+Eval split per round: val
+Output: /home/bk489/federated/federated-thesis/results/unet_flower
+Run name: fedavg_10clients_mixed
+
+Client mapping (cid -> folder):
+  cid 0: client_0_HGG_full
+  cid 1: client_1_LGG_full_small
+  cid 2: client_2_HGG_T1ce_big
+  cid 3: client_3_HGG_FLAIR
+  cid 4: client_4_LGG_T2
+  cid 5: client_5_HGG_T1_T1ce
+  cid 6: client_6_mixed_T2_FLAIR
+  cid 7: client_7_mixed_3mods_noCE
+  cid 8: client_8_HGG_tiny_full
+  cid 9: client_9_mixed_per_sample
+================================================================================
+
+Centralized val slices: 370
+Starting simulation with 10 clients, gpu_fraction=0.100
+[93mWARNING [0m:   DEPRECATED FEATURE: flwr.simulation.start_simulation() is deprecated.
+	Instead, use the `flwr run` CLI command to start a local simulation in your Flower app, as shown for example below:
+
+		$ flwr new  # Create a new Flower app from a template
+
+		$ flwr run  # Run the Flower app in Simulation Mode
+
+	Using `start_simulation()` is deprecated.
+
+            This is a deprecated feature. It will be removed
+            entirely in future versions of Flower.
+        
+[92mINFO [0m:      Starting Flower simulation, config: num_rounds=50, no round_timeout
+2026-01-26 00:08:17,558	INFO worker.py:1771 -- Started a local Ray instance.
+[92mINFO [0m:      Flower VCE: Ray initialized with resources: {'accelerator_type:A100': 1.0, 'node:__internal_head__': 1.0, 'CPU': 128.0, 'memory': 825766558720.0, 'object_store_memory': 200000000000.0, 'GPU': 1.0, 'node:10.43.74.5': 1.0}
+[92mINFO [0m:      Optimize your simulation with Flower VCE: https://flower.ai/docs/framework/how-to-run-simulations.html
+[92mINFO [0m:      Flower VCE: Resources for each Virtual Client: {'num_cpus': 1, 'num_gpus': 0.1}
+[92mINFO [0m:      Flower VCE: Creating VirtualClientEngineActorPool with 10 actors
+[92mINFO [0m:      [INIT]
+[92mINFO [0m:      Requesting initial parameters from one random client
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      Received initial parameters from one random client
+[92mINFO [0m:      Starting evaluation of initial global parameters
+[Round 00] global-val loss 2.3316 meanDice 0.0517 (WT 0.0797 TC 0.0108 ET 0.0645)
+[92mINFO [0m:      initial parameters (loss, other metrics): 2.3315567226820093, {'global_val_loss': 2.3315567226820093, 'global_val_meanDice': 0.05165343442620018, 'global_val_WT': 0.0796914798482112, 'global_val_TC': 0.010752690992366204, 'global_val_ET': 0.06451613243802319}
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 1]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[93mWARNING [0m:   No fit_metrics_aggregation_fn provided
+[Round 01] global-val loss 2.1959 meanDice 0.1076 (WT 0.2500 TC 0.0109 ET 0.0620)
+[92mINFO [0m:      fit progress: (1, 2.1958797131815264, {'global_val_loss': 2.1958797131815264, 'global_val_meanDice': 0.10760006711986267, 'global_val_WT': 0.24996578276593015, 'global_val_TC': 0.010866696894281238, 'global_val_ET': 0.06196772169937656}, 54.9954446220072)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 2]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 02] global-val loss 1.8257 meanDice 0.6363 (WT 0.8283 TC 0.5718 ET 0.5089)
+[92mINFO [0m:      fit progress: (2, 1.8256517059059554, {'global_val_loss': 1.8256517059059554, 'global_val_meanDice': 0.6363208596414015, 'global_val_WT': 0.8283001333441414, 'global_val_TC': 0.5717751912428599, 'global_val_ET': 0.5088872543372023}, 105.43865850800648)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 3]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 03] global-val loss 1.5934 meanDice 0.6077 (WT 0.7575 TC 0.6059 ET 0.4596)
+[92mINFO [0m:      fit progress: (3, 1.5933690455652052, {'global_val_loss': 1.5933690455652052, 'global_val_meanDice': 0.607660589230604, 'global_val_WT': 0.7574798326362603, 'global_val_TC': 0.6058763872153128, 'global_val_ET': 0.459625547840239}, 156.20992397196824)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 4]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=1
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 04] global-val loss 1.5192 meanDice 0.5866 (WT 0.7834 TC 0.6126 ET 0.3638)
+[92mINFO [0m:      fit progress: (4, 1.5192137533618557, {'global_val_loss': 1.5192137533618557, 'global_val_meanDice': 0.5866013413077623, 'global_val_WT': 0.7834199699260765, 'global_val_TC': 0.6125602829756533, 'global_val_ET': 0.36382377102155666}, 207.37815854599467)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 5]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 05] global-val loss 1.3407 meanDice 0.7223 (WT 0.8267 TC 0.6648 ET 0.6755)
+[92mINFO [0m:      fit progress: (5, 1.3406711714242094, {'global_val_loss': 1.3406711714242094, 'global_val_meanDice': 0.722346181912619, 'global_val_WT': 0.8267266771212816, 'global_val_TC': 0.6647749564276869, 'global_val_ET': 0.6755369121888886}, 256.71048382896697)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 6]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 06] global-val loss 1.2104 meanDice 0.6169 (WT 0.8234 TC 0.5494 ET 0.4777)
+[92mINFO [0m:      fit progress: (6, 1.2104393653972174, {'global_val_loss': 1.2104393653972174, 'global_val_meanDice': 0.616856564530056, 'global_val_WT': 0.8234475645849455, 'global_val_TC': 0.5494321313646957, 'global_val_ET': 0.4776899976405256}, 307.7040746039711)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 7]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 07] global-val loss 1.1079 meanDice 0.7229 (WT 0.8552 TC 0.6381 ET 0.6753)
+[92mINFO [0m:      fit progress: (7, 1.1079336135618147, {'global_val_loss': 1.1079336135618147, 'global_val_meanDice': 0.7228765375497151, 'global_val_WT': 0.8551709910649525, 'global_val_TC': 0.6381419165855945, 'global_val_ET': 0.6753167049985976}, 357.7419434399926)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 8]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 08] global-val loss 1.0151 meanDice 0.7129 (WT 0.8524 TC 0.6244 ET 0.6618)
+[92mINFO [0m:      fit progress: (8, 1.0150826438780753, {'global_val_loss': 1.0150826438780753, 'global_val_meanDice': 0.7128708068184083, 'global_val_WT': 0.8523699625859902, 'global_val_TC': 0.62443400770775, 'global_val_ET': 0.6618084501614839}, 406.57475374400383)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 9]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 09] global-val loss 0.9549 meanDice 0.6637 (WT 0.8716 TC 0.5150 ET 0.6046)
+[92mINFO [0m:      fit progress: (9, 0.9549264715563867, {'global_val_loss': 0.9549264715563867, 'global_val_meanDice': 0.6637233565897185, 'global_val_WT': 0.8716148534954788, 'global_val_TC': 0.5149578899687304, 'global_val_ET': 0.6045973263049467}, 456.3103299890063)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 10]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 10] global-val loss 0.8587 meanDice 0.6817 (WT 0.8506 TC 0.5785 ET 0.6160)
+[92mINFO [0m:      fit progress: (10, 0.8587443860628272, {'global_val_loss': 0.8587443860628272, 'global_val_meanDice': 0.6816828081916501, 'global_val_WT': 0.8506071311746958, 'global_val_TC': 0.5784721594464719, 'global_val_ET': 0.6159691339537819}, 505.41171594301704)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 11]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 11] global-val loss 0.7726 meanDice 0.7188 (WT 0.8656 TC 0.6200 ET 0.6709)
+[92mINFO [0m:      fit progress: (11, 0.7725653110011932, {'global_val_loss': 0.7725653110011932, 'global_val_meanDice': 0.7188305962125665, 'global_val_WT': 0.8655734013925436, 'global_val_TC': 0.6199818404692425, 'global_val_ET': 0.6709365467759136}, 553.8777831469779)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 12]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 12] global-val loss 0.7700 meanDice 0.6765 (WT 0.8724 TC 0.5392 ET 0.6180)
+[92mINFO [0m:      fit progress: (12, 0.7700001546131667, {'global_val_loss': 0.7700001546131667, 'global_val_meanDice': 0.6765452332075015, 'global_val_WT': 0.8723725306826736, 'global_val_TC': 0.5392244379823936, 'global_val_ET': 0.6180387309574368}, 604.1802984389942)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 13]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=6
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 13] global-val loss 0.6741 meanDice 0.7265 (WT 0.8770 TC 0.6244 ET 0.6779)
+[92mINFO [0m:      fit progress: (13, 0.6740706172040714, {'global_val_loss': 0.6740706172040714, 'global_val_meanDice': 0.7264586632117338, 'global_val_WT': 0.8770348167322229, 'global_val_TC': 0.624417098075477, 'global_val_ET': 0.6779240748275007}, 652.229237143998)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 14]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 14] global-val loss 0.6553 meanDice 0.7257 (WT 0.8627 TC 0.6274 ET 0.6870)
+[92mINFO [0m:      fit progress: (14, 0.6552795495397301, {'global_val_loss': 0.6552795495397301, 'global_val_meanDice': 0.7256958851606067, 'global_val_WT': 0.8626767780100404, 'global_val_TC': 0.6273898785082489, 'global_val_ET': 0.687020998963529}, 702.4883969780058)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 15]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 15] global-val loss 0.6480 meanDice 0.6909 (WT 0.8705 TC 0.5639 ET 0.6385)
+[92mINFO [0m:      fit progress: (15, 0.647980002626296, {'global_val_loss': 0.647980002626296, 'global_val_meanDice': 0.6909303036059753, 'global_val_WT': 0.8704534250266466, 'global_val_TC': 0.5638635076901675, 'global_val_ET': 0.6384739781011108}, 751.4803233629791)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 16]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 16] global-val loss 0.5591 meanDice 0.7626 (WT 0.8729 TC 0.6890 ET 0.7259)
+[92mINFO [0m:      fit progress: (16, 0.5590644661457308, {'global_val_loss': 0.5590644661457308, 'global_val_meanDice': 0.762570389505016, 'global_val_WT': 0.87288554211528, 'global_val_TC': 0.6889529021880813, 'global_val_ET': 0.7258727242116871}, 800.6860364169697)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 17]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 17] global-val loss 0.5959 meanDice 0.7107 (WT 0.8836 TC 0.5853 ET 0.6631)
+[92mINFO [0m:      fit progress: (17, 0.5958551738851814, {'global_val_loss': 0.5958551738851814, 'global_val_meanDice': 0.7106847818876217, 'global_val_WT': 0.8836437897771361, 'global_val_TC': 0.5852709647555215, 'global_val_ET': 0.6631395911302074}, 850.8895000499906)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 18]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 18] global-val loss 0.5645 meanDice 0.7310 (WT 0.8723 TC 0.6277 ET 0.6931)
+[92mINFO [0m:      fit progress: (18, 0.5645284425186855, {'global_val_loss': 0.5645284425186855, 'global_val_meanDice': 0.7310303495808502, 'global_val_WT': 0.8722888759663399, 'global_val_TC': 0.6277448619332691, 'global_val_ET': 0.6930573108429415}, 901.1221684109769)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 19]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 19] global-val loss 0.5372 meanDice 0.7277 (WT 0.8936 TC 0.6275 ET 0.6621)
+[92mINFO [0m:      fit progress: (19, 0.5371725190711277, {'global_val_loss': 0.5371725190711277, 'global_val_meanDice': 0.7277271539535435, 'global_val_WT': 0.8935802504823661, 'global_val_TC': 0.6275406059106007, 'global_val_ET': 0.6620606054676629}, 951.4400182889658)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 20]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 20] global-val loss 0.5773 meanDice 0.6795 (WT 0.8423 TC 0.5741 ET 0.6220)
+[92mINFO [0m:      fit progress: (20, 0.5773467705134423, {'global_val_loss': 0.5773467705134423, 'global_val_meanDice': 0.679504832088115, 'global_val_WT': 0.8423452344508868, 'global_val_TC': 0.5741495888300516, 'global_val_ET': 0.6220196729834069}, 1000.4428379440214)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 21]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 21] global-val loss 0.5188 meanDice 0.7469 (WT 0.8876 TC 0.6506 ET 0.7025)
+[92mINFO [0m:      fit progress: (21, 0.5188495620924939, {'global_val_loss': 0.5188495620924939, 'global_val_meanDice': 0.7469274201697763, 'global_val_WT': 0.8876219016981621, 'global_val_TC': 0.6506485510897455, 'global_val_ET': 0.7025118077214191}, 1049.9547508559772)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 22]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=5
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 22] global-val loss 0.5183 meanDice 0.7412 (WT 0.8902 TC 0.6427 ET 0.6907)
+[92mINFO [0m:      fit progress: (22, 0.5183038697127373, {'global_val_loss': 0.5183038697127373, 'global_val_meanDice': 0.7412131586972369, 'global_val_WT': 0.8901845235918593, 'global_val_TC': 0.6427310198933257, 'global_val_ET': 0.6907239326065263}, 1100.6423825030215)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 23]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 23] global-val loss 0.5055 meanDice 0.7644 (WT 0.8903 TC 0.6771 ET 0.7259)
+[92mINFO [0m:      fit progress: (23, 0.505473636972007, {'global_val_loss': 0.505473636972007, 'global_val_meanDice': 0.7644178554792526, 'global_val_WT': 0.8902993921582172, 'global_val_TC': 0.6770641245727093, 'global_val_ET': 0.7258900497068307}, 1149.8781868880033)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 24]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=5
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 24] global-val loss 0.5982 meanDice 0.6893 (WT 0.8712 TC 0.5553 ET 0.6414)
+[92mINFO [0m:      fit progress: (24, 0.5982027824527474, {'global_val_loss': 0.5982027824527474, 'global_val_meanDice': 0.6892856985335232, 'global_val_WT': 0.8712222624544945, 'global_val_TC': 0.5552665180351156, 'global_val_ET': 0.641368315110959}, 1196.586548694002)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 25]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=2
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 25] global-val loss 0.5462 meanDice 0.7126 (WT 0.8680 TC 0.6014 ET 0.6684)
+[92mINFO [0m:      fit progress: (25, 0.5462182120930764, {'global_val_loss': 0.5462182120930764, 'global_val_meanDice': 0.7125646720766047, 'global_val_WT': 0.8679870540027314, 'global_val_TC': 0.6013532072661126, 'global_val_ET': 0.6683537549609694}, 1246.8478766260087)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 26]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 26] global-val loss 0.5525 meanDice 0.7303 (WT 0.8876 TC 0.6104 ET 0.6930)
+[92mINFO [0m:      fit progress: (26, 0.5524742821211456, {'global_val_loss': 0.5524742821211456, 'global_val_meanDice': 0.7303354259738654, 'global_val_WT': 0.8875688125227452, 'global_val_TC': 0.610397958069672, 'global_val_ET': 0.6930395073291793}, 1297.5395173470024)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 27]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=2
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 27] global-val loss 0.5129 meanDice 0.7453 (WT 0.8919 TC 0.6420 ET 0.7020)
+[92mINFO [0m:      fit progress: (27, 0.5129323930189174, {'global_val_loss': 0.5129323930189174, 'global_val_meanDice': 0.745310135589646, 'global_val_WT': 0.8918981953340502, 'global_val_TC': 0.6419851403958117, 'global_val_ET': 0.702047071039076}, 1347.0734174120007)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 28]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 28] global-val loss 0.4850 meanDice 0.7696 (WT 0.8933 TC 0.6847 ET 0.7307)
+[92mINFO [0m:      fit progress: (28, 0.4849774113265417, {'global_val_loss': 0.4849774113265417, 'global_val_meanDice': 0.7695542635364835, 'global_val_WT': 0.8932633790945379, 'global_val_TC': 0.6846514137437391, 'global_val_ET': 0.7307479977711754}, 1396.793816838006)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 29]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 29] global-val loss 0.5488 meanDice 0.7133 (WT 0.8948 TC 0.5852 ET 0.6599)
+[92mINFO [0m:      fit progress: (29, 0.548789190508986, {'global_val_loss': 0.548789190508986, 'global_val_meanDice': 0.7132865997098602, 'global_val_WT': 0.8948123521144269, 'global_val_TC': 0.5851723842818861, 'global_val_ET': 0.6598750627332678}, 1447.5014172560186)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 30]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=6
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 30] global-val loss 0.5458 meanDice 0.7238 (WT 0.8854 TC 0.6059 ET 0.6799)
+[92mINFO [0m:      fit progress: (30, 0.54581378320212, {'global_val_loss': 0.54581378320212, 'global_val_meanDice': 0.72375480655688, 'global_val_WT': 0.8854178233750186, 'global_val_TC': 0.605939652003151, 'global_val_ET': 0.6799069442924703}, 1497.6461421329877)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 31]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=6
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 31] global-val loss 0.4895 meanDice 0.7659 (WT 0.8984 TC 0.6734 ET 0.7259)
+[92mINFO [0m:      fit progress: (31, 0.48950864855320225, {'global_val_loss': 0.48950864855320225, 'global_val_meanDice': 0.7658948716508704, 'global_val_WT': 0.8983817795094543, 'global_val_TC': 0.6733825276531364, 'global_val_ET': 0.7259203077900217}, 1545.0423667680006)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 32]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 32] global-val loss 0.5035 meanDice 0.7587 (WT 0.9008 TC 0.6583 ET 0.7171)
+[92mINFO [0m:      fit progress: (32, 0.503481914439509, {'global_val_loss': 0.503481914439509, 'global_val_meanDice': 0.7587078617160643, 'global_val_WT': 0.9008100095534549, 'global_val_TC': 0.6582568228928612, 'global_val_ET': 0.7170567527018769}, 1592.8786963690072)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 33]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 33] global-val loss 0.5403 meanDice 0.7277 (WT 0.8902 TC 0.6079 ET 0.6851)
+[92mINFO [0m:      fit progress: (33, 0.5403493876739215, {'global_val_loss': 0.5403493876739215, 'global_val_meanDice': 0.7277321421447673, 'global_val_WT': 0.8901998283061544, 'global_val_TC': 0.6079436409639353, 'global_val_ET': 0.6850529571642133}, 1642.7546892089886)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 34]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 34] global-val loss 0.4847 meanDice 0.7769 (WT 0.8989 TC 0.6863 ET 0.7455)
+[92mINFO [0m:      fit progress: (34, 0.48472505407307737, {'global_val_loss': 0.48472505407307737, 'global_val_meanDice': 0.7768882049417362, 'global_val_WT': 0.8988966832522562, 'global_val_TC': 0.6862523308380125, 'global_val_ET': 0.7455156007349396}, 1692.2496873619966)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 35]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=3
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 35] global-val loss 0.4945 meanDice 0.7660 (WT 0.8997 TC 0.6718 ET 0.7264)
+[92mINFO [0m:      fit progress: (35, 0.4945097700242073, {'global_val_loss': 0.4945097700242073, 'global_val_meanDice': 0.7659543536217968, 'global_val_WT': 0.8996918826046201, 'global_val_TC': 0.6718028716589234, 'global_val_ET': 0.7263683066018464}, 1740.519816391985)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 36]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 36] global-val loss 0.5548 meanDice 0.7054 (WT 0.8639 TC 0.5902 ET 0.6622)
+[92mINFO [0m:      fit progress: (36, 0.5548236395723076, {'global_val_loss': 0.5548236395723076, 'global_val_meanDice': 0.7054367117450576, 'global_val_WT': 0.8638613967782349, 'global_val_TC': 0.5902298015478047, 'global_val_ET': 0.6622189369091334}, 1789.6956858459744)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 37]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 37] global-val loss 0.5374 meanDice 0.7296 (WT 0.8928 TC 0.6102 ET 0.6857)
+[92mINFO [0m:      fit progress: (37, 0.5374075526832253, {'global_val_loss': 0.5374075526832253, 'global_val_meanDice': 0.7295753820258912, 'global_val_WT': 0.8928409572116652, 'global_val_TC': 0.6102174470606435, 'global_val_ET': 0.6856677418053642}, 1840.2166528420057)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 38]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 38] global-val loss 0.4899 meanDice 0.7601 (WT 0.8977 TC 0.6667 ET 0.7157)
+[92mINFO [0m:      fit progress: (38, 0.4899133780310231, {'global_val_loss': 0.4899133780310231, 'global_val_meanDice': 0.7600577605961294, 'global_val_WT': 0.8977175095507138, 'global_val_TC': 0.6667417976966503, 'global_val_ET': 0.7157139745410245}, 1889.8917436299962)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 39]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 39] global-val loss 0.5306 meanDice 0.7340 (WT 0.8905 TC 0.6212 ET 0.6904)
+[92mINFO [0m:      fit progress: (39, 0.5305543138134864, {'global_val_loss': 0.5305543138134864, 'global_val_meanDice': 0.7340249952562309, 'global_val_WT': 0.8904563595981657, 'global_val_TC': 0.6212269104390246, 'global_val_ET': 0.6903917157315029}, 1937.3790702249971)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 40]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 40] global-val loss 0.4908 meanDice 0.7533 (WT 0.8947 TC 0.6631 ET 0.7021)
+[92mINFO [0m:      fit progress: (40, 0.49076573534678386, {'global_val_loss': 0.49076573534678386, 'global_val_meanDice': 0.7532683903456736, 'global_val_WT': 0.8946918042680203, 'global_val_TC': 0.6630627762070155, 'global_val_ET': 0.7020505905619864}, 1982.405268898001)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 41]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 41] global-val loss 0.5738 meanDice 0.7109 (WT 0.8888 TC 0.5737 ET 0.6701)
+[92mINFO [0m:      fit progress: (41, 0.5738126126027876, {'global_val_loss': 0.5738126126027876, 'global_val_meanDice': 0.7108787803498328, 'global_val_WT': 0.8888454012043001, 'global_val_TC': 0.5736714285495712, 'global_val_ET': 0.6701195112956264}, 2032.7539688170073)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 42]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 42] global-val loss 0.5137 meanDice 0.7396 (WT 0.8618 TC 0.6506 ET 0.7064)
+[92mINFO [0m:      fit progress: (42, 0.5136869597819543, {'global_val_loss': 0.5136869597819543, 'global_val_meanDice': 0.7396214583243048, 'global_val_WT': 0.8618074746957961, 'global_val_TC': 0.6506476262466043, 'global_val_ET': 0.7064092740305143}, 2082.4404534549685)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 43]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 43] global-val loss 0.4984 meanDice 0.7459 (WT 0.8918 TC 0.6530 ET 0.6928)
+[92mINFO [0m:      fit progress: (43, 0.4984150104304796, {'global_val_loss': 0.4984150104304796, 'global_val_meanDice': 0.7458597209961906, 'global_val_WT': 0.8917677681936039, 'global_val_TC': 0.6530491863964691, 'global_val_ET': 0.6927622083984992}, 2131.837690563989)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 44]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 44] global-val loss 0.5206 meanDice 0.7339 (WT 0.8949 TC 0.6265 ET 0.6804)
+[92mINFO [0m:      fit progress: (44, 0.5206071885843431, {'global_val_loss': 0.5206071885843431, 'global_val_meanDice': 0.7339242797190755, 'global_val_WT': 0.8949499115328411, 'global_val_TC': 0.6264644100803651, 'global_val_ET': 0.6803585175440198}, 2182.095897373976)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 45]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 45] global-val loss 0.5143 meanDice 0.7395 (WT 0.8888 TC 0.6333 ET 0.6964)
+[92mINFO [0m:      fit progress: (45, 0.5143128525345556, {'global_val_loss': 0.5143128525345556, 'global_val_meanDice': 0.7395015731389686, 'global_val_WT': 0.8888271426516812, 'global_val_TC': 0.6332841220517939, 'global_val_ET': 0.6963934547134307}, 2230.4098694439745)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 46]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=7
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 46] global-val loss 0.5003 meanDice 0.7557 (WT 0.8765 TC 0.6600 ET 0.7306)
+[92mINFO [0m:      fit progress: (46, 0.5003367549469394, {'global_val_loss': 0.5003367549469394, 'global_val_meanDice': 0.7556903880670283, 'global_val_WT': 0.8764902419699621, 'global_val_TC': 0.6600017825708758, 'global_val_ET': 0.7305791396602463}, 2281.127684205014)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 47]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 47] global-val loss 0.4785 meanDice 0.7683 (WT 0.8961 TC 0.6818 ET 0.7271)
+[92mINFO [0m:      fit progress: (47, 0.47852859718184315, {'global_val_loss': 0.47852859718184315, 'global_val_meanDice': 0.7683466137034125, 'global_val_WT': 0.8961463313763453, 'global_val_TC': 0.6817826109167767, 'global_val_ET': 0.7271108988171168}, 2331.004181122)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 48]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 48] global-val loss 0.5041 meanDice 0.7471 (WT 0.8970 TC 0.6482 ET 0.6961)
+[92mINFO [0m:      fit progress: (48, 0.5040970916549364, {'global_val_loss': 0.5040970916549364, 'global_val_meanDice': 0.747120378076527, 'global_val_WT': 0.8970211460622941, 'global_val_TC': 0.6482485785801301, 'global_val_ET': 0.696091409587158}, 2379.9022159929737)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 49]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=0
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=2
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 49] global-val loss 0.5217 meanDice 0.7398 (WT 0.8591 TC 0.6452 ET 0.7153)
+[92mINFO [0m:      fit progress: (49, 0.5216816533957759, {'global_val_loss': 0.5216816533957759, 'global_val_meanDice': 0.7398492659309459, 'global_val_WT': 0.8590815824988558, 'global_val_TC': 0.6451566723972822, 'global_val_ET': 0.7153095428967013}, 2430.36637072498)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [ROUND 50]
+[92mINFO [0m:      configure_fit: strategy sampled 10 clients (out of 10)
+[36m(ClientAppActor pid=2245518)[0m [client_fn] Creating client with cid=6
+[36m(ClientAppActor pid=2245525)[0m [client_fn] Creating client with cid=9
+[36m(ClientAppActor pid=2245522)[0m [client_fn] Creating client with cid=7
+[36m(ClientAppActor pid=2245528)[0m [client_fn] Creating client with cid=8
+[36m(ClientAppActor pid=2245524)[0m [client_fn] Creating client with cid=3
+[36m(ClientAppActor pid=2245523)[0m [client_fn] Creating client with cid=4
+[36m(ClientAppActor pid=2245521)[0m [client_fn] Creating client with cid=1
+[36m(ClientAppActor pid=2245520)[0m [client_fn] Creating client with cid=2
+[36m(ClientAppActor pid=2245527)[0m [client_fn] Creating client with cid=5
+[36m(ClientAppActor pid=2245526)[0m [client_fn] Creating client with cid=0
+[92mINFO [0m:      aggregate_fit: received 10 results and 0 failures
+[Round 50] global-val loss 0.5126 meanDice 0.7407 (WT 0.8663 TC 0.6444 ET 0.7113)
+[92mINFO [0m:      fit progress: (50, 0.5125965011376207, {'global_val_loss': 0.5125965011376207, 'global_val_meanDice': 0.7406706776265676, 'global_val_WT': 0.8663224934181813, 'global_val_TC': 0.6443608031055119, 'global_val_ET': 0.7113287363560091}, 2481.2320654430077)
+[92mINFO [0m:      configure_evaluate: no clients selected, skipping evaluation
+[92mINFO [0m:      
+[92mINFO [0m:      [SUMMARY]
+[92mINFO [0m:      Run finished 50 round(s) in 2481.23s
+[92mINFO [0m:      	History (loss, centralized):
+[92mINFO [0m:      		round 0: 2.3315567226820093
+[92mINFO [0m:      		round 1: 2.1958797131815264
+[92mINFO [0m:      		round 2: 1.8256517059059554
+[92mINFO [0m:      		round 3: 1.5933690455652052
+[92mINFO [0m:      		round 4: 1.5192137533618557
+[92mINFO [0m:      		round 5: 1.3406711714242094
+[92mINFO [0m:      		round 6: 1.2104393653972174
+[92mINFO [0m:      		round 7: 1.1079336135618147
+[92mINFO [0m:      		round 8: 1.0150826438780753
+[92mINFO [0m:      		round 9: 0.9549264715563867
+[92mINFO [0m:      		round 10: 0.8587443860628272
+[92mINFO [0m:      		round 11: 0.7725653110011932
+[92mINFO [0m:      		round 12: 0.7700001546131667
+[92mINFO [0m:      		round 13: 0.6740706172040714
+[92mINFO [0m:      		round 14: 0.6552795495397301
+[92mINFO [0m:      		round 15: 0.647980002626296
+[92mINFO [0m:      		round 16: 0.5590644661457308
+[92mINFO [0m:      		round 17: 0.5958551738851814
+[92mINFO [0m:      		round 18: 0.5645284425186855
+[92mINFO [0m:      		round 19: 0.5371725190711277
+[92mINFO [0m:      		round 20: 0.5773467705134423
+[92mINFO [0m:      		round 21: 0.5188495620924939
+[92mINFO [0m:      		round 22: 0.5183038697127373
+[92mINFO [0m:      		round 23: 0.505473636972007
+[92mINFO [0m:      		round 24: 0.5982027824527474
+[92mINFO [0m:      		round 25: 0.5462182120930764
+[92mINFO [0m:      		round 26: 0.5524742821211456
+[92mINFO [0m:      		round 27: 0.5129323930189174
+[92mINFO [0m:      		round 28: 0.4849774113265417
+[92mINFO [0m:      		round 29: 0.548789190508986
+[92mINFO [0m:      		round 30: 0.54581378320212
+[92mINFO [0m:      		round 31: 0.48950864855320225
+[92mINFO [0m:      		round 32: 0.503481914439509
+[92mINFO [0m:      		round 33: 0.5403493876739215
+[92mINFO [0m:      		round 34: 0.48472505407307737
+[92mINFO [0m:      		round 35: 0.4945097700242073
+[92mINFO [0m:      		round 36: 0.5548236395723076
+[92mINFO [0m:      		round 37: 0.5374075526832253
+[92mINFO [0m:      		round 38: 0.4899133780310231
+[92mINFO [0m:      		round 39: 0.5305543138134864
+[92mINFO [0m:      		round 40: 0.49076573534678386
+[92mINFO [0m:      		round 41: 0.5738126126027876
+[92mINFO [0m:      		round 42: 0.5136869597819543
+[92mINFO [0m:      		round 43: 0.4984150104304796
+[92mINFO [0m:      		round 44: 0.5206071885843431
+[92mINFO [0m:      		round 45: 0.5143128525345556
+[92mINFO [0m:      		round 46: 0.5003367549469394
+[92mINFO [0m:      		round 47: 0.47852859718184315
+[92mINFO [0m:      		round 48: 0.5040970916549364
+[92mINFO [0m:      		round 49: 0.5216816533957759
+[92mINFO [0m:      		round 50: 0.5125965011376207
+[92mINFO [0m:      	History (metrics, centralized):
+[92mINFO [0m:      	{'global_val_ET': [(0, 0.06451613243802319),
+[92mINFO [0m:      	                   (1, 0.06196772169937656),
+[92mINFO [0m:      	                   (2, 0.5088872543372023),
+[92mINFO [0m:      	                   (3, 0.459625547840239),
+[92mINFO [0m:      	                   (4, 0.36382377102155666),
+[92mINFO [0m:      	                   (5, 0.6755369121888886),
+[92mINFO [0m:      	                   (6, 0.4776899976405256),
+[92mINFO [0m:      	                   (7, 0.6753167049985976),
+[92mINFO [0m:      	                   (8, 0.6618084501614839),
+[92mINFO [0m:      	                   (9, 0.6045973263049467),
+[92mINFO [0m:      	                   (10, 0.6159691339537819),
+[92mINFO [0m:      	                   (11, 0.6709365467759136),
+[92mINFO [0m:      	                   (12, 0.6180387309574368),
+[92mINFO [0m:      	                   (13, 0.6779240748275007),
+[92mINFO [0m:      	                   (14, 0.687020998963529),
+[92mINFO [0m:      	                   (15, 0.6384739781011108),
+[92mINFO [0m:      	                   (16, 0.7258727242116871),
+[92mINFO [0m:      	                   (17, 0.6631395911302074),
+[92mINFO [0m:      	                   (18, 0.6930573108429415),
+[92mINFO [0m:      	                   (19, 0.6620606054676629),
+[92mINFO [0m:      	                   (20, 0.6220196729834069),
+[92mINFO [0m:      	                   (21, 0.7025118077214191),
+[92mINFO [0m:      	                   (22, 0.6907239326065263),
+[92mINFO [0m:      	                   (23, 0.7258900497068307),
+[92mINFO [0m:      	                   (24, 0.641368315110959),
+[92mINFO [0m:      	                   (25, 0.6683537549609694),
+[92mINFO [0m:      	                   (26, 0.6930395073291793),
+[92mINFO [0m:      	                   (27, 0.702047071039076),
+[92mINFO [0m:      	                   (28, 0.7307479977711754),
+[92mINFO [0m:      	                   (29, 0.6598750627332678),
+[92mINFO [0m:      	                   (30, 0.6799069442924703),
+[92mINFO [0m:      	                   (31, 0.7259203077900217),
+[92mINFO [0m:      	                   (32, 0.7170567527018769),
+[92mINFO [0m:      	                   (33, 0.6850529571642133),
+[92mINFO [0m:      	                   (34, 0.7455156007349396),
+[92mINFO [0m:      	                   (35, 0.7263683066018464),
+[92mINFO [0m:      	                   (36, 0.6622189369091334),
+[92mINFO [0m:      	                   (37, 0.6856677418053642),
+[92mINFO [0m:      	                   (38, 0.7157139745410245),
+[92mINFO [0m:      	                   (39, 0.6903917157315029),
+[92mINFO [0m:      	                   (40, 0.7020505905619864),
+[92mINFO [0m:      	                   (41, 0.6701195112956264),
+[92mINFO [0m:      	                   (42, 0.7064092740305143),
+[92mINFO [0m:      	                   (43, 0.6927622083984992),
+[92mINFO [0m:      	                   (44, 0.6803585175440198),
+[92mINFO [0m:      	                   (45, 0.6963934547134307),
+[92mINFO [0m:      	                   (46, 0.7305791396602463),
+[92mINFO [0m:      	                   (47, 0.7271108988171168),
+[92mINFO [0m:      	                   (48, 0.696091409587158),
+[92mINFO [0m:      	                   (49, 0.7153095428967013),
+[92mINFO [0m:      	                   (50, 0.7113287363560091)],
+[92mINFO [0m:      	 'global_val_TC': [(0, 0.010752690992366204),
+[92mINFO [0m:      	                   (1, 0.010866696894281238),
+[92mINFO [0m:      	                   (2, 0.5717751912428599),
+[92mINFO [0m:      	                   (3, 0.6058763872153128),
+[92mINFO [0m:      	                   (4, 0.6125602829756533),
+[92mINFO [0m:      	                   (5, 0.6647749564276869),
+[92mINFO [0m:      	                   (6, 0.5494321313646957),
+[92mINFO [0m:      	                   (7, 0.6381419165855945),
+[92mINFO [0m:      	                   (8, 0.62443400770775),
+[92mINFO [0m:      	                   (9, 0.5149578899687304),
+[92mINFO [0m:      	                   (10, 0.5784721594464719),
+[92mINFO [0m:      	                   (11, 0.6199818404692425),
+[92mINFO [0m:      	                   (12, 0.5392244379823936),
+[92mINFO [0m:      	                   (13, 0.624417098075477),
+[92mINFO [0m:      	                   (14, 0.6273898785082489),
+[92mINFO [0m:      	                   (15, 0.5638635076901675),
+[92mINFO [0m:      	                   (16, 0.6889529021880813),
+[92mINFO [0m:      	                   (17, 0.5852709647555215),
+[92mINFO [0m:      	                   (18, 0.6277448619332691),
+[92mINFO [0m:      	                   (19, 0.6275406059106007),
+[92mINFO [0m:      	                   (20, 0.5741495888300516),
+[92mINFO [0m:      	                   (21, 0.6506485510897455),
+[92mINFO [0m:      	                   (22, 0.6427310198933257),
+[92mINFO [0m:      	                   (23, 0.6770641245727093),
+[92mINFO [0m:      	                   (24, 0.5552665180351156),
+[92mINFO [0m:      	                   (25, 0.6013532072661126),
+[92mINFO [0m:      	                   (26, 0.610397958069672),
+[92mINFO [0m:      	                   (27, 0.6419851403958117),
+[92mINFO [0m:      	                   (28, 0.6846514137437391),
+[92mINFO [0m:      	                   (29, 0.5851723842818861),
+[92mINFO [0m:      	                   (30, 0.605939652003151),
+[92mINFO [0m:      	                   (31, 0.6733825276531364),
+[92mINFO [0m:      	                   (32, 0.6582568228928612),
+[92mINFO [0m:      	                   (33, 0.6079436409639353),
+[92mINFO [0m:      	                   (34, 0.6862523308380125),
+[92mINFO [0m:      	                   (35, 0.6718028716589234),
+[92mINFO [0m:      	                   (36, 0.5902298015478047),
+[92mINFO [0m:      	                   (37, 0.6102174470606435),
+[92mINFO [0m:      	                   (38, 0.6667417976966503),
+[92mINFO [0m:      	                   (39, 0.6212269104390246),
+[92mINFO [0m:      	                   (40, 0.6630627762070155),
+[92mINFO [0m:      	                   (41, 0.5736714285495712),
+[92mINFO [0m:      	                   (42, 0.6506476262466043),
+[92mINFO [0m:      	                   (43, 0.6530491863964691),
+[92mINFO [0m:      	                   (44, 0.6264644100803651),
+[92mINFO [0m:      	                   (45, 0.6332841220517939),
+[92mINFO [0m:      	                   (46, 0.6600017825708758),
+[92mINFO [0m:      	                   (47, 0.6817826109167767),
+[92mINFO [0m:      	                   (48, 0.6482485785801301),
+[92mINFO [0m:      	                   (49, 0.6451566723972822),
+[92mINFO [0m:      	                   (50, 0.6443608031055119)],
+[92mINFO [0m:      	 'global_val_WT': [(0, 0.0796914798482112),
+[92mINFO [0m:      	                   (1, 0.24996578276593015),
+[92mINFO [0m:      	                   (2, 0.8283001333441414),
+[92mINFO [0m:      	                   (3, 0.7574798326362603),
+[92mINFO [0m:      	                   (4, 0.7834199699260765),
+[92mINFO [0m:      	                   (5, 0.8267266771212816),
+[92mINFO [0m:      	                   (6, 0.8234475645849455),
+[92mINFO [0m:      	                   (7, 0.8551709910649525),
+[92mINFO [0m:      	                   (8, 0.8523699625859902),
+[92mINFO [0m:      	                   (9, 0.8716148534954788),
+[92mINFO [0m:      	                   (10, 0.8506071311746958),
+[92mINFO [0m:      	                   (11, 0.8655734013925436),
+[92mINFO [0m:      	                   (12, 0.8723725306826736),
+[92mINFO [0m:      	                   (13, 0.8770348167322229),
+[92mINFO [0m:      	                   (14, 0.8626767780100404),
+[92mINFO [0m:      	                   (15, 0.8704534250266466),
+[92mINFO [0m:      	                   (16, 0.87288554211528),
+[92mINFO [0m:      	                   (17, 0.8836437897771361),
+[92mINFO [0m:      	                   (18, 0.8722888759663399),
+[92mINFO [0m:      	                   (19, 0.8935802504823661),
+[92mINFO [0m:      	                   (20, 0.8423452344508868),
+[92mINFO [0m:      	                   (21, 0.8876219016981621),
+[92mINFO [0m:      	                   (22, 0.8901845235918593),
+[92mINFO [0m:      	                   (23, 0.8902993921582172),
+[92mINFO [0m:      	                   (24, 0.8712222624544945),
+[92mINFO [0m:      	                   (25, 0.8679870540027314),
+[92mINFO [0m:      	                   (26, 0.8875688125227452),
+[92mINFO [0m:      	                   (27, 0.8918981953340502),
+[92mINFO [0m:      	                   (28, 0.8932633790945379),
+[92mINFO [0m:      	                   (29, 0.8948123521144269),
+[92mINFO [0m:      	                   (30, 0.8854178233750186),
+[92mINFO [0m:      	                   (31, 0.8983817795094543),
+[92mINFO [0m:      	                   (32, 0.9008100095534549),
+[92mINFO [0m:      	                   (33, 0.8901998283061544),
+[92mINFO [0m:      	                   (34, 0.8988966832522562),
+[92mINFO [0m:      	                   (35, 0.8996918826046201),
+[92mINFO [0m:      	                   (36, 0.8638613967782349),
+[92mINFO [0m:      	                   (37, 0.8928409572116652),
+[92mINFO [0m:      	                   (38, 0.8977175095507138),
+[92mINFO [0m:      	                   (39, 0.8904563595981657),
+[92mINFO [0m:      	                   (40, 0.8946918042680203),
+[92mINFO [0m:      	                   (41, 0.8888454012043001),
+[92mINFO [0m:      	                   (42, 0.8618074746957961),
+[92mINFO [0m:      	                   (43, 0.8917677681936039),
+[92mINFO [0m:      	                   (44, 0.8949499115328411),
+[92mINFO [0m:      	                   (45, 0.8888271426516812),
+[92mINFO [0m:      	                   (46, 0.8764902419699621),
+[92mINFO [0m:      	                   (47, 0.8961463313763453),
+[92mINFO [0m:      	                   (48, 0.8970211460622941),
+[92mINFO [0m:      	                   (49, 0.8590815824988558),
+[92mINFO [0m:      	                   (50, 0.8663224934181813)],
+[92mINFO [0m:      	 'global_val_loss': [(0, 2.3315567226820093),
+[92mINFO [0m:      	                     (1, 2.1958797131815264),
+[92mINFO [0m:      	                     (2, 1.8256517059059554),
+[92mINFO [0m:      	                     (3, 1.5933690455652052),
+[92mINFO [0m:      	                     (4, 1.5192137533618557),
+[92mINFO [0m:      	                     (5, 1.3406711714242094),
+[92mINFO [0m:      	                     (6, 1.2104393653972174),
+[92mINFO [0m:      	                     (7, 1.1079336135618147),
+[92mINFO [0m:      	                     (8, 1.0150826438780753),
+[92mINFO [0m:      	                     (9, 0.9549264715563867),
+[92mINFO [0m:      	                     (10, 0.8587443860628272),
+[92mINFO [0m:      	                     (11, 0.7725653110011932),
+[92mINFO [0m:      	                     (12, 0.7700001546131667),
+[92mINFO [0m:      	                     (13, 0.6740706172040714),
+[92mINFO [0m:      	                     (14, 0.6552795495397301),
+[92mINFO [0m:      	                     (15, 0.647980002626296),
+[92mINFO [0m:      	                     (16, 0.5590644661457308),
+[92mINFO [0m:      	                     (17, 0.5958551738851814),
+[92mINFO [0m:      	                     (18, 0.5645284425186855),
+[92mINFO [0m:      	                     (19, 0.5371725190711277),
+[92mINFO [0m:      	                     (20, 0.5773467705134423),
+[92mINFO [0m:      	                     (21, 0.5188495620924939),
+[92mINFO [0m:      	                     (22, 0.5183038697127373),
+[92mINFO [0m:      	                     (23, 0.505473636972007),
+[92mINFO [0m:      	                     (24, 0.5982027824527474),
+[92mINFO [0m:      	                     (25, 0.5462182120930764),
+[92mINFO [0m:      	                     (26, 0.5524742821211456),
+[92mINFO [0m:      	                     (27, 0.5129323930189174),
+[92mINFO [0m:      	                     (28, 0.4849774113265417),
+[92mINFO [0m:      	                     (29, 0.548789190508986),
+[92mINFO [0m:      	                     (30, 0.54581378320212),
+[92mINFO [0m:      	                     (31, 0.48950864855320225),
+[92mINFO [0m:      	                     (32, 0.503481914439509),
+[92mINFO [0m:      	                     (33, 0.5403493876739215),
+[92mINFO [0m:      	                     (34, 0.48472505407307737),
+[92mINFO [0m:      	                     (35, 0.4945097700242073),
+[92mINFO [0m:      	                     (36, 0.5548236395723076),
+[92mINFO [0m:      	                     (37, 0.5374075526832253),
+[92mINFO [0m:      	                     (38, 0.4899133780310231),
+[92mINFO [0m:      	                     (39, 0.5305543138134864),
+[92mINFO [0m:      	                     (40, 0.49076573534678386),
+[92mINFO [0m:      	                     (41, 0.5738126126027876),
+[92mINFO [0m:      	                     (42, 0.5136869597819543),
+[92mINFO [0m:      	                     (43, 0.4984150104304796),
+[92mINFO [0m:      	                     (44, 0.5206071885843431),
+[92mINFO [0m:      	                     (45, 0.5143128525345556),
+[92mINFO [0m:      	                     (46, 0.5003367549469394),
+[92mINFO [0m:      	                     (47, 0.47852859718184315),
+[92mINFO [0m:      	                     (48, 0.5040970916549364),
+[92mINFO [0m:      	                     (49, 0.5216816533957759),
+[92mINFO [0m:      	                     (50, 0.5125965011376207)],
+[92mINFO [0m:      	 'global_val_meanDice': [(0, 0.05165343442620018),
+[92mINFO [0m:      	                         (1, 0.10760006711986267),
+[92mINFO [0m:      	                         (2, 0.6363208596414015),
+[92mINFO [0m:      	                         (3, 0.607660589230604),
+[92mINFO [0m:      	                         (4, 0.5866013413077623),
+[92mINFO [0m:      	                         (5, 0.722346181912619),
+[92mINFO [0m:      	                         (6, 0.616856564530056),
+[92mINFO [0m:      	                         (7, 0.7228765375497151),
+[92mINFO [0m:      	                         (8, 0.7128708068184083),
+[92mINFO [0m:      	                         (9, 0.6637233565897185),
+[92mINFO [0m:      	                         (10, 0.6816828081916501),
+[92mINFO [0m:      	                         (11, 0.7188305962125665),
+[92mINFO [0m:      	                         (12, 0.6765452332075015),
+[92mINFO [0m:      	                         (13, 0.7264586632117338),
+[92mINFO [0m:      	                         (14, 0.7256958851606067),
+[92mINFO [0m:      	                         (15, 0.6909303036059753),
+[92mINFO [0m:      	                         (16, 0.762570389505016),
+[92mINFO [0m:      	                         (17, 0.7106847818876217),
+[92mINFO [0m:      	                         (18, 0.7310303495808502),
+[92mINFO [0m:      	                         (19, 0.7277271539535435),
+[92mINFO [0m:      	                         (20, 0.679504832088115),
+[92mINFO [0m:      	                         (21, 0.7469274201697763),
+[92mINFO [0m:      	                         (22, 0.7412131586972369),
+[92mINFO [0m:      	                         (23, 0.7644178554792526),
+[92mINFO [0m:      	                         (24, 0.6892856985335232),
+[92mINFO [0m:      	                         (25, 0.7125646720766047),
+[92mINFO [0m:      	                         (26, 0.7303354259738654),
+[92mINFO [0m:      	                         (27, 0.745310135589646),
+[92mINFO [0m:      	                         (28, 0.7695542635364835),
+[92mINFO [0m:      	                         (29, 0.7132865997098602),
+[92mINFO [0m:      	                         (30, 0.72375480655688),
+[92mINFO [0m:      	                         (31, 0.7658948716508704),
+[92mINFO [0m:      	                         (32, 0.7587078617160643),
+[92mINFO [0m:      	                         (33, 0.7277321421447673),
+[92mINFO [0m:      	                         (34, 0.7768882049417362),
+[92mINFO [0m:      	                         (35, 0.7659543536217968),
+[92mINFO [0m:      	                         (36, 0.7054367117450576),
+[92mINFO [0m:      	                         (37, 0.7295753820258912),
+[92mINFO [0m:      	                         (38, 0.7600577605961294),
+[92mINFO [0m:      	                         (39, 0.7340249952562309),
+[92mINFO [0m:      	                         (40, 0.7532683903456736),
+[92mINFO [0m:      	                         (41, 0.7108787803498328),
+[92mINFO [0m:      	                         (42, 0.7396214583243048),
+[92mINFO [0m:      	                         (43, 0.7458597209961906),
+[92mINFO [0m:      	                         (44, 0.7339242797190755),
+[92mINFO [0m:      	                         (45, 0.7395015731389686),
+[92mINFO [0m:      	                         (46, 0.7556903880670283),
+[92mINFO [0m:      	                         (47, 0.7683466137034125),
+[92mINFO [0m:      	                         (48, 0.747120378076527),
+[92mINFO [0m:      	                         (49, 0.7398492659309459),
+[92mINFO [0m:      	                         (50, 0.7406706776265676)]}
+[92mINFO [0m:      
+
+Saved results to: /home/bk489/federated/federated-thesis/results/unet_flower/fedavg_10clients_mixed_results.json
+Total simulation time: 2512.7s
+Job completed!

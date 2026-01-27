@@ -1,0 +1,22 @@
+==============================================
+Flower MNIST 2-Digit - FedProx
+==============================================
+Job ID: 21036040
+Node: gpu-q-36
+Strategy: FedProx (mu=0.01)
+Rounds: 30
+Clients: 10
+Local Epochs: 1
+Learning Rate: 0.01
+Seed: 42
+==============================================
+Python: /home/bk489/.conda/envs/fed/bin/python
+Python version: 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch: 2.8.0+cu128 CUDA: True
+Flower: 1.23.0
+NVIDIA A100-SXM4-80GB, 81920 MiB
+==============================================
+
+Starting FedProx experiment at Fri Jan 23 12:58:24 GMT 2026
+

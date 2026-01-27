@@ -1,0 +1,149 @@
+==============================================
+Flower MNIST 2-Digit - FedProx
+Job ID: 21078554
+Node(s): gpu-q-16
+Python: /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA available: True
+Flower 1.23.0
+Fri Jan 23 23:26:53 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   37C    P0             63W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Rounds: 30
+Clients: 10
+mu: 0.01
+fraction_fit: 0.5
+local_epochs: 5
+lr: 0.05
+seed: 42
+Results dir: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits
+==============================================
+Starting Flower FedProx run: fedprox_r30_mu0.01_ff0.5_e5_lr0.05_s42
+
+============================================================
+Flower MNIST 2-Digit Federated Learning Experiment
+============================================================
+Strategy: FEDPROX
+Proximal mu: 0.01
+Clients: 10
+Rounds: 30
+Local epochs: 5
+Learning rate: 0.05
+Device: cuda
+Output dir: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits
+Run name: fedprox_r30_mu0.01_ff0.5_e5_lr0.05_s42
+============================================================
+
+  [Round 0] Global Test - Loss: 2.3051, Accuracy: 0.0665
+  [Round 1] Global Test - Loss: 2.1636, Accuracy: 0.2033
+  [Round 2] Global Test - Loss: 2.0128, Accuracy: 0.2566
+  [Round 3] Global Test - Loss: 2.4189, Accuracy: 0.3480
+  [Round 4] Global Test - Loss: 1.6674, Accuracy: 0.4278
+  [Round 5] Global Test - Loss: 1.1075, Accuracy: 0.6115
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=2.942748 (should be SMALLER with higher mu)
+  [Round 6] Global Test - Loss: 0.8829, Accuracy: 0.6940
+  [Round 7] Global Test - Loss: 0.7004, Accuracy: 0.7495
+  [Round 8] Global Test - Loss: 0.5632, Accuracy: 0.7955
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.370812 (should be SMALLER with higher mu)
+  [Round 9] Global Test - Loss: 0.5770, Accuracy: 0.8006
+  [Round 10] Global Test - Loss: 0.3025, Accuracy: 0.9062
+  [Round 11] Global Test - Loss: 0.7813, Accuracy: 0.7217
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=2.331733 (should be SMALLER with higher mu)
+  [Round 12] Global Test - Loss: 0.2961, Accuracy: 0.9104
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.273661 (should be SMALLER with higher mu)
+  [Round 13] Global Test - Loss: 0.3565, Accuracy: 0.8746
+  [Round 14] Global Test - Loss: 0.3885, Accuracy: 0.8627
+  [Round 15] Global Test - Loss: 0.3949, Accuracy: 0.8569
+  [Round 16] Global Test - Loss: 0.2628, Accuracy: 0.9070
+  [Round 17] Global Test - Loss: 0.1663, Accuracy: 0.9441
+  [Round 18] Global Test - Loss: 0.2081, Accuracy: 0.9287
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.239079 (should be SMALLER with higher mu)
+  [Round 19] Global Test - Loss: 0.2564, Accuracy: 0.9115
+  [Round 20] Global Test - Loss: 0.2677, Accuracy: 0.9025
+  [Round 21] Global Test - Loss: 0.2228, Accuracy: 0.9270
+  [Round 22] Global Test - Loss: 0.3059, Accuracy: 0.8917
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.256496 (should be SMALLER with higher mu)
+  [Round 23] Global Test - Loss: 0.3251, Accuracy: 0.8902
+  [Round 24] Global Test - Loss: 0.4329, Accuracy: 0.8523
+  [Round 25] Global Test - Loss: 0.2236, Accuracy: 0.9262
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.162292 (should be SMALLER with higher mu)
+  [Round 26] Global Test - Loss: 0.1270, Accuracy: 0.9597
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.135905 (should be SMALLER with higher mu)
+  [Round 27] Global Test - Loss: 0.2083, Accuracy: 0.9326
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.115776 (should be SMALLER with higher mu)
+  [Round 28] Global Test - Loss: 0.1387, Accuracy: 0.9548
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.092886 (should be SMALLER with higher mu)
+  [Round 29] Global Test - Loss: 0.1668, Accuracy: 0.9466
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] mu=0.01, local_epochs=5
+[36m(ClientAppActor pid=404136)[0m   [DEBUG Client 0] drift=0.062243 (should be SMALLER with higher mu)
+  [Round 30] Global Test - Loss: 0.1576, Accuracy: 0.9495
+
+Results saved to: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits/fedprox_r30_mu0.01_ff0.5_e5_lr0.05_s42_results.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Strategy: FEDPROX (mu=0.01)
+
+--- Accuracy & Loss ---
+Final Accuracy: 0.9495
+Best Accuracy:  0.9597
+Final Loss:     0.1576
+Best Loss:      0.1270
+
+--- Convergence (rounds to reach threshold, -1 if never) ---
+Rounds to 90% accuracy: 16
+Rounds to 95% accuracy: -1
+Rounds to 98% accuracy: -1
+
+--- Stability (accuracy) ---
+Variance:        0.059105
+Max Oscillation: 0.1887
+Smoothness:      0.9475
+
+--- Timing ---
+Total Time:     1120.46s
+Avg per Round:  37.35s
+============================================================
+
+Client digit pairs (train):
+  client 0: digits=(0, 5)
+  client 1: digits=(1, 6)
+  client 2: digits=(2, 7)
+  client 3: digits=(3, 8)
+  client 4: digits=(4, 9)
+  client 5: digits=(5, 0)
+  client 6: digits=(6, 1)
+  client 7: digits=(7, 2)
+  client 8: digits=(8, 3)
+  client 9: digits=(9, 4)
+✅ Job completed successfully!

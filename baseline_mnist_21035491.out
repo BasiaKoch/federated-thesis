@@ -1,0 +1,140 @@
+==============================================
+MNIST 2-Digit Baseline Experiments
+==============================================
+Job ID: 21035491
+Node: gpu-q-39
+Baseline: both
+Epochs: 30
+Learning Rate: 0.01
+Seed: 42
+==============================================
+Python: /home/bk489/.conda/envs/fed/bin/python
+PyTorch: 2.8.0+cu128 CUDA: True
+NVIDIA A100-SXM4-80GB, 81920 MiB
+==============================================
+
+Starting baseline experiments at Fri Jan 23 12:08:24 GMT 2026
+
+
+============================================================
+MNIST 2-Digit Baseline Experiments
+============================================================
+Device: cuda
+Baseline(s): both
+Epochs: 30
+Learning rate: 0.01
+============================================================
+
+============================================================
+CENTRALIZED BASELINE
+============================================================
+Training on full dataset: 60000 samples
+Epochs: 30, LR: 0.01, Batch size: 32
+============================================================
+  Epoch   0: Train Loss=0.3553, Train Acc=0.8932 | Test Loss=0.1463, Test Acc=0.9588
+  Epoch   1: Train Loss=0.1341, Train Acc=0.9596 | Test Loss=0.0847, Test Acc=0.9754
+  Epoch   2: Train Loss=0.0890, Train Acc=0.9732 | Test Loss=0.0631, Test Acc=0.9806
+  Epoch   3: Train Loss=0.0639, Train Acc=0.9802 | Test Loss=0.0562, Test Acc=0.9808
+  Epoch   4: Train Loss=0.0512, Train Acc=0.9845 | Test Loss=0.0480, Test Acc=0.9839
+  Epoch   5: Train Loss=0.0422, Train Acc=0.9869 | Test Loss=0.0489, Test Acc=0.9842
+  Epoch   6: Train Loss=0.0361, Train Acc=0.9890 | Test Loss=0.0360, Test Acc=0.9875
+  Epoch   7: Train Loss=0.0304, Train Acc=0.9905 | Test Loss=0.0389, Test Acc=0.9875
+  Epoch   8: Train Loss=0.0265, Train Acc=0.9918 | Test Loss=0.0487, Test Acc=0.9849
+  Epoch   9: Train Loss=0.0229, Train Acc=0.9926 | Test Loss=0.0322, Test Acc=0.9893
+  Epoch  10: Train Loss=0.0205, Train Acc=0.9937 | Test Loss=0.0375, Test Acc=0.9878
+  Epoch  11: Train Loss=0.0177, Train Acc=0.9944 | Test Loss=0.0348, Test Acc=0.9887
+  Epoch  12: Train Loss=0.0157, Train Acc=0.9948 | Test Loss=0.0343, Test Acc=0.9886
+  Epoch  13: Train Loss=0.0137, Train Acc=0.9957 | Test Loss=0.0334, Test Acc=0.9893
+  Epoch  14: Train Loss=0.0121, Train Acc=0.9963 | Test Loss=0.0382, Test Acc=0.9881
+  Epoch  15: Train Loss=0.0110, Train Acc=0.9965 | Test Loss=0.0323, Test Acc=0.9901
+  Epoch  16: Train Loss=0.0099, Train Acc=0.9968 | Test Loss=0.0319, Test Acc=0.9904
+  Epoch  17: Train Loss=0.0089, Train Acc=0.9973 | Test Loss=0.0337, Test Acc=0.9895
+  Epoch  18: Train Loss=0.0081, Train Acc=0.9974 | Test Loss=0.0383, Test Acc=0.9889
+  Epoch  19: Train Loss=0.0073, Train Acc=0.9978 | Test Loss=0.0367, Test Acc=0.9898
+  Epoch  20: Train Loss=0.0064, Train Acc=0.9983 | Test Loss=0.0362, Test Acc=0.9889
+  Epoch  21: Train Loss=0.0060, Train Acc=0.9981 | Test Loss=0.0394, Test Acc=0.9896
+  Epoch  22: Train Loss=0.0059, Train Acc=0.9980 | Test Loss=0.0356, Test Acc=0.9905
+  Epoch  23: Train Loss=0.0047, Train Acc=0.9986 | Test Loss=0.0389, Test Acc=0.9892
+  Epoch  24: Train Loss=0.0050, Train Acc=0.9984 | Test Loss=0.0368, Test Acc=0.9895
+  Epoch  25: Train Loss=0.0044, Train Acc=0.9985 | Test Loss=0.0345, Test Acc=0.9899
+  Epoch  26: Train Loss=0.0042, Train Acc=0.9988 | Test Loss=0.0351, Test Acc=0.9906
+  Epoch  27: Train Loss=0.0036, Train Acc=0.9990 | Test Loss=0.0354, Test Acc=0.9909
+  Epoch  28: Train Loss=0.0038, Train Acc=0.9988 | Test Loss=0.0364, Test Acc=0.9907
+  Epoch  29: Train Loss=0.0032, Train Acc=0.9991 | Test Loss=0.0362, Test Acc=0.9890
+
+--- Centralized Final Results ---
+Final Test Accuracy: 0.9890
+Best Test Accuracy:  0.9909
+Total Time: 363.97s
+
+Saved centralized results to: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits/baseline_centralized_e30_results.json
+
+============================================================
+LOCAL-ONLY BASELINE (No Federation)
+============================================================
+Training 10 independent models, each on 2 digits
+Epochs per client: 30, LR: 0.01
+============================================================
+
+--- Client 0: digits (0, 5) ---
+  Final: Local Acc=0.9979, Global Acc=0.1867
+
+--- Client 1: digits (1, 6) ---
+  Final: Local Acc=0.9971, Global Acc=0.2088
+
+--- Client 2: digits (2, 7) ---
+  Final: Local Acc=0.9903, Global Acc=0.2042
+
+--- Client 3: digits (3, 8) ---
+  Final: Local Acc=0.9970, Global Acc=0.1977
+
+--- Client 4: digits (4, 9) ---
+  Final: Local Acc=0.9900, Global Acc=0.1978
+
+--- Client 5: digits (5, 0) ---
+  Final: Local Acc=0.9957, Global Acc=0.1868
+
+--- Client 6: digits (6, 1) ---
+  Final: Local Acc=0.9962, Global Acc=0.2084
+
+--- Client 7: digits (7, 2) ---
+  Final: Local Acc=0.9961, Global Acc=0.2045
+
+--- Client 8: digits (8, 3) ---
+  Final: Local Acc=0.9970, Global Acc=0.1976
+
+--- Client 9: digits (9, 4) ---
+  Final: Local Acc=0.9980, Global Acc=0.1982
+
+--- Local-Only Aggregate Results ---
+Avg Local Test Accuracy:    0.9955
+Avg Global Test Accuracy:   0.1991
+Weighted Global Accuracy:   0.1993
+Client Accuracy Range:      [0.1867, 0.2088]
+Total Time: 749.02s
+
+Saved local-only results to: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits/baseline_local_e30_results.json
+
+============================================================
+BASELINE COMPARISON SUMMARY
+============================================================
+Metric                                       Centralized      Local-Only
+----------------------------------------------------------------------
+Final Test Accuracy                               0.9890          0.1993
+Best Test Accuracy                                0.9909          0.2088
+----------------------------------------------------------------------
+
+Interpretation:
+  - Centralized = Upper bound (best possible with all data)
+  - Local-Only  = Lower bound (no collaboration benefit)
+  - Gap = 0.7897
+
+Federated learning should fall between these bounds.
+============================================================
+
+==============================================
+Baseline Experiments Complete!
+==============================================
+End time: Fri Jan 23 12:27:06 GMT 2026
+Results saved in: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits
+

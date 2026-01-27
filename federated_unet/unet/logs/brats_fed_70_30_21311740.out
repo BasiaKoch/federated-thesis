@@ -1,0 +1,13 @@
+==============================================
+BraTS 2D U-Net FEDERATED (70/30) training
+Job ID: 21311740
+Node(s): gpu-q-8
+Workdir: /home/bk489/federated/federated-thesis
+Script:  /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_70_30.py
+Parts:   /home/bk489/federated/federated-thesis/data/partitions/federated_clients_2_70_30/client_data
+Out:     /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30
+Strategy: fedprox | MU: 0.1
+Rounds: 20 | LocalEpochs: 1
+Batch: 4 | LR: 1e-3 | Seed: 42
+Python:  /home/bk489/federated/federated-thesis/.venv/bin/python
+Python 3.12.11 (main, Aug 26 2025, 15:44:11) [GCC 8.5.0 20210514 (Red Hat 8.5.0-26)]

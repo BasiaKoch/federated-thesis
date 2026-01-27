@@ -1,0 +1,69 @@
+==============================================
+BraTS 2D U-Net FEDERATED (70/30) training
+Job ID: 21313750
+Node(s): gpu-q-34
+Workdir: /home/bk489/federated/federated-thesis
+Script:  /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_70_30.py
+Parts:   /home/bk489/federated/federated-thesis/data/partitions/federated_clients_2_70_30/client_data
+Out:     /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30
+Strategy: fedavg | MU: 0.01
+Rounds: 10 | LocalEpochs: 3
+Batch: 32 | LR: 1e-3 | Seed: 42
+Python:  /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA available: True CUDA: 12.8
+Device count: 1
+Flower 1.23.0
+Mon Jan 26 21:32:38 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   35C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Client partition sanity check (train/val/test must exist):
+  client_0: train=1640 val=210 test=210 slices
+  client_1: train=700 val=90 test=90 slices
+
+----------------------------------------------
+Running Federated Training (fedavg)
+----------------------------------------------
+[Round 0] Client0 Mean=0.0377 | Client1 Mean=0.0494 | Pooled Mean=0.0420
+[Round 1] Client0 Mean=0.1699 | Client1 Mean=0.2014 | Pooled Mean=0.1806
+[Round 2] Client0 Mean=0.6021 | Client1 Mean=0.5962 | Pooled Mean=0.5945
+[Round 3] Client0 Mean=0.8346 | Client1 Mean=0.8124 | Pooled Mean=0.8173
+[Round 4] Client0 Mean=0.8398 | Client1 Mean=0.8323 | Pooled Mean=0.8215
+[Round 5] Client0 Mean=0.8973 | Client1 Mean=0.8741 | Pooled Mean=0.8763
+[Round 6] Client0 Mean=0.8959 | Client1 Mean=0.8459 | Pooled Mean=0.8705
+[Round 7] Client0 Mean=0.9130 | Client1 Mean=0.8650 | Pooled Mean=0.8807
+[Round 8] Client0 Mean=0.9078 | Client1 Mean=0.8697 | Pooled Mean=0.8826
+[Round 9] Client0 Mean=0.8970 | Client1 Mean=0.8792 | Pooled Mean=0.8801
+[Round 10] Client0 Mean=0.9126 | Client1 Mean=0.8744 | Pooled Mean=0.8907
+
+============================================================
+FEDERATED TRAINING COMPLETE - Per-Client Results
+============================================================
+Client 0 (global model): Final Mean Dice = 0.9126, Best = 0.9130
+Client 1 (global model): Final Mean Dice = 0.8744, Best = 0.8792
+Pooled (global model):   Final Mean Dice = 0.8907, Best = 0.8907
+============================================================
+
+Saved: /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30/fedavg_mu0.0_R10_E3_20260126_213254/results.json
+
+Job completed!
+Results saved to: /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30

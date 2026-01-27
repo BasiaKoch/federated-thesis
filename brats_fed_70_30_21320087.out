@@ -1,0 +1,13 @@
+==============================================
+BraTS 2D U-Net FEDERATED (70/30)
+Job ID:    21320087
+Node(s):   gpu-q-15
+Workdir:   /home/bk489/federated/federated-thesis
+Script:    /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_70_30.py
+Partitions:/home/bk489/federated/federated-thesis/data/partitions/federated_clients_2_70_30/client_data
+Out base:  /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30
+Strategy:  fedavg (mu=0.1)
+Rounds:    20 | LocalEpochs: 3
+Batch:     4 | LR: 1e-3 | Seed: 42
+Python:    /home/bk489/federated/federated-thesis/.venv/bin/python
+Python 3.12.11 (main, Aug 26 2025, 15:44:11) [GCC 8.5.0 20210514 (Red Hat 8.5.0-26)]

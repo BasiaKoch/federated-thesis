@@ -27,7 +27,7 @@ LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-fedavg}"   # fedavg or fedprox
-MU="${MU:-0.1}"                  # only used if STRATEGY=fedprox
+MU="${MU:-0.0001}"                  # only used if STRATEGY=fedprox
 ROUNDS="${ROUNDS:-30}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"
 BATCH_SIZE="${BATCH_SIZE:-4}"

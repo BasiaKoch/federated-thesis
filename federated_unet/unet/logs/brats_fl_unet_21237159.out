@@ -1,0 +1,11 @@
+==============================================
+BraTS 2D U-Net (Flower Federated)
+Job ID: 21237159
+Node(s): gpu-q-3
+Workdir: /home/bk489/federated/federated-thesis
+Script:  /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train.py
+Config:  /home/bk489/federated/federated-thesis/federated_unet/unet/configs/unet_fedavg.yaml
+Data:    /home/bk489/federated/federated-thesis/data/brats2020_top10_slices_split_npz
+Parts:   /home/bk489/federated/federated-thesis/data/partitions/federated_clients_5_lgg_hgg/client_data
+Python:  /home/bk489/federated/federated-thesis/.venv/bin/python
+Python 3.12.11 (main, Aug 26 2025, 15:44:11) [GCC 8.5.0 20210514 (Red Hat 8.5.0-26)]

@@ -1,0 +1,115 @@
+==============================================
+Flower MNIST 2-Digit - FedProx
+==============================================
+Job ID: 21034990
+Node: gpu-q-2
+Strategy: FedProx (mu=0.01)
+Rounds: 30
+Clients: 10
+Local Epochs: 1
+Learning Rate: 0.01
+Seed: 42
+==============================================
+Python: /home/bk489/.conda/envs/fed/bin/python
+Python version: 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch: 2.8.0+cu128 CUDA: True
+Flower: 1.23.0
+NVIDIA A100-SXM4-80GB, 81920 MiB
+==============================================
+
+Starting FedProx experiment at Fri Jan 23 11:52:14 GMT 2026
+
+
+============================================================
+Flower MNIST 2-Digit Federated Learning Experiment
+============================================================
+Strategy: FEDPROX
+Proximal mu: 0.01
+Clients: 10
+Rounds: 30
+Local epochs: 1
+Learning rate: 0.01
+Device: cuda
+Output dir: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits
+Run name: fedprox_r30_mu0.01_e1_lr0.01_s42
+============================================================
+
+  [Round 0] Global Test - Loss: 2.3131, Accuracy: 0.0516
+  [Round 1] Global Test - Loss: 1.9674, Accuracy: 0.3611
+  [Round 2] Global Test - Loss: 1.5051, Accuracy: 0.6458
+  [Round 3] Global Test - Loss: 1.2532, Accuracy: 0.6503
+  [Round 4] Global Test - Loss: 1.1028, Accuracy: 0.6882
+  [Round 5] Global Test - Loss: 0.9918, Accuracy: 0.6904
+  [Round 6] Global Test - Loss: 0.9144, Accuracy: 0.7043
+  [Round 7] Global Test - Loss: 0.8546, Accuracy: 0.7215
+  [Round 8] Global Test - Loss: 0.8069, Accuracy: 0.7351
+  [Round 9] Global Test - Loss: 0.7586, Accuracy: 0.7533
+  [Round 10] Global Test - Loss: 0.7135, Accuracy: 0.7710
+  [Round 11] Global Test - Loss: 0.6726, Accuracy: 0.7839
+  [Round 12] Global Test - Loss: 0.6465, Accuracy: 0.7924
+  [Round 13] Global Test - Loss: 0.6059, Accuracy: 0.8098
+  [Round 14] Global Test - Loss: 0.5657, Accuracy: 0.8223
+  [Round 15] Global Test - Loss: 0.5431, Accuracy: 0.8295
+  [Round 16] Global Test - Loss: 0.5081, Accuracy: 0.8477
+  [Round 17] Global Test - Loss: 0.4848, Accuracy: 0.8540
+  [Round 18] Global Test - Loss: 0.4740, Accuracy: 0.8554
+  [Round 19] Global Test - Loss: 0.4469, Accuracy: 0.8681
+  [Round 20] Global Test - Loss: 0.4272, Accuracy: 0.8744
+  [Round 21] Global Test - Loss: 0.4114, Accuracy: 0.8764
+  [Round 22] Global Test - Loss: 0.4025, Accuracy: 0.8812
+  [Round 23] Global Test - Loss: 0.3808, Accuracy: 0.8900
+  [Round 24] Global Test - Loss: 0.3670, Accuracy: 0.8956
+  [Round 25] Global Test - Loss: 0.3565, Accuracy: 0.8962
+  [Round 26] Global Test - Loss: 0.3459, Accuracy: 0.9001
+  [Round 27] Global Test - Loss: 0.3339, Accuracy: 0.9044
+  [Round 28] Global Test - Loss: 0.3350, Accuracy: 0.9017
+  [Round 29] Global Test - Loss: 0.3185, Accuracy: 0.9067
+  [Round 30] Global Test - Loss: 0.3039, Accuracy: 0.9104
+
+Results saved to: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits/fedprox_r30_mu0.01_e1_lr0.01_s42_results.json
+
+============================================================
+EXPERIMENT SUMMARY
+============================================================
+Strategy: FEDPROX (mu=0.01)
+
+--- Accuracy & Loss ---
+Final Accuracy: 0.9104
+Best Accuracy:  0.9104
+Final Loss:     0.3039
+Best Loss:      0.3039
+
+--- Convergence (rounds to reach threshold, -1 if never) ---
+Rounds to 90% accuracy: 26
+Rounds to 95% accuracy: -1
+Rounds to 98% accuracy: -1
+
+--- Stability (accuracy) ---
+Variance:       0.030416
+Max Oscillation:0.3095
+Smoothness:     0.9720
+
+--- Timing ---
+Total Time:     458.20s
+Avg per Round:  15.27s
+============================================================
+
+Client digit pairs (train):
+  client 0: digits=(0, 5)
+  client 1: digits=(1, 6)
+  client 2: digits=(2, 7)
+  client 3: digits=(3, 8)
+  client 4: digits=(4, 9)
+  client 5: digits=(5, 0)
+  client 6: digits=(6, 1)
+  client 7: digits=(7, 2)
+  client 8: digits=(8, 3)
+  client 9: digits=(9, 4)
+
+==============================================
+FedProx Experiment Complete!
+==============================================
+End time: Fri Jan 23 12:00:12 GMT 2026
+Results saved in: /home/bk489/federated/federated-thesis/results/flower_mnist_2digits
+

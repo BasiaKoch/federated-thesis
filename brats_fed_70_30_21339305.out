@@ -1,0 +1,50 @@
+==============================================
+BraTS 2D U-Net FEDERATED (70/30)
+Job ID:    21339305
+Node(s):   gpu-q-2
+Workdir:   /home/bk489/federated/federated-thesis
+Script:    /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_70_30.py
+Partitions:/home/bk489/federated/federated-thesis/data/partitions/federated_clients_2_70_30/client_data
+Out base:  /home/bk489/federated/federated-thesis/results/federated/clients_2_70_30
+Strategy:  fedavg (mu=0.1)
+Rounds:    10 | LocalEpochs: 1
+Batch:     4 | LR: 1e-3 | Seed: 42
+Python:    /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Flower 1.23.0
+Tue Jan 27 10:30:43 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:C1:00.0 Off |                    0 |
+| N/A   34C    P0             66W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Client partition sanity check:
+  client_0: train=2729 val=1122 test=1188
+  client_1: train=1938 val=1122 test=1188
+Starting federated training...
+[Round 0] Client0 Mean=0.0251 | Client1 Mean=0.0251 | Pooled Mean=0.0251
+[36m(ClientAppActor pid=187008)[0m   [Client 1] Epoch 1/1: loss=0.9836, dice=0.1672
+[36m(ClientAppActor pid=187008)[0m   [Client 0] Epoch 1/1: loss=0.9215, dice=0.2008
+[Round 1] Client0 Mean=0.0040 | Client1 Mean=0.0040 | Pooled Mean=0.0040
+[36m(ClientAppActor pid=187008)[0m   [Client 0] Epoch 1/1: loss=0.6341, dice=0.4064
+[36m(ClientAppActor pid=187008)[0m   [Client 1] Epoch 1/1: loss=0.6257, dice=0.4139
+[Round 2] Client0 Mean=0.0113 | Client1 Mean=0.0113 | Pooled Mean=0.0113
+[36m(ClientAppActor pid=187008)[0m   [Client 0] Epoch 1/1: loss=0.5761, dice=0.4615
+[36m(ClientAppActor pid=187008)[0m   [Client 1] Epoch 1/1: loss=0.6013, dice=0.4384

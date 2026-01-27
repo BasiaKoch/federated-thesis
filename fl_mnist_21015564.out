@@ -1,0 +1,76 @@
+==============================================
+Federated Learning - MNIST - HPC Job
+==============================================
+Job ID: 21015564
+Node: gpu-q-2
+CPUs: 32
+Algorithm: fedavg
+Rounds: 50
+Clients: 30 total, 10 per round
+==============================================
+Python: /home/bk489/.conda/envs/fed/bin/python
+Python version: 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch: 1.13.1 CUDA: False
+NVFlare: 2.7.1
+Thu Jan 22 20:49:38 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:81:00.0 Off |                    0 |
+| N/A   34C    P0             66W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+Step 1: Data partition exists. Skipping...
+
+Step 2: Configuring job for 50 rounds...
+Updated server config to 50 rounds
+
+Step 3: Preparing workspace...
+Cleaning previous workspace...
+
+Step 4: Starting NVFlare simulator...
+Workspace: /home/bk489/federated/federated-thesis/workspace/mnist_fedavg
+Start time: Thu Jan 22 20:49:39 GMT 2026
+
+[38m2026-01-22 20:49:43,984 - INFO - model selection weights control: None[0m
+[38m2026-01-22 20:49:44,045 - INFO - Initializing ScatterAndGather workflow for Federated Averaging.[0m
+[38m2026-01-22 20:49:44,048 - INFO - Both source_ckpt_file_full_name and ckpt_preload_path are not provided. Using the default model weights initialized on the persistor side.[0m
+[31m2026-01-22 20:49:44,051 - ERROR - Exception in workflow scatter_and_gather: RuntimeError: Numpy is not available[0m
+[31m2026-01-22 20:49:44,057 - ERROR - Traceback (most recent call last):
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/private/fed/server/server_runner.py", line 137, in _execute_run
+    wf.controller.initialize(fl_ctx)
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/apis/impl/controller.py", line 45, in initialize
+    self.start_controller(fl_ctx)
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/app_common/workflows/scatter_and_gather.py", line 185, in start_controller
+    self._global_weights = self.persistor.load(fl_ctx)
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/app_common/abstract/model_persistor.py", line 40, in load
+    learnable = self.load_model(fl_ctx)
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/app_opt/pt/file_model_persistor.py", line 237, in load_model
+    return self.persistence_manager.to_model_learnable(self.exclude_vars)
+  File "/home/bk489/.conda/envs/fed/lib/python3.9/site-packages/nvflare/app_opt/pt/model_persistence_format_manager.py", line 96, in to_model_learnable
+    weights[k] = v.cpu().numpy()
+RuntimeError: Numpy is not available
+[0m
+[31m2026-01-22 20:49:44,060 - ERROR - Aborting current RUN due to FATAL_SYSTEM_ERROR received: Exception in workflow scatter_and_gather: RuntimeError: Numpy is not available[0m
+
+==============================================
+Simulation Complete!
+==============================================
+End time: Thu Jan 22 20:49:53 GMT 2026
+Results saved in: /home/bk489/federated/federated-thesis/workspace/mnist_fedavg
+
