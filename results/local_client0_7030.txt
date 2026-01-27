@@ -1,0 +1,82 @@
+==============================================
+Local BraTS 2D U-Net (non-federated)
+Job ID:    21357504
+Node(s):   gpu-q-20
+Workdir:   /home/bk489/federated/federated-thesis
+Script:    /home/bk489/federated/federated-thesis/federated_unet/unet/train_local_70_30.py
+Partitions:/home/bk489/federated/federated-thesis/data/partitions/brats2d_one_slice_per_patient_clients
+Out base:  /home/bk489/federated/federated-thesis/results/local_unet
+Client ID: 0
+Epochs:    30
+Batch:     4 | LR: 1e-3 | Seed: 42
+Python:    /home/bk489/.conda/envs/fed/bin/python
+PyTorch 2.8.0+cu128 CUDA available: True
+Tue Jan 27 16:02:35 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:C1:00.0 Off |                    0 |
+| N/A   35C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Sanity counts:
+  client_0 train: 166
+  client_0 val: 20
+  client_0 test: 20
+Starting local training...
+==============================================
+LOCAL TRAINING (no federation) client_0
+client_root: /home/bk489/federated/federated-thesis/data/partitions/brats2d_one_slice_per_patient_clients/client_0
+train=166 val=20 test=20
+in_ch=4 device=cuda
+==============================================
+Epoch 01/30 | train loss=1.4918 dice=0.0725 | val meanDice=0.0265 (WT=0.0528 TC=0.0180 ET=0.0086)
+Epoch 02/30 | train loss=1.2470 dice=0.1035 | val meanDice=0.0842 (WT=0.1615 TC=0.0626 ET=0.0284)
+Epoch 03/30 | train loss=1.0510 dice=0.1608 | val meanDice=0.0435 (WT=0.0826 TC=0.0313 ET=0.0166)
+Epoch 04/30 | train loss=0.9189 dice=0.2228 | val meanDice=0.0887 (WT=0.1701 TC=0.0673 ET=0.0286)
+Epoch 05/30 | train loss=0.8114 dice=0.2884 | val meanDice=0.1021 (WT=0.1846 TC=0.0832 ET=0.0385)
+Epoch 06/30 | train loss=0.7300 dice=0.3564 | val meanDice=0.0316 (WT=0.0418 TC=0.0308 ET=0.0221)
+Epoch 07/30 | train loss=0.6785 dice=0.3980 | val meanDice=0.0165 (WT=0.0231 TC=0.0144 ET=0.0120)
+Epoch 08/30 | train loss=0.5913 dice=0.4744 | val meanDice=0.0093 (WT=0.0130 TC=0.0081 ET=0.0068)
+Epoch 09/30 | train loss=0.6090 dice=0.4624 | val meanDice=0.1235 (WT=0.1980 TC=0.1212 ET=0.0514)
+Epoch 10/30 | train loss=0.5735 dice=0.4942 | val meanDice=0.0540 (WT=0.0766 TC=0.0470 ET=0.0385)
+Epoch 11/30 | train loss=0.5527 dice=0.5157 | val meanDice=0.0468 (WT=0.0745 TC=0.0459 ET=0.0201)
+Epoch 12/30 | train loss=0.5358 dice=0.5306 | val meanDice=0.0455 (WT=0.0672 TC=0.0450 ET=0.0243)
+Epoch 13/30 | train loss=0.5074 dice=0.5579 | val meanDice=0.0455 (WT=0.0622 TC=0.0484 ET=0.0257)
+Epoch 14/30 | train loss=0.4754 dice=0.5824 | val meanDice=0.1424 (WT=0.1760 TC=0.1516 ET=0.0996)
+Epoch 15/30 | train loss=0.4602 dice=0.5974 | val meanDice=0.1054 (WT=0.1488 TC=0.1103 ET=0.0572)
+Epoch 16/30 | train loss=0.4639 dice=0.5949 | val meanDice=0.1650 (WT=0.1928 TC=0.1630 ET=0.1393)
+Epoch 17/30 | train loss=0.4534 dice=0.6060 | val meanDice=0.0787 (WT=0.1140 TC=0.0785 ET=0.0436)
+Epoch 18/30 | train loss=0.4600 dice=0.5993 | val meanDice=0.4844 (WT=0.5791 TC=0.4744 ET=0.3996)
+Epoch 19/30 | train loss=0.4394 dice=0.6172 | val meanDice=0.1874 (WT=0.1965 TC=0.2007 ET=0.1649)
+Epoch 20/30 | train loss=0.4522 dice=0.6065 | val meanDice=0.0577 (WT=0.0742 TC=0.0590 ET=0.0398)
+Epoch 21/30 | train loss=0.4293 dice=0.6264 | val meanDice=0.1158 (WT=0.1228 TC=0.1149 ET=0.1097)
+Epoch 22/30 | train loss=0.4297 dice=0.6242 | val meanDice=0.2567 (WT=0.3112 TC=0.2534 ET=0.2055)
+Epoch 23/30 | train loss=0.4445 dice=0.6121 | val meanDice=0.4639 (WT=0.5867 TC=0.4716 ET=0.3334)
+Epoch 24/30 | train loss=0.4232 dice=0.6326 | val meanDice=0.1044 (WT=0.0956 TC=0.1097 ET=0.1079)
+Epoch 25/30 | train loss=0.4178 dice=0.6351 | val meanDice=0.1292 (WT=0.1474 TC=0.1331 ET=0.1073)
+Epoch 26/30 | train loss=0.3893 dice=0.6616 | val meanDice=0.3183 (WT=0.3579 TC=0.3136 ET=0.2834)
+Epoch 27/30 | train loss=0.3871 dice=0.6650 | val meanDice=0.0252 (WT=0.0512 TC=0.0214 ET=0.0029)
+Epoch 28/30 | train loss=0.4257 dice=0.6298 | val meanDice=0.0708 (WT=0.1151 TC=0.0685 ET=0.0288)
+Epoch 29/30 | train loss=0.4033 dice=0.6481 | val meanDice=0.1898 (WT=0.2218 TC=0.1972 ET=0.1505)
+Epoch 30/30 | train loss=0.3745 dice=0.6723 | val meanDice=0.1004 (WT=0.0855 TC=0.1075 ET=0.1082)
+==============================================
+Saved: /home/bk489/federated/federated-thesis/results/local_unet/client0_E30_lr0.001_20260127_160241/results.json
+Saved: /home/bk489/federated/federated-thesis/results/local_unet/client0_E30_lr0.001_20260127_160241/best_model.pt
+TEST (best-val ckpt): Mean=0.5069 WT=0.5577 TC=0.4344 ET=0.5284
+TEST (last epoch):    Mean=0.4422 WT=0.4251 TC=0.4560 ET=0.4456
+==============================================
+Done. Results in: /home/bk489/federated/federated-thesis/results/local_unet
