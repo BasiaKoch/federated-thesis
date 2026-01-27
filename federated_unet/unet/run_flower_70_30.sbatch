@@ -12,8 +12,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
 #SBATCH --time=01:00:00
-#SBATCH --output=%x_%j.out
-#SBATCH --error=%x_%j.err
+#SBATCH --output=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.out
+#SBATCH --error=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.err
 #SBATCH --qos=INTR
 
 set -euo pipefail
@@ -21,15 +21,15 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_train_70_30.py"
-PARTITION_DIR="${PROJECT_DIR}/data/partitions/federated_clients_2_70_30/client_data"
+PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_one_slice_per_patient_clients"
 OUT_BASE="${PROJECT_DIR}/results/federated/clients_2_70_30"
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-fedavg}"   # fedavg or fedprox
 MU="${MU:-0.1}"                  # only used if STRATEGY=fedprox
-ROUNDS="${ROUNDS:-20}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-3}"
+ROUNDS="${ROUNDS:-10}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-1}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-1e-3}"
 NUM_WORKERS="${NUM_WORKERS:-0}"
