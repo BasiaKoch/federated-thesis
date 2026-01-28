@@ -1,17 +1,18 @@
 #!/bin/bash
 #! ==============================================================
-#!  CSD3 Ampere GPU job: Federated U-Net (2 clients, 70/30)
+#!  CSD3 Ampere GPU job: Federated U-Net (N clients)
 #!  FedAvg / FedProx (set STRATEGY=fedavg|fedprox; MU used only for fedprox)
+#!  Supports any number of clients via NUM_CLIENTS parameter
 #! ==============================================================
 
-#SBATCH -J brats_fed_70_30
+#SBATCH -J brats_fed_Nclient
 #SBATCH -A FERGUSSON-SL3-GPU
 #SBATCH -p ampere
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.err
 #SBATCH --qos=INTR
@@ -21,16 +22,23 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_any_Nclients.py"
+
+# Choose partition (uncomment the one you want):
+# 2-client ET-skewed partition:
+# PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_et_skewed/client_data"
+# 4-client quartile partition:
 PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_4client_quartile/client_data"
-OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_7030_c0ET10"
+
+OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_quartile"
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
-STRATEGY="${STRATEGY:-fedavg}"   # fedavg or fedprox
+NUM_CLIENTS="${NUM_CLIENTS:-4}"   # number of clients
+STRATEGY="${STRATEGY:-fedavg}"    # fedavg or fedprox
 MU="${MU:-0.01}"                  # only used if STRATEGY=fedprox
 ROUNDS="${ROUNDS:-30}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"
-BATCH_SIZE="${BATCH_SIZE:-10}"
+BATCH_SIZE="${BATCH_SIZE:-8}"     # smaller batch for more clients (less data per client)
 LR="${LR:-0.01}"
 NUM_WORKERS="${NUM_WORKERS:-0}"
 SEED="${SEED:-42}"
@@ -56,13 +64,14 @@ cd "${PROJECT_DIR}"
 
 # ======= Diagnostics =======
 echo "=============================================="
-echo "BraTS 2D U-Net FEDERATED (70/30)"
+echo "BraTS 2D U-Net FEDERATED (${NUM_CLIENTS} clients)"
 echo "Job ID:    ${SLURM_JOB_ID}"
 echo "Node(s):   ${SLURM_NODELIST}"
 echo "Workdir:   $(pwd)"
 echo "Script:    ${SRC_FILE}"
 echo "Partitions:${PARTITION_DIR}"
 echo "Out base:  ${OUT_BASE}"
+echo "Clients:   ${NUM_CLIENTS}"
 echo "Strategy:  ${STRATEGY} (mu=${MU})"
 echo "Rounds:    ${ROUNDS} | LocalEpochs: ${LOCAL_EPOCHS}"
 echo "Batch:     ${BATCH_SIZE} | LR: ${LR} | Seed: ${SEED}"
@@ -84,7 +93,7 @@ if [[ "${STRATEGY}" != "fedavg" && "${STRATEGY}" != "fedprox" ]]; then
 fi
 
 echo "Client partition sanity check:"
-for i in 0 1; do
+for i in $(seq 0 $((NUM_CLIENTS - 1))); do
   for s in train val test; do
     cdir="${PARTITION_DIR}/client_${i}/${s}"
     [ -d "${cdir}" ] || { echo "ERROR: missing ${cdir}"; exit 1; }
@@ -96,9 +105,10 @@ for i in 0 1; do
 done
 
 # ======= Run =======
-echo "Starting federated training..."
+echo "Starting federated training with ${NUM_CLIENTS} clients..."
 python -u "${SRC_FILE}" \
   --partition_dir "${PARTITION_DIR}" \
+  --num_clients "${NUM_CLIENTS}" \
   --strategy "${STRATEGY}" \
   --mu "${MU}" \
   --rounds "${ROUNDS}" \
