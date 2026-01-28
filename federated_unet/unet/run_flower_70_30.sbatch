@@ -12,7 +12,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=6
-#SBATCH --time=02:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/federated_unet/unet/logs/%x_%j.err
 #SBATCH --qos=INTR
