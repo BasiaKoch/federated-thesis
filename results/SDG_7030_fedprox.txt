@@ -1,0 +1,540 @@
+==============================================
+BraTS 2D U-Net FEDERATED (70/30)
+Job ID:    21381865
+Node(s):   gpu-q-5
+Workdir:   /home/bk489/federated/federated-thesis
+Script:    /home/bk489/federated/federated-thesis/federated_unet/unet/unet_flower_train_70_30.py
+Partitions:/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data
+Out base:  /home/bk489/federated/federated-thesis/results/federated/brats2d_7030_c0ET10
+Strategy:  fedprox (mu=0.01)
+Rounds:    30 | LocalEpochs: 5
+Batch:     10 | LR: 0.01 | Seed: 42
+Python:    /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Flower 1.23.0
+Wed Jan 28 00:25:51 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   35C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+Client partition sanity check:
+  client_0: train=135 val=17 test=17
+  client_1: train=100 val=13 test=13
+Starting federated training...
+DEBUG Round 0: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 0] Client0 Mean=0.0709 | Client1 Mean=0.0694 | Pooled Mean=0.0661
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.7165, dice=0.0498, prox_term=0.0039
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.6513, dice=0.0562, prox_term=0.0213
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.5972, dice=0.0615, prox_term=0.0488
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.5484, dice=0.0655, prox_term=0.0879
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=1.5028, dice=0.0694, prox_term=0.1376
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.7229, dice=0.0545, prox_term=0.0021
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.6695, dice=0.0599, prox_term=0.0121
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.6315, dice=0.0628, prox_term=0.0271
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=1.5964, dice=0.0661, prox_term=0.0471
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=1.5648, dice=0.0681, prox_term=0.0726
+DEBUG Round 1: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 1] Client0 Mean=0.0644 | Client1 Mean=0.0672 | Pooled Mean=0.0620
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.4917, dice=0.0700, prox_term=0.0021
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.4467, dice=0.0745, prox_term=0.0144
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.4010, dice=0.0797, prox_term=0.0382
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.3631, dice=0.0835, prox_term=0.0713
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=1.3286, dice=0.0871, prox_term=0.1123
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.5004, dice=0.0726, prox_term=0.0011
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.4693, dice=0.0749, prox_term=0.0076
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.4286, dice=0.0816, prox_term=0.0201
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=1.4009, dice=0.0847, prox_term=0.0382
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=1.3707, dice=0.0874, prox_term=0.0615
+DEBUG Round 2: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 2] Client0 Mean=0.0749 | Client1 Mean=0.0774 | Pooled Mean=0.0723
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.3180, dice=0.0879, prox_term=0.0015
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.2855, dice=0.0921, prox_term=0.0104
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.2539, dice=0.0963, prox_term=0.0272
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.2311, dice=0.0978, prox_term=0.0508
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=1.2022, dice=0.1042, prox_term=0.0798
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.3207, dice=0.0915, prox_term=0.0008
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.2919, dice=0.0980, prox_term=0.0057
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.2708, dice=0.1000, prox_term=0.0150
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=1.2495, dice=0.1025, prox_term=0.0284
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=1.2243, dice=0.1101, prox_term=0.0460
+DEBUG Round 3: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 3] Client0 Mean=0.0801 | Client1 Mean=0.0811 | Pooled Mean=0.0771
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.1939, dice=0.1113, prox_term=0.0006
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.1747, dice=0.1171, prox_term=0.0047
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.1570, dice=0.1212, prox_term=0.0117
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=1.1376, dice=0.1300, prox_term=0.0225
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=1.1246, dice=0.1326, prox_term=0.0353
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.1934, dice=0.1062, prox_term=0.0011
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.1710, dice=0.1109, prox_term=0.0077
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.1514, dice=0.1135, prox_term=0.0197
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.1314, dice=0.1180, prox_term=0.0365
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=1.1118, dice=0.1238, prox_term=0.0572
+DEBUG Round 4: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 4] Client0 Mean=0.0976 | Client1 Mean=0.0999 | Pooled Mean=0.0954
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.1031, dice=0.1282, prox_term=0.0009
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.0888, dice=0.1305, prox_term=0.0057
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.0705, dice=0.1354, prox_term=0.0149
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.0605, dice=0.1379, prox_term=0.0271
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=1.0512, dice=0.1394, prox_term=0.0428
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.1028, dice=0.1342, prox_term=0.0005
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.0860, dice=0.1418, prox_term=0.0037
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.0746, dice=0.1455, prox_term=0.0094
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=1.0585, dice=0.1540, prox_term=0.0172
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=1.0495, dice=0.1552, prox_term=0.0272
+DEBUG Round 5: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 5] Client0 Mean=0.1059 | Client1 Mean=0.1086 | Pooled Mean=0.1042
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=1.0400, dice=0.1454, prox_term=0.0007
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=1.0267, dice=0.1515, prox_term=0.0046
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=1.0186, dice=0.1530, prox_term=0.0115
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=1.0038, dice=0.1600, prox_term=0.0212
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.9961, dice=0.1609, prox_term=0.0341
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=1.0283, dice=0.1627, prox_term=0.0007
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=1.0151, dice=0.1687, prox_term=0.0034
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=1.0050, dice=0.1741, prox_term=0.0082
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.9991, dice=0.1764, prox_term=0.0150
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.9815, dice=0.1865, prox_term=0.0240
+DEBUG Round 6: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 6] Client0 Mean=0.1131 | Client1 Mean=0.1205 | Pooled Mean=0.1141
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.9913, dice=0.1658, prox_term=0.0009
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.9814, dice=0.1695, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.9682, dice=0.1754, prox_term=0.0100
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.9561, dice=0.1829, prox_term=0.0181
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.9550, dice=0.1809, prox_term=0.0290
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.9695, dice=0.1890, prox_term=0.0008
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.9643, dice=0.1932, prox_term=0.0032
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.9501, dice=0.2019, prox_term=0.0072
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.9371, dice=0.2099, prox_term=0.0133
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.9204, dice=0.2212, prox_term=0.0208
+DEBUG Round 7: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 7] Client0 Mean=0.1450 | Client1 Mean=0.1588 | Pooled Mean=0.1490
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.9465, dice=0.1874, prox_term=0.0009
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.9428, dice=0.1877, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.9329, dice=0.1920, prox_term=0.0094
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.9305, dice=0.1927, prox_term=0.0168
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.9204, dice=0.1980, prox_term=0.0263
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.9242, dice=0.2130, prox_term=0.0006
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.9141, dice=0.2203, prox_term=0.0032
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.9002, dice=0.2288, prox_term=0.0072
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.8948, dice=0.2328, prox_term=0.0131
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.8799, dice=0.2441, prox_term=0.0199
+DEBUG Round 8: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 8] Client0 Mean=0.1630 | Client1 Mean=0.1849 | Pooled Mean=0.1716
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.9135, dice=0.2054, prox_term=0.0011
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.9097, dice=0.2047, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.8927, dice=0.2162, prox_term=0.0088
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.8897, dice=0.2174, prox_term=0.0158
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.8843, dice=0.2219, prox_term=0.0248
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.8782, dice=0.2433, prox_term=0.0008
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.8661, dice=0.2522, prox_term=0.0032
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.8658, dice=0.2525, prox_term=0.0073
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.8512, dice=0.2640, prox_term=0.0128
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.8444, dice=0.2653, prox_term=0.0204
+DEBUG Round 9: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 9] Client0 Mean=0.1939 | Client1 Mean=0.2286 | Pooled Mean=0.2085
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.8849, dice=0.2216, prox_term=0.0010
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.8695, dice=0.2324, prox_term=0.0042
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.8581, dice=0.2399, prox_term=0.0085
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.8524, dice=0.2444, prox_term=0.0155
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.8490, dice=0.2463, prox_term=0.0249
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.8338, dice=0.2728, prox_term=0.0013
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.8459, dice=0.2647, prox_term=0.0045
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.8366, dice=0.2729, prox_term=0.0086
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.8161, dice=0.2866, prox_term=0.0138
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.8218, dice=0.2827, prox_term=0.0198
+DEBUG Round 10: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 10] Client0 Mean=0.1956 | Client1 Mean=0.2219 | Pooled Mean=0.2068
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.8134, dice=0.2856, prox_term=0.0017
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.7902, dice=0.3071, prox_term=0.0042
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.7927, dice=0.3042, prox_term=0.0079
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.7838, dice=0.3093, prox_term=0.0134
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.7797, dice=0.3172, prox_term=0.0212
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.8323, dice=0.2595, prox_term=0.0013
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.8517, dice=0.2436, prox_term=0.0050
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.8334, dice=0.2574, prox_term=0.0120
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.8388, dice=0.2516, prox_term=0.0191
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.8217, dice=0.2660, prox_term=0.0287
+DEBUG Round 11: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 11] Client0 Mean=0.2265 | Client1 Mean=0.2790 | Pooled Mean=0.2497
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.7669, dice=0.3228, prox_term=0.0017
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.7592, dice=0.3313, prox_term=0.0053
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.7660, dice=0.3270, prox_term=0.0104
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.7322, dice=0.3514, prox_term=0.0164
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.7350, dice=0.3529, prox_term=0.0241
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.8219, dice=0.2673, prox_term=0.0018
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.8011, dice=0.2829, prox_term=0.0055
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.7877, dice=0.2950, prox_term=0.0106
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.7919, dice=0.2889, prox_term=0.0174
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.7852, dice=0.2943, prox_term=0.0271
+DEBUG Round 12: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 12] Client0 Mean=0.2388 | Client1 Mean=0.2922 | Pooled Mean=0.2577
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.7145, dice=0.3640, prox_term=0.0021
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.7106, dice=0.3694, prox_term=0.0061
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.7104, dice=0.3700, prox_term=0.0123
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.7032, dice=0.3770, prox_term=0.0179
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.6942, dice=0.3811, prox_term=0.0279
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.7871, dice=0.2959, prox_term=0.0029
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.7743, dice=0.3039, prox_term=0.0072
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.7568, dice=0.3174, prox_term=0.0125
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.7611, dice=0.3136, prox_term=0.0221
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.7554, dice=0.3192, prox_term=0.0343
+DEBUG Round 13: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 13] Client0 Mean=0.2309 | Client1 Mean=0.3079 | Pooled Mean=0.2641
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.6880, dice=0.3888, prox_term=0.0024
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.6661, dice=0.4069, prox_term=0.0066
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.6694, dice=0.4049, prox_term=0.0118
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.6639, dice=0.4075, prox_term=0.0209
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.6866, dice=0.3898, prox_term=0.0347
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.7460, dice=0.3276, prox_term=0.0030
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.7445, dice=0.3302, prox_term=0.0096
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.7251, dice=0.3454, prox_term=0.0147
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.7161, dice=0.3515, prox_term=0.0252
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.7060, dice=0.3589, prox_term=0.0362
+DEBUG Round 14: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 14] Client0 Mean=0.2193 | Client1 Mean=0.2998 | Pooled Mean=0.2585
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.6502, dice=0.4196, prox_term=0.0047
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.6431, dice=0.4270, prox_term=0.0100
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.6221, dice=0.4442, prox_term=0.0169
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.6154, dice=0.4510, prox_term=0.0234
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.5885, dice=0.4712, prox_term=0.0311
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.7046, dice=0.3602, prox_term=0.0034
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.6941, dice=0.3712, prox_term=0.0088
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.7016, dice=0.3634, prox_term=0.0178
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.6931, dice=0.3721, prox_term=0.0272
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.6897, dice=0.3730, prox_term=0.0375
+DEBUG Round 15: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 15] Client0 Mean=0.3060 | Client1 Mean=0.4243 | Pooled Mean=0.3522
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.6025, dice=0.4633, prox_term=0.0024
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.5884, dice=0.4742, prox_term=0.0093
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.5756, dice=0.4846, prox_term=0.0159
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.5896, dice=0.4727, prox_term=0.0249
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.5976, dice=0.4682, prox_term=0.0394
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.6744, dice=0.3869, prox_term=0.0026
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.6597, dice=0.3998, prox_term=0.0091
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.6683, dice=0.3940, prox_term=0.0198
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.6692, dice=0.3896, prox_term=0.0332
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.6455, dice=0.4115, prox_term=0.0424
+DEBUG Round 16: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 16] Client0 Mean=0.3417 | Client1 Mean=0.4706 | Pooled Mean=0.3957
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.5542, dice=0.5020, prox_term=0.0033
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.5637, dice=0.4955, prox_term=0.0103
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.5551, dice=0.5037, prox_term=0.0167
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.5478, dice=0.5125, prox_term=0.0253
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.5154, dice=0.5375, prox_term=0.0340
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.6283, dice=0.4263, prox_term=0.0029
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.6319, dice=0.4237, prox_term=0.0088
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.6219, dice=0.4320, prox_term=0.0157
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.6323, dice=0.4223, prox_term=0.0270
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.6340, dice=0.4222, prox_term=0.0394
+DEBUG Round 17: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 17] Client0 Mean=0.2589 | Client1 Mean=0.3074 | Pooled Mean=0.2732
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.5079, dice=0.5419, prox_term=0.0061
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.5086, dice=0.5432, prox_term=0.0127
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.5122, dice=0.5398, prox_term=0.0247
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.5065, dice=0.5453, prox_term=0.0304
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.5080, dice=0.5445, prox_term=0.0403
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.5980, dice=0.4527, prox_term=0.0044
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.6092, dice=0.4447, prox_term=0.0131
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.6206, dice=0.4340, prox_term=0.0286
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.6370, dice=0.4194, prox_term=0.0402
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.5670, dice=0.4776, prox_term=0.0477
+DEBUG Round 18: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 18] Client0 Mean=0.3618 | Client1 Mean=0.5118 | Pooled Mean=0.4273
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.5495, dice=0.4951, prox_term=0.0028
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.5861, dice=0.4648, prox_term=0.0105
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.5680, dice=0.4807, prox_term=0.0182
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.5559, dice=0.4897, prox_term=0.0267
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.5183, dice=0.5230, prox_term=0.0338
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.5062, dice=0.5468, prox_term=0.0056
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.4653, dice=0.5820, prox_term=0.0106
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.4392, dice=0.6035, prox_term=0.0160
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.4749, dice=0.5749, prox_term=0.0263
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.4484, dice=0.5970, prox_term=0.0359
+DEBUG Round 19: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 19] Client0 Mean=0.3670 | Client1 Mean=0.4832 | Pooled Mean=0.4293
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.5328, dice=0.5108, prox_term=0.0050
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.5319, dice=0.5106, prox_term=0.0106
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.5318, dice=0.5113, prox_term=0.0185
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.5076, dice=0.5335, prox_term=0.0253
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.5148, dice=0.5272, prox_term=0.0366
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.4387, dice=0.6052, prox_term=0.0034
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.4286, dice=0.6145, prox_term=0.0089
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.4231, dice=0.6192, prox_term=0.0163
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.4533, dice=0.5939, prox_term=0.0244
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.4216, dice=0.6194, prox_term=0.0316
+DEBUG Round 20: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 20] Client0 Mean=0.4042 | Client1 Mean=0.5743 | Pooled Mean=0.4845
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3908, dice=0.6469, prox_term=0.0022
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.4051, dice=0.6356, prox_term=0.0077
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.3931, dice=0.6465, prox_term=0.0137
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.3681, dice=0.6663, prox_term=0.0195
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.3849, dice=0.6546, prox_term=0.0256
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.5065, dice=0.5344, prox_term=0.0040
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.5074, dice=0.5334, prox_term=0.0102
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.5038, dice=0.5371, prox_term=0.0156
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.4916, dice=0.5497, prox_term=0.0246
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.4880, dice=0.5505, prox_term=0.0339
+DEBUG Round 21: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 21] Client0 Mean=0.4692 | Client1 Mean=0.5531 | Pooled Mean=0.5107
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3937, dice=0.6460, prox_term=0.0031
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.4110, dice=0.6328, prox_term=0.0124
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.3774, dice=0.6612, prox_term=0.0176
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.3679, dice=0.6688, prox_term=0.0214
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.3891, dice=0.6524, prox_term=0.0285
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.4912, dice=0.5488, prox_term=0.0054
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.4700, dice=0.5683, prox_term=0.0118
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.4699, dice=0.5680, prox_term=0.0164
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.4783, dice=0.5610, prox_term=0.0248
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.4494, dice=0.5863, prox_term=0.0332
+DEBUG Round 22: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 22] Client0 Mean=0.4712 | Client1 Mean=0.6061 | Pooled Mean=0.5414
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3591, dice=0.6765, prox_term=0.0028
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.3470, dice=0.6890, prox_term=0.0075
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.3271, dice=0.7051, prox_term=0.0108
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.3393, dice=0.6948, prox_term=0.0154
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.3383, dice=0.6964, prox_term=0.0204
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.4793, dice=0.5607, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.4412, dice=0.5941, prox_term=0.0083
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.4584, dice=0.5790, prox_term=0.0157
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.4760, dice=0.5630, prox_term=0.0289
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.4371, dice=0.5991, prox_term=0.0375
+DEBUG Round 23: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 23] Client0 Mean=0.4690 | Client1 Mean=0.5902 | Pooled Mean=0.5353
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3299, dice=0.7024, prox_term=0.0023
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.3275, dice=0.7057, prox_term=0.0065
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.3417, dice=0.6943, prox_term=0.0144
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.3721, dice=0.6674, prox_term=0.0232
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.3238, dice=0.7087, prox_term=0.0275
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.4347, dice=0.6010, prox_term=0.0034
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.4329, dice=0.6021, prox_term=0.0097
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.4313, dice=0.6042, prox_term=0.0151
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.4290, dice=0.6054, prox_term=0.0220
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.4057, dice=0.6276, prox_term=0.0311
+DEBUG Round 24: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 24] Client0 Mean=0.4877 | Client1 Mean=0.6097 | Pooled Mean=0.5582
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.4064, dice=0.6263, prox_term=0.0038
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.4249, dice=0.6091, prox_term=0.0105
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.4213, dice=0.6122, prox_term=0.0164
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3933, dice=0.6381, prox_term=0.0252
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.4226, dice=0.6132, prox_term=0.0340
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3305, dice=0.7039, prox_term=0.0033
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.3056, dice=0.7247, prox_term=0.0083
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.3159, dice=0.7166, prox_term=0.0142
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.3164, dice=0.7168, prox_term=0.0201
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.3315, dice=0.7042, prox_term=0.0298
+DEBUG Round 25: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 25] Client0 Mean=0.4557 | Client1 Mean=0.5670 | Pooled Mean=0.5397
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.3954, dice=0.6368, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.4297, dice=0.6080, prox_term=0.0137
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.3848, dice=0.6469, prox_term=0.0192
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3790, dice=0.6511, prox_term=0.0247
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.3781, dice=0.6537, prox_term=0.0317
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.3587, dice=0.6815, prox_term=0.0092
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.3213, dice=0.7121, prox_term=0.0200
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.2919, dice=0.7382, prox_term=0.0224
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.2948, dice=0.7362, prox_term=0.0253
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.2857, dice=0.7439, prox_term=0.0286
+DEBUG Round 26: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 26] Client0 Mean=0.5470 | Client1 Mean=0.6858 | Pooled Mean=0.6233
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.2962, dice=0.7352, prox_term=0.0029
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.3518, dice=0.6895, prox_term=0.0161
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.2818, dice=0.7483, prox_term=0.0221
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.2718, dice=0.7564, prox_term=0.0258
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.2788, dice=0.7511, prox_term=0.0298
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.3673, dice=0.6630, prox_term=0.0030
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.3636, dice=0.6663, prox_term=0.0092
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.3966, dice=0.6373, prox_term=0.0174
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3567, dice=0.6711, prox_term=0.0236
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.3620, dice=0.6685, prox_term=0.0293
+DEBUG Round 27: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 27] Client0 Mean=0.5414 | Client1 Mean=0.6672 | Pooled Mean=0.6091
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.3625, dice=0.6664, prox_term=0.0042
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.3730, dice=0.6578, prox_term=0.0110
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.3513, dice=0.6778, prox_term=0.0162
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3559, dice=0.6735, prox_term=0.0231
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.3665, dice=0.6641, prox_term=0.0306
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.2759, dice=0.7536, prox_term=0.0033
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.2584, dice=0.7678, prox_term=0.0107
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.2703, dice=0.7588, prox_term=0.0144
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.2719, dice=0.7573, prox_term=0.0188
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.2475, dice=0.7781, prox_term=0.0227
+DEBUG Round 28: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 28] Client0 Mean=0.5643 | Client1 Mean=0.6919 | Pooled Mean=0.6393
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.3548, dice=0.6745, prox_term=0.0041
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.3620, dice=0.6686, prox_term=0.0102
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.3455, dice=0.6832, prox_term=0.0179
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3623, dice=0.6680, prox_term=0.0248
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.3322, dice=0.6957, prox_term=0.0320
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.2666, dice=0.7621, prox_term=0.0043
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.2514, dice=0.7753, prox_term=0.0083
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.2588, dice=0.7681, prox_term=0.0124
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.2527, dice=0.7746, prox_term=0.0169
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.2563, dice=0.7710, prox_term=0.0198
+DEBUG Round 29: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 29] Client0 Mean=0.5576 | Client1 Mean=0.6366 | Pooled Mean=0.6069
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 1/5: loss=0.2522, dice=0.7749, prox_term=0.0027
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 2/5: loss=0.2465, dice=0.7798, prox_term=0.0087
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 3/5: loss=0.2290, dice=0.7944, prox_term=0.0117
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 4/5: loss=0.2276, dice=0.7964, prox_term=0.0162
+[36m(ClientAppActor pid=4145932)[0m   [Client 1] Epoch 5/5: loss=0.2233, dice=0.7999, prox_term=0.0199
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 1/5: loss=0.3360, dice=0.6916, prox_term=0.0048
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 2/5: loss=0.3230, dice=0.7037, prox_term=0.0111
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 3/5: loss=0.3303, dice=0.6973, prox_term=0.0165
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 4/5: loss=0.3243, dice=0.7031, prox_term=0.0216
+[36m(ClientAppActor pid=4145932)[0m   [Client 0] Epoch 5/5: loss=0.3125, dice=0.7133, prox_term=0.0297
+DEBUG Round 30: model in_ch=4
+  client_0 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_1 test batch: x=(10, 4, 240, 240) y=(10, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_003/slice_094.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_029/slice_072.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_0/test/BraTS20_Training_040/slice_055.npz']
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_088/slice_071.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_097/slice_073.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_7030_et_skewed/client_data/client_1/test/BraTS20_Training_101/slice_050.npz']
+[Round 30] Client0 Mean=0.5667 | Client1 Mean=0.7320 | Pooled Mean=0.6569
+
+============================================================
+FEDERATED TRAINING COMPLETE - Per-Client Results
+============================================================
+Client 0 (global model): Final Mean Dice = 0.5667, Best = 0.5667
+Client 1 (global model): Final Mean Dice = 0.7320, Best = 0.7320
+Pooled (global model):   Final Mean Dice = 0.6569, Best = 0.6569
+============================================================
+
+Saved: /home/bk489/federated/federated-thesis/results/federated/brats2d_7030_c0ET10/fedprox_mu0.01_R30_E5_20260128_002555/results.json
+Saved final global model: /home/bk489/federated/federated-thesis/results/federated/brats2d_7030_c0ET10/fedprox_mu0.01_R30_E5_20260128_002555/global_model.pt
+Saved training log: /home/bk489/federated/federated-thesis/results/federated/brats2d_7030_c0ET10/fedprox_mu0.01_R30_E5_20260128_002555/training_log.txt
+Done. Results in: /home/bk489/federated/federated-thesis/results/federated/brats2d_7030_c0ET10
