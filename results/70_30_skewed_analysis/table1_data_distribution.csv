@@ -1,0 +1,7 @@
+Property,Client 0 (Low-ET),Client 1 (High-ET)
+Total cases,169,126
+Percentage,57.3%,42.7%
+Train/Val/Test,135/17/17,100/13/13
+ET ratio (mean),0.119,0.356
+ET ratio (median),0.104,0.337
+ET ratio (std),0.121,0.108
