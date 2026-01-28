@@ -513,3 +513,58 @@ DEBUG Round 26: model in_ch=4
   client_3 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
   client_3 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_009/slice_066.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_142/slice_107.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_144/slice_091.npz']
 [Round 26] Client0 Mean=0.2789 | Client1 Mean=0.2635 | Client2 Mean=0.4020 | Client3 Mean=0.3916 | Pooled Mean=0.3296
+DEBUG Round 27: model in_ch=4
+  client_0 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_059/slice_054.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_261/slice_086.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_281/slice_097.npz']
+  client_1 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_083/slice_065.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_094/slice_055.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_121/slice_086.npz']
+  client_2 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_2 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_006/slice_091.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_035/slice_053.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_073/slice_089.npz']
+  client_3 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_3 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_009/slice_066.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_142/slice_107.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_144/slice_091.npz']
+[Round 27] Client0 Mean=0.2970 | Client1 Mean=0.2940 | Client2 Mean=0.3072 | Client3 Mean=0.3519 | Pooled Mean=0.2803
+DEBUG Round 28: model in_ch=4
+  client_0 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_059/slice_054.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_261/slice_086.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_281/slice_097.npz']
+  client_1 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_083/slice_065.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_094/slice_055.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_121/slice_086.npz']
+  client_2 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_2 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_006/slice_091.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_035/slice_053.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_073/slice_089.npz']
+  client_3 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_3 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_009/slice_066.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_142/slice_107.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_144/slice_091.npz']
+[Round 28] Client0 Mean=0.2872 | Client1 Mean=0.2735 | Client2 Mean=0.2885 | Client3 Mean=0.3145 | Pooled Mean=0.2586
+DEBUG Round 29: model in_ch=4
+  client_0 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_059/slice_054.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_261/slice_086.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_281/slice_097.npz']
+  client_1 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_083/slice_065.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_094/slice_055.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_121/slice_086.npz']
+  client_2 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_2 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_006/slice_091.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_035/slice_053.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_073/slice_089.npz']
+  client_3 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_3 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_009/slice_066.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_142/slice_107.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_144/slice_091.npz']
+[Round 29] Client0 Mean=0.3494 | Client1 Mean=0.3456 | Client2 Mean=0.3852 | Client3 Mean=0.3371 | Pooled Mean=0.3314
+DEBUG Round 30: model in_ch=4
+  client_0 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_0 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_059/slice_054.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_261/slice_086.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_0/test/BraTS20_Training_281/slice_097.npz']
+  client_1 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_1 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_083/slice_065.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_094/slice_055.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_1/test/BraTS20_Training_121/slice_086.npz']
+  client_2 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_2 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_006/slice_091.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_035/slice_053.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_2/test/BraTS20_Training_073/slice_089.npz']
+  client_3 test batch: x=(7, 4, 240, 240) y=(7, 3, 240, 240)
+  client_3 test first files: ['/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_009/slice_066.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_142/slice_107.npz', '/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_quartile/client_data/client_3/test/BraTS20_Training_144/slice_091.npz']
+[Round 30] Client0 Mean=0.2974 | Client1 Mean=0.2993 | Client2 Mean=0.4876 | Client3 Mean=0.4519 | Pooled Mean=0.3827
+
+============================================================
+FEDERATED TRAINING COMPLETE - 4-Client Results
+============================================================
+Client 0 (global model): Final Mean Dice = 0.2974, Best = 0.3494
+Client 1 (global model): Final Mean Dice = 0.2993, Best = 0.3456
+Client 2 (global model): Final Mean Dice = 0.4876, Best = 0.4876
+Client 3 (global model): Final Mean Dice = 0.4519, Best = 0.4519
+Pooled (global model):   Final Mean Dice = 0.3827, Best = 0.3827
+============================================================
+
+Saved: /home/bk489/federated/federated-thesis/results/federated/brats2d_4client_quartile/fedprox_mu0.01_R30_E5_20260128_213820/results.json
+Saved final global model: /home/bk489/federated/federated-thesis/results/federated/brats2d_4client_quartile/fedprox_mu0.01_R30_E5_20260128_213820/global_model.pt
+Saved training log: /home/bk489/federated/federated-thesis/results/federated/brats2d_4client_quartile/fedprox_mu0.01_R30_E5_20260128_213820/training_log.txt
+Done. Results in: /home/bk489/federated/federated-thesis/results/federated/brats2d_4client_quartile
