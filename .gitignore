@@ -56,3 +56,4 @@ jobs/*/logs/
 jobs/*/checkpoints/
 
 
+!data/partitions/make_4client_quartile_partition.py
