@@ -460,6 +460,7 @@ class SaveModelStrategy(fl.server.strategy.FedAvg):
 class RunCfg:
     strategy: str
     mu: float
+    num_clients: int
     rounds: int
     local_epochs: int
     lr: float
@@ -505,6 +506,7 @@ def main() -> None:
     cfg = RunCfg(
         strategy=args.strategy,
         mu=mu,
+        num_clients=args.num_clients,
         rounds=args.rounds,
         local_epochs=args.local_epochs,
         lr=args.lr,
@@ -514,7 +516,18 @@ def main() -> None:
         out_dir=str(out_dir),
     )
 
-        # pooled GLOBAL test loader (client0 test + client1 test)
+    # Sanity check: print client partition info
+    print("Client partition sanity check:")
+    for cid in range(args.num_clients):
+        client_dir = partition_dir / f"client_{cid}"
+        train_count = len(list((client_dir / "train").rglob("*.npz")))
+        val_count = len(list((client_dir / "val").rglob("*.npz")))
+        test_count = len(list((client_dir / "test").rglob("*.npz")))
+        print(f"  client_{cid}: train={train_count} val={val_count} test={test_count}")
+
+    print("Starting federated training...")
+
+    # Pooled GLOBAL test loader (all clients' test sets combined)
     pooled_files = []
     for cid in range(args.num_clients):
         pooled_files.extend(sorted((partition_dir / f"client_{cid}" / "test").rglob("*.npz")))
@@ -556,49 +569,47 @@ def main() -> None:
         # -------------------------
         # DEBUG: verify loaders + shapes + channel counts
         # -------------------------
-        x0b, y0b = next(iter(c0_test_loader))
-        x1b, y1b = next(iter(c1_test_loader))
         print(f"DEBUG Round {server_round}: model in_ch={in_ch}")
-        print(f"  client_0 test batch: x={tuple(x0b.shape)} y={tuple(y0b.shape)}")
-        print(f"  client_1 test batch: x={tuple(x1b.shape)} y={tuple(y1b.shape)}")
-
-        # Optional: show first few file paths to detect identical test sets
-        try:
-            print("  client_0 test first files:", [str(p) for p in c0_test_loader.dataset.files[:3]])
-            print("  client_1 test first files:", [str(p) for p in c1_test_loader.dataset.files[:3]])
-        except Exception as e:
-            print("  DEBUG: could not print dataset files:", e)
+        for cid in range(args.num_clients):
+            xb, yb = next(iter(client_test_loaders[cid]))
+            print(f"  client_{cid} test batch: x={tuple(xb.shape)} y={tuple(yb.shape)}")
+            try:
+                print(f"  client_{cid} test first files:", [str(p) for p in client_test_loaders[cid].dataset.files[:3]])
+            except Exception as e:
+                print(f"  DEBUG: could not print dataset files for client_{cid}:", e)
 
         # -------------------------
         # Normal evaluation
         # -------------------------
 
         # Evaluate global model on each client's test set (for thesis comparison)
-        c0_metrics = evaluate_model(model, c0_test_loader, device)
-        c1_metrics = evaluate_model(model, c1_test_loader, device)
+        client_metrics = {}
+        for cid in range(args.num_clients):
+            client_metrics[cid] = evaluate_model(model, client_test_loaders[cid], device)
 
         # Also evaluate on pooled test
         pooled_metrics = evaluate_model(model, global_test_loader, device)
 
-        print(f"[Round {server_round}] "
-            f"Client0 Mean={c0_metrics['Mean']:.4f} | "
-            f"Client1 Mean={c1_metrics['Mean']:.4f} | "
-            f"Pooled Mean={pooled_metrics['Mean']:.4f}")
+        # Print summary for all clients
+        client_strs = " | ".join([f"Client{cid} Mean={client_metrics[cid]['Mean']:.4f}"
+                                   for cid in range(args.num_clients)])
+        print(f"[Round {server_round}] {client_strs} | Pooled Mean={pooled_metrics['Mean']:.4f}")
 
-        return float(pooled_metrics["loss"]), {
-            "client0_meanDice": float(c0_metrics["Mean"]),
-            "client0_WT": float(c0_metrics["WT"]),
-            "client0_TC": float(c0_metrics["TC"]),
-            "client0_ET": float(c0_metrics["ET"]),
-            "client1_meanDice": float(c1_metrics["Mean"]),
-            "client1_WT": float(c1_metrics["WT"]),
-            "client1_TC": float(c1_metrics["TC"]),
-            "client1_ET": float(c1_metrics["ET"]),
-            "global_meanDice": float(pooled_metrics["Mean"]),
-            "global_WT": float(pooled_metrics["WT"]),
-            "global_TC": float(pooled_metrics["TC"]),
-            "global_ET": float(pooled_metrics["ET"]),
-        }
+        # Build metrics dict dynamically for all clients
+        metrics_dict = {}
+        for cid in range(args.num_clients):
+            metrics_dict[f"client{cid}_meanDice"] = float(client_metrics[cid]["Mean"])
+            metrics_dict[f"client{cid}_WT"] = float(client_metrics[cid]["WT"])
+            metrics_dict[f"client{cid}_TC"] = float(client_metrics[cid]["TC"])
+            metrics_dict[f"client{cid}_ET"] = float(client_metrics[cid]["ET"])
+
+        # Add global/pooled metrics
+        metrics_dict["global_meanDice"] = float(pooled_metrics["Mean"])
+        metrics_dict["global_WT"] = float(pooled_metrics["WT"])
+        metrics_dict["global_TC"] = float(pooled_metrics["TC"])
+        metrics_dict["global_ET"] = float(pooled_metrics["ET"])
+
+        return float(pooled_metrics["loss"]), metrics_dict
 
     def client_fn(cid: str):
         client_root = partition_dir / f"client_{cid}"
@@ -635,11 +646,19 @@ def main() -> None:
 
     # Extract centralized metrics (per-client + pooled)
     rounds = []
-    metrics_store = {
-        "client0_meanDice": [], "client0_WT": [], "client0_TC": [], "client0_ET": [],
-        "client1_meanDice": [], "client1_WT": [], "client1_TC": [], "client1_ET": [],
-        "global_meanDice": [], "global_WT": [], "global_TC": [], "global_ET": [],
-    }
+
+    # Build metrics_store dynamically for N clients
+    metrics_store = {}
+    for cid in range(args.num_clients):
+        metrics_store[f"client{cid}_meanDice"] = []
+        metrics_store[f"client{cid}_WT"] = []
+        metrics_store[f"client{cid}_TC"] = []
+        metrics_store[f"client{cid}_ET"] = []
+    # Add global metrics
+    metrics_store["global_meanDice"] = []
+    metrics_store["global_WT"] = []
+    metrics_store["global_TC"] = []
+    metrics_store["global_ET"] = []
 
     if history.metrics_centralized:
         for key, store in history.metrics_centralized.items():
@@ -648,6 +667,25 @@ def main() -> None:
                     rounds = [int(r) for r, _ in store]
                 metrics_store[key] = [float(v) for _, v in store]
 
+    # Build final metrics dynamically
+    final_metrics = {}
+    for cid in range(args.num_clients):
+        key = f"client{cid}_meanDice"
+        if metrics_store[key]:
+            final_metrics[f"client{cid}_meanDice"] = metrics_store[key][-1]
+            final_metrics[f"client{cid}_best_meanDice"] = max(metrics_store[key])
+        else:
+            final_metrics[f"client{cid}_meanDice"] = None
+            final_metrics[f"client{cid}_best_meanDice"] = None
+
+    # Add global final metrics
+    if metrics_store["global_meanDice"]:
+        final_metrics["global_meanDice"] = metrics_store["global_meanDice"][-1]
+        final_metrics["global_best_meanDice"] = max(metrics_store["global_meanDice"])
+    else:
+        final_metrics["global_meanDice"] = None
+        final_metrics["global_best_meanDice"] = None
+
     result = {
         "config": asdict(cfg),
         "timing": {"total_seconds": total, "seconds_per_round": total / max(args.rounds, 1)},
@@ -655,28 +693,18 @@ def main() -> None:
             "rounds": rounds,
             **metrics_store,
         },
-        "final": {
-            # Per-client final metrics (for thesis comparison with local-only)
-            "client0_meanDice": metrics_store["client0_meanDice"][-1] if metrics_store["client0_meanDice"] else None,
-            "client0_best_meanDice": max(metrics_store["client0_meanDice"]) if metrics_store["client0_meanDice"] else None,
-            "client1_meanDice": metrics_store["client1_meanDice"][-1] if metrics_store["client1_meanDice"] else None,
-            "client1_best_meanDice": max(metrics_store["client1_meanDice"]) if metrics_store["client1_meanDice"] else None,
-            # Pooled final metrics
-            "global_meanDice": metrics_store["global_meanDice"][-1] if metrics_store["global_meanDice"] else None,
-            "global_best_meanDice": max(metrics_store["global_meanDice"]) if metrics_store["global_meanDice"] else None,
-        },
+        "final": final_metrics,
     }
 
     # Print summary for thesis comparison
     print("\n" + "="*60)
-    print("FEDERATED TRAINING COMPLETE - Per-Client Results")
+    print(f"FEDERATED TRAINING COMPLETE - {args.num_clients}-Client Results")
     print("="*60)
-    if metrics_store["client0_meanDice"]:
-        print(f"Client 0 (global model): Final Mean Dice = {result['final']['client0_meanDice']:.4f}, "
-              f"Best = {result['final']['client0_best_meanDice']:.4f}")
-    if metrics_store["client1_meanDice"]:
-        print(f"Client 1 (global model): Final Mean Dice = {result['final']['client1_meanDice']:.4f}, "
-              f"Best = {result['final']['client1_best_meanDice']:.4f}")
+    for cid in range(args.num_clients):
+        key = f"client{cid}_meanDice"
+        if metrics_store[key]:
+            print(f"Client {cid} (global model): Final Mean Dice = {result['final'][key]:.4f}, "
+                  f"Best = {result['final'][f'client{cid}_best_meanDice']:.4f}")
     if metrics_store["global_meanDice"]:
         print(f"Pooled (global model):   Final Mean Dice = {result['final']['global_meanDice']:.4f}, "
               f"Best = {result['final']['global_best_meanDice']:.4f}")
@@ -714,6 +742,7 @@ def main() -> None:
         f.write(f"{'='*60}\n")
         f.write(f"Strategy: {cfg.strategy}\n")
         f.write(f"Mu (FedProx): {cfg.mu}\n")
+        f.write(f"Num Clients: {args.num_clients}\n")
         f.write(f"Rounds: {cfg.rounds}\n")
         f.write(f"Local Epochs: {cfg.local_epochs}\n")
         f.write(f"Learning Rate: {cfg.lr}\n")
@@ -724,9 +753,12 @@ def main() -> None:
         f.write(f"Time per Round: {total/max(args.rounds,1):.2f}s\n")
         f.write(f"{'='*60}\n")
         f.write(f"Final Results:\n")
-        f.write(f"  Client 0 Mean Dice: {result['final']['client0_meanDice']:.4f}\n")
-        f.write(f"  Client 1 Mean Dice: {result['final']['client1_meanDice']:.4f}\n")
-        f.write(f"  Global Mean Dice:   {result['final']['global_meanDice']:.4f}\n")
+        for cid in range(args.num_clients):
+            key = f"client{cid}_meanDice"
+            if result['final'].get(key) is not None:
+                f.write(f"  Client {cid} Mean Dice: {result['final'][key]:.4f}\n")
+        if result['final'].get('global_meanDice') is not None:
+            f.write(f"  Global Mean Dice:   {result['final']['global_meanDice']:.4f}\n")
         f.write(f"{'='*60}\n")
     print(f"Saved training log: {log_path}")
 
