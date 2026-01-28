@@ -225,9 +225,10 @@ def train_epochs_standard(
     epochs: int,
     cid: str = "",
 ) -> Dict[str, List[float]]:
-    """Standard FedAvg local training. Returns per-epoch metrics for logging."""
+    """Standard FedAvg local training (SGD, following McMahan et al. 2017).
+    Returns per-epoch metrics for logging."""
     model.train()
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
     epoch_losses = []
     epoch_dices = []
 
@@ -269,9 +270,18 @@ def train_epochs_fedprox(
     global_params: List[torch.Tensor],
     cid: str = "",
 ) -> Dict[str, List[float]]:
-    """FedProx local training with proximal term. Returns per-epoch metrics for logging."""
+    """FedProx local training following Li et al., MLSys 2020.
+
+    Uses SGD (no momentum) as in the original FedProx paper/reference
+    implementation (github.com/litian96/FedProx).  The proximal term is
+    added to the loss so that its gradient  mu * (w - w_global)  is
+    included in the SGD update:
+        w <- w - lr * (grad_loss + mu * (w - w_global))
+    This is mathematically equivalent to the paper's
+    PerturbedGradientDescent optimizer.
+    """
     model.train()
-    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
     epoch_losses = []
     epoch_dices = []
     epoch_prox_terms = []
@@ -288,7 +298,8 @@ def train_epochs_fedprox(
             logits = model(x)
             base_loss = loss_bce_dice(logits, y)
 
-            # Compute proximal term: (mu/2) * ||w - w_global||^2
+            # Proximal term: (mu/2) * ||w - w_global||^2
+            # Gradient w.r.t. w: mu * (w - w_global)
             prox = 0.0
             for p, p0 in zip(model.parameters(), global_params):
                 prox = prox + torch.sum((p - p0) ** 2)
