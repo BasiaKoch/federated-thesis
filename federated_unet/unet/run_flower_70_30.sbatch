@@ -23,13 +23,18 @@ set -euo pipefail
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_any_Nclients.py"
 
-# Choose partition (uncomment the one you want):
-# 2-client ET-skewed partition:
-# PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_et_skewed/client_data"
-# 4-client quartile partition:
-PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_4client_quartile/client_data"
+# Partition directory (override via environment variable)
+# Available partitions:
+#   - brats2d_7030_et_skewed         (2-client, 3x ET gap)
+#   - brats2d_4client_quartile       (4-client, 29x ET gap)
+#   - brats2d_4client_dirichlet_a0p5 (4-client, Dirichlet α=0.5)
+#   - brats2d_4client_dirichlet_a0p1 (4-client, Dirichlet α=0.1)
+DEFAULT_PARTITION="${PROJECT_DIR}/data/partitions/brats2d_4client_quartile/client_data"
+PARTITION_DIR="${PARTITION_DIR:-$DEFAULT_PARTITION}"
 
-OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_quartile"
+# Auto-detect partition name for output directory
+PARTITION_NAME=$(basename "$(dirname "${PARTITION_DIR}")")
+OUT_BASE="${PROJECT_DIR}/results/federated/${PARTITION_NAME}"
 LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
