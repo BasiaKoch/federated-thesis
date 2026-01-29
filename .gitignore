@@ -57,5 +57,4 @@ jobs/*/checkpoints/
 
 
 !data/partitions/make_4client_quartile_partition.py
-!data/partitions/brats2d_4client_dirichlet_a0p1
-!data/partitions/brats2d_4client_dirichlet_a0p5
+!data/partitions/make_dirichlet_partition.py
