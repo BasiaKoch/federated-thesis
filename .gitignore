@@ -21,6 +21,7 @@ data/*
 data/partitions/*
 !data/partitions/make_4client_quartile_partition.py
 !data/partitions/make_dirichlet_partition.py
+!data/partitions/make_dirichlet_balanced_partition.py
 
 # Python cache
 __pycache__/
