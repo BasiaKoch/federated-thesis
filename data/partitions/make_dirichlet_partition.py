@@ -665,7 +665,7 @@ Recommended μ values based on literature:
 # FedAvg baseline:
 STRATEGY=fedavg NUM_CLIENTS={args.num_clients} \\
 PARTITION_DIR="{partition_path}" \\
-sbatch federated_unet/unet/run_flower_70_30.sbatch
+sbatch /home/bk489/federated/federated-thesis/federated_unet/unet/run_flower_70_30.sbatch
 
 # FedProx with recommended μ:
 STRATEGY=fedprox MU={mu_rec.split(',')[0].strip()} NUM_CLIENTS={args.num_clients} \\

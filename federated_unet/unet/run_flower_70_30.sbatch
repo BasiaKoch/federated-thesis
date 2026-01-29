@@ -26,8 +26,8 @@ SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_any_Nclients.py"
 # Choose partition (uncomment the one you want):
 # 2-client ET-skewed partition:# PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_et_skewed/client_data"
 # 4-client quartile partition:
-PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_4client_quartile/client_data" 
-OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_quartile"
+PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_a0p5/client_data" 
+OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_dirichlet_a0p5"
 # Partition directory (override via environment variable)
 # Available partitions:
 #   - brats2d_7030_et_skewed         (2-client, 3x ET gap)
@@ -45,7 +45,7 @@ LOG_DIR="${PROJECT_DIR}/federated_unet/unet/logs"
 # ======= Hyperparams (override by exporting before sbatch) =======
 NUM_CLIENTS="${NUM_CLIENTS:-4}"   # number of clients
 STRATEGY="${STRATEGY:-fedavg}"    # fedavg or fedprox
-MU="${MU:-0.1}"                  # only used if STRATEGY=fedprox
+MU="${MU:-0.5}"                  # only used if STRATEGY=fedprox
 ROUNDS="${ROUNDS:-30}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"
 BATCH_SIZE="${BATCH_SIZE:-8}"     # smaller batch for more clients (less data per client)
