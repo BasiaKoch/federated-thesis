@@ -16,7 +16,11 @@ fed/
 # Accidental files
 =*
 
-data/
+data/*
+!data/partitions/
+data/partitions/*
+!data/partitions/make_4client_quartile_partition.py
+!data/partitions/make_dirichlet_partition.py
 
 # Python cache
 __pycache__/
@@ -54,7 +58,3 @@ data/brats2020_top10_slices_npz
 jobs/*/workspace/
 jobs/*/logs/
 jobs/*/checkpoints/
-
-
-!data/partitions/make_4client_quartile_partition.py
-!data/partitions/make_dirichlet_partition.py
