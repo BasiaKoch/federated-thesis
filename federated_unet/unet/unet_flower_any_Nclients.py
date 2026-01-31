@@ -123,35 +123,89 @@ class BratsNPZSliceDataset(Dataset):
 # -------------------------
 # Small-ish 2D U-Net
 # -------------------------
-def _conv_block(in_ch: int, out_ch: int) -> nn.Module:
-    return nn.Sequential(
-        nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
-        nn.BatchNorm2d(out_ch),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
-        nn.BatchNorm2d(out_ch),
-        nn.ReLU(inplace=True),
-    )
+# IMPORTANT: Using GroupNorm instead of BatchNorm for federated learning!
+#
+# BatchNorm causes issues in FL because:
+# 1. Running statistics (mean/var) are computed from local batches
+# 2. Different clients have different data distributions
+# 3. Aggregating incompatible statistics causes instability
+#
+# GroupNorm doesn't have running statistics - it normalizes within each sample,
+# making it much more stable for federated learning.
+#
+# Reference: "Group Normalization" (Wu & He, 2018)
+# FL context: "Rethinking BatchNorm for FL" (Li et al., 2021)
+# -------------------------
+
+
+def _conv_block(in_ch: int, out_ch: int, use_groupnorm: bool = True) -> nn.Module:
+    """
+    Convolutional block with normalization.
+
+    Args:
+        in_ch: Input channels
+        out_ch: Output channels
+        use_groupnorm: If True, use GroupNorm (recommended for FL).
+                       If False, use BatchNorm (for centralized baseline comparison).
+    """
+    if use_groupnorm:
+        # GroupNorm: num_groups should divide out_ch evenly
+        # Common choices: 8, 16, or 32 groups
+        num_groups = min(32, out_ch)  # Ensure we don't have more groups than channels
+        if out_ch % num_groups != 0:
+            num_groups = 8 if out_ch % 8 == 0 else 4 if out_ch % 4 == 0 else 1
+
+        return nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
+            nn.GroupNorm(num_groups, out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
+            nn.GroupNorm(num_groups, out_ch),
+            nn.ReLU(inplace=True),
+        )
+    else:
+        # BatchNorm - use only for centralized baseline comparison
+        return nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+        )
 
 
 class UNet2D(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int = 3, base: int = 32):
+    """
+    2D U-Net for BraTS segmentation.
+
+    Args:
+        in_ch: Number of input channels (typically 4 for BraTS: T1, T1ce, T2, FLAIR)
+        out_ch: Number of output channels (3 for BraTS: WT, TC, ET)
+        base: Base number of filters (doubled at each level)
+        use_groupnorm: If True, use GroupNorm (recommended for FL).
+                       If False, use BatchNorm (for centralized baseline).
+    """
+
+    def __init__(self, in_ch: int, out_ch: int = 3, base: int = 32, use_groupnorm: bool = True):
         super().__init__()
-        self.enc1 = _conv_block(in_ch, base)
+        self.use_groupnorm = use_groupnorm
+
+        self.enc1 = _conv_block(in_ch, base, use_groupnorm)
         self.pool1 = nn.MaxPool2d(2)
-        self.enc2 = _conv_block(base, base * 2)
+        self.enc2 = _conv_block(base, base * 2, use_groupnorm)
         self.pool2 = nn.MaxPool2d(2)
-        self.enc3 = _conv_block(base * 2, base * 4)
+        self.enc3 = _conv_block(base * 2, base * 4, use_groupnorm)
         self.pool3 = nn.MaxPool2d(2)
 
-        self.bottleneck = _conv_block(base * 4, base * 8)
+        self.bottleneck = _conv_block(base * 4, base * 8, use_groupnorm)
 
         self.up3 = nn.ConvTranspose2d(base * 8, base * 4, 2, stride=2)
-        self.dec3 = _conv_block(base * 8, base * 4)
+        self.dec3 = _conv_block(base * 8, base * 4, use_groupnorm)
         self.up2 = nn.ConvTranspose2d(base * 4, base * 2, 2, stride=2)
-        self.dec2 = _conv_block(base * 4, base * 2)
+        self.dec2 = _conv_block(base * 4, base * 2, use_groupnorm)
         self.up1 = nn.ConvTranspose2d(base * 2, base, 2, stride=2)
-        self.dec1 = _conv_block(base * 2, base)
+        self.dec1 = _conv_block(base * 2, base, use_groupnorm)
 
         self.head = nn.Conv2d(base, out_ch, 1)
 
@@ -382,6 +436,7 @@ class BratsClient(fl.client.NumPyClient):
         batch_size: int,
         num_workers: int,
         mu: float,  # 0 for FedAvg, >0 for FedProx
+        use_groupnorm: bool = True,  # True for FL (recommended), False for centralized baseline
     ):
         self.cid = cid
         self.client_root = client_root
@@ -391,13 +446,16 @@ class BratsClient(fl.client.NumPyClient):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.mu = mu
+        self.use_groupnorm = use_groupnorm
 
         # Infer input channels from first sample in train split
         train_ds = BratsNPZSliceDataset(client_root / "train")
         x0, _ = train_ds[0]
         in_ch = int(x0.shape[0])
 
-        self.model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        # Use GroupNorm for FL (no running statistics to aggregate)
+        # Use BatchNorm only for centralized baseline comparison
+        self.model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
 
         self.train_loader = DataLoader(
             train_ds, batch_size=batch_size, shuffle=True,
@@ -562,6 +620,9 @@ def main() -> None:
     ap.add_argument("--out_dir", default="./results/unet_flower_2clients")
     ap.add_argument("--save_model", action="store_true", default=True, help="Save final global model")
     ap.add_argument("--num_clients", type=int, default=2)
+    ap.add_argument("--use_batchnorm", action="store_true", default=False,
+                    help="Use BatchNorm instead of GroupNorm. WARNING: BatchNorm causes issues in FL! "
+                         "Only use for centralized baseline comparison.")
     args = ap.parse_args()
 
     # Repro
@@ -635,12 +696,20 @@ def main() -> None:
             pin_memory=(device.type == "cuda"),
         )
 
+    # Determine normalization type
+    use_groupnorm = not args.use_batchnorm
+
+    if use_groupnorm:
+        print("Using GroupNorm (recommended for federated learning)")
+    else:
+        print("WARNING: Using BatchNorm - this may cause noisy results in FL!")
+
     def evaluate_fn(server_round: int, parameters, config):
         # Build a fresh model with correct in_ch (infer from client_0 train)
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
         x0, _ = ds0[0]
         in_ch = int(x0.shape[0])
-        model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
         set_parameters(model, parameters)
 
         # -------------------------
@@ -689,6 +758,7 @@ def main() -> None:
         return float(pooled_metrics["loss"]), metrics_dict
 
     def client_fn(cid: str):
+        """Client factory function."""
         client_root = partition_dir / f"client_{cid}"
         return BratsClient(
             cid=cid,
@@ -699,6 +769,7 @@ def main() -> None:
             batch_size=args.batch_size,
             num_workers=args.num_workers,
             mu=mu,
+            use_groupnorm=use_groupnorm,  # Use GroupNorm for FL stability
         )
 
     # 2 clients, always fit both
@@ -796,7 +867,7 @@ def main() -> None:
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
         x0, _ = ds0[0]
         in_ch = int(x0.shape[0])
-        final_model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        final_model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
 
         # Convert Flower parameters to numpy and set model weights
         final_weights = fl.common.parameters_to_ndarrays(strategy.final_parameters)
