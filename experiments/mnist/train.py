@@ -104,60 +104,110 @@ def make_two_digit_partitions(
 # -----------------------
 # Train / eval
 # -----------------------
-def train_one_epoch_standard(
+# Following the reference implementation: github.com/litian96/FedProx
+# FedAvg: Standard SGD local training (McMahan et al., 2017)
+# FedProx: SGD with proximal term (Li et al., MLSys 2020)
+#
+# Key insight from reference:
+#   FedProx objective: min F_k(w) + (mu/2) * ||w - w^t||^2
+#   where w^t is the global model at round t (frozen during local training)
+#
+# The gradient becomes: grad F_k(w) + mu * (w - w^t)
+# which is equivalent to the PerturbedGradientDescent optimizer in the reference.
+# -----------------------
+
+
+def train_local_epochs(
     model: nn.Module,
     loader: DataLoader,
     device: torch.device,
     lr: float,
-) -> None:
-    model.train()
-    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
-
-    for x, y in loader:
-        x, y = x.to(device), y.to(device)
-        opt.zero_grad(set_to_none=True)
-        logits = model(x)
-        loss = F.cross_entropy(logits, y)
-        loss.backward()
-        opt.step()
-
-
-def train_one_epoch_fedprox(
-    model: nn.Module,
-    loader: DataLoader,
-    device: torch.device,
-    lr: float,
+    epochs: int,
     mu: float,
-    global_params: List[torch.Tensor],
-) -> None:
+    global_params: Optional[List[torch.Tensor]],
+) -> Dict[str, float]:
     """
-    FedProx client objective:
-      loss = CE + (mu/2) * ||w - w_global||^2
-    global_params must be a frozen snapshot of parameters received from the server.
+    Local training for FedAvg (mu=0) or FedProx (mu>0).
+
+    Following the reference implementation (github.com/litian96/FedProx):
+    - Uses SGD without momentum (matching the original FedProx paper)
+    - Creates optimizer ONCE per round (not per epoch) for efficiency
+    - Applies proximal term: (mu/2) * ||w - w_global||^2
+    - The gradient of the proximal term is: mu * (w - w_global)
+
+    Args:
+        model: The neural network model
+        loader: DataLoader for training data
+        device: torch device (cpu/cuda)
+        lr: Learning rate
+        epochs: Number of local epochs (E in FedAvg/FedProx papers)
+        mu: Proximal term coefficient (0 for FedAvg, >0 for FedProx)
+        global_params: Frozen snapshot of global model parameters (required if mu > 0)
+
+    Returns:
+        Dictionary with training metrics (final loss, avg loss)
     """
     model.train()
-    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
 
-    for x, y in loader:
-        x, y = x.to(device), y.to(device)
-        opt.zero_grad(set_to_none=True)
+    # Create optimizer ONCE per round (following reference implementation)
+    # No momentum, as per the original FedProx paper
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
 
-        logits = model(x)
-        loss = F.cross_entropy(logits, y)
+    total_loss = 0.0
+    num_batches = 0
 
-        if mu > 0.0:
-            prox = 0.0
-            for p, p0 in zip(model.parameters(), global_params):
-                # p0 is detached, same device/dtype
-                prox = prox + torch.sum((p - p0) ** 2)
-            loss = loss + (mu / 2.0) * prox
+    for epoch in range(epochs):
+        epoch_loss = 0.0
+        epoch_batches = 0
 
-        loss.backward()
-        opt.step()
+        for x, y in loader:
+            x, y = x.to(device), y.to(device)
+            optimizer.zero_grad(set_to_none=True)
+
+            logits = model(x)
+            loss = F.cross_entropy(logits, y)
+
+            # FedProx: Add proximal term to prevent client drift
+            # Reference: Li et al., "Federated Optimization in Heterogeneous Networks"
+            # Objective: F_k(w) + (mu/2) * ||w - w^t||^2
+            if mu > 0.0 and global_params is not None:
+                prox_term = 0.0
+                for p, p_global in zip(model.parameters(), global_params):
+                    # p_global is detached (frozen), so gradient only flows through p
+                    prox_term = prox_term + torch.sum((p - p_global) ** 2)
+                loss = loss + (mu / 2.0) * prox_term
+
+            loss.backward()
+            optimizer.step()
+
+            epoch_loss += loss.item()
+            epoch_batches += 1
+
+        total_loss += epoch_loss
+        num_batches += epoch_batches
+
+    avg_loss = total_loss / max(num_batches, 1)
+    return {"avg_loss": avg_loss, "num_batches": num_batches}
 
 
 @torch.no_grad()
 def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Tuple[float, float]:
+    """
+    Evaluate model on a dataset.
+
+    Following reference implementation (github.com/litian96/FedProx):
+    - Returns (loss, accuracy) tuple
+    - Loss is average per-sample loss
+    - Accuracy is fraction of correct predictions
+
+    Args:
+        model: The neural network model
+        loader: DataLoader for evaluation data
+        device: torch device (cpu/cuda)
+
+    Returns:
+        Tuple of (average_loss, accuracy)
+    """
     model.eval()
     total_loss = 0.0
     correct = 0
@@ -165,32 +215,35 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> Tupl
     for x, y in loader:
         x, y = x.to(device), y.to(device)
         logits = model(x)
-        loss = F.cross_entropy(logits, y)
-        bs = x.size(0)
-        total_loss += float(loss.item()) * bs
+        loss = F.cross_entropy(logits, y, reduction='sum')  # Sum for proper averaging
+        total_loss += float(loss.item())
         correct += int((logits.argmax(1) == y).sum().item())
-        total += int(bs)
+        total += int(x.size(0))
     return total_loss / max(total, 1), correct / max(total, 1)
-
-
-def _get_mu_from_config(config: Dict) -> float:
-    """
-    Flower versions / examples differ in key naming.
-    Be robust and check a few common keys.
-    """
-    for k in ("proximal-mu", "proximal_mu", "proximalMu", "mu"):
-        if k in config:
-            try:
-                return float(config[k])
-            except Exception:
-                pass
-    return 0.0
 
 
 # -----------------------
 # Flower client
 # -----------------------
+# Following the reference implementation (github.com/litian96/FedProx):
+# - Each client maintains its own model
+# - Receives global parameters from server at start of each round
+# - Performs local training with FedAvg or FedProx objective
+# - Returns updated parameters weighted by dataset size
+# -----------------------
+
+
 class MnistClient(fl.client.NumPyClient):
+    """
+    Flower client for MNIST federated learning.
+
+    Implements both FedAvg and FedProx based on mu parameter:
+    - mu = 0: FedAvg (standard SGD)
+    - mu > 0: FedProx (SGD with proximal term)
+
+    Reference: github.com/litian96/FedProx
+    """
+
     def __init__(
         self,
         cid: str,
@@ -199,7 +252,7 @@ class MnistClient(fl.client.NumPyClient):
         device: torch.device,
         lr: float,
         local_epochs: int,
-        force_mu: Optional[float] = None,  # if provided, overrides config
+        mu: float = 0.0,  # Proximal term coefficient
     ):
         self.cid = cid
         self.model = SmallCNN().to(device)
@@ -208,48 +261,66 @@ class MnistClient(fl.client.NumPyClient):
         self.device = device
         self.lr = lr
         self.local_epochs = local_epochs
-        self.force_mu = force_mu
+        self.mu = mu  # 0 for FedAvg, >0 for FedProx
 
     def get_parameters(self, config):
         return get_parameters(self.model)
 
     def fit(self, parameters, config):
-        # Load global (server) weights
+        """
+        Local training round.
+
+        Following reference implementation (github.com/litian96/FedProx):
+        1. Load global (server) weights into local model
+        2. Snapshot global params as frozen reference for proximal term
+        3. Perform E epochs of local training with FedAvg or FedProx objective
+        4. Return updated weights and dataset size for weighted aggregation
+        """
+        # Step 1: Load global (server) weights
         set_parameters(self.model, parameters)
 
-        # Determine proximal mu
-        mu = float(self.force_mu) if self.force_mu is not None else _get_mu_from_config(config)
-
-        # Snapshot global params once per round (frozen reference for proximal term)
-        global_params = [p.detach().clone() for p in self.model.parameters()]
+        # Step 2: Snapshot global params BEFORE training (frozen reference)
+        # These are used as w^t in the proximal term: (mu/2) * ||w - w^t||^2
+        # Must be detached so gradients don't flow through them
+        global_params = None
+        if self.mu > 0.0:
+            global_params = [p.detach().clone() for p in self.model.parameters()]
 
         # DEBUG: Print mu for client 0 to verify FedProx is active
         if self.cid == "0":
-            print(f"  [DEBUG Client 0] mu={mu}, local_epochs={self.local_epochs}")
+            print(f"  [Client 0] mu={self.mu:.4f}, lr={self.lr}, local_epochs={self.local_epochs}")
 
-        # Local training
-        for _ in range(self.local_epochs):
-            if mu > 0.0:
-                train_one_epoch_fedprox(
-                    self.model,
-                    self.train_loader,
-                    self.device,
-                    lr=self.lr,
-                    mu=mu,
-                    global_params=global_params,
-                )
-            else:
-                train_one_epoch_standard(self.model, self.train_loader, self.device, lr=self.lr)
+        # Step 3: Local training (unified function handles both FedAvg and FedProx)
+        train_metrics = train_local_epochs(
+            model=self.model,
+            loader=self.train_loader,
+            device=self.device,
+            lr=self.lr,
+            epochs=self.local_epochs,
+            mu=self.mu,
+            global_params=global_params,
+        )
 
         # DEBUG: Measure drift (how much weights moved from global)
-        if self.cid == "0":
+        # FedProx should result in smaller drift compared to FedAvg
+        if self.cid == "0" and global_params is not None:
             with torch.no_grad():
-                drift = sum(torch.sum((p - p0) ** 2).item() for p, p0 in zip(self.model.parameters(), global_params))
-            print(f"  [DEBUG Client 0] drift={drift:.6f} (should be SMALLER with higher mu)")
+                drift = sum(
+                    torch.sum((p - p0) ** 2).item()
+                    for p, p0 in zip(self.model.parameters(), global_params)
+                )
+            print(f"  [Client 0] drift={drift:.6f} (smaller = less client drift)")
 
-        return get_parameters(self.model), len(self.train_loader.dataset), {"cid": self.cid, "mu": mu}
+        # Step 4: Return updated weights and dataset size
+        # Server uses dataset size for weighted averaging (FedAvg aggregation)
+        return (
+            get_parameters(self.model),
+            len(self.train_loader.dataset),
+            {"cid": self.cid, "mu": self.mu, "avg_loss": train_metrics["avg_loss"]},
+        )
 
     def evaluate(self, parameters, config):
+        """Evaluate global model on local test data."""
         set_parameters(self.model, parameters)
         loss, acc = evaluate(self.model, self.test_loader, self.device)
         return float(loss), len(self.test_loader.dataset), {"local_acc": float(acc)}
@@ -406,28 +477,46 @@ def main() -> None:
     global_test_loader = DataLoader(testset, batch_size=256, shuffle=False, num_workers=0)
 
     def evaluate_fn(server_round: int, parameters, config):
+        """
+        Server-side evaluation function.
+
+        Following reference implementation (github.com/litian96/FedProx):
+        - Evaluates global model on test set after each round
+        - Returns loss and metrics for tracking
+        """
         model = SmallCNN().to(device)
         set_parameters(model, parameters)
         loss, acc = evaluate(model, global_test_loader, device)
         print(f"  [Round {server_round}] Global Test - Loss: {loss:.4f}, Accuracy: {acc:.4f}")
         return float(loss), {"global_acc": float(acc), "global_loss": float(loss), "round": int(server_round)}
 
-    # Make sure clients receive mu in config (robust across Flower versions)
-    def fit_config_fn(server_round: int) -> Dict[str, float]:
-        if args.strategy == "fedprox":
-            return {"proximal-mu": float(args.mu), "proximal_mu": float(args.mu)}
-        return {"proximal-mu": 0.0, "proximal_mu": 0.0}
-
     def client_fn(cid: str):
+        """
+        Client factory function.
+
+        Following reference implementation (github.com/litian96/FedProx):
+        - Each client has its own data partition (non-IID in this case)
+        - mu=0 for FedAvg, mu>0 for FedProx
+        """
         c = int(cid)
         train_subset = Subset(trainset, train_partitions[c])
         test_subset = Subset(testset, test_partitions[c])
 
-        train_loader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=0)
-        test_loader = DataLoader(test_subset, batch_size=256, shuffle=False, num_workers=0)
+        train_loader = DataLoader(
+            train_subset,
+            batch_size=args.batch_size,
+            shuffle=True,
+            num_workers=0,
+        )
+        test_loader = DataLoader(
+            test_subset,
+            batch_size=256,
+            shuffle=False,
+            num_workers=0,
+        )
 
-        # We let config carry mu, but also "force_mu" for extra safety if you want:
-        force_mu = float(args.mu) if args.strategy == "fedprox" else None
+        # FedAvg: mu=0, FedProx: mu>0
+        mu = float(args.mu) if args.strategy == "fedprox" else 0.0
 
         return MnistClient(
             cid=cid,
@@ -436,11 +525,19 @@ def main() -> None:
             device=device,
             lr=args.lr,
             local_epochs=args.local_epochs,
-            force_mu=force_mu,  # remove this line if you want mu to come ONLY from config
+            mu=mu,
         )
 
-    # Use FedAvg strategy for BOTH cases - the only difference is client-side proximal term
-    # (FedProx aggregation is identical to FedAvg; the difference is in the client objective)
+    # -----------------------
+    # Server Strategy
+    # -----------------------
+    # IMPORTANT: Both FedAvg and FedProx use the SAME server-side aggregation!
+    # Following reference implementation (github.com/litian96/FedProx):
+    # - Server performs weighted averaging: w_global = sum(n_k / N) * w_k
+    # - The ONLY difference is the client-side objective function
+    # - FedAvg: min F_k(w)
+    # - FedProx: min F_k(w) + (mu/2) * ||w - w^t||^2
+    # -----------------------
     min_fit = max(1, int(args.num_clients * args.fraction_fit))
 
     strategy = fl.server.strategy.FedAvg(
@@ -448,7 +545,6 @@ def main() -> None:
         min_fit_clients=min_fit,
         min_available_clients=args.num_clients,
         evaluate_fn=evaluate_fn,
-        on_fit_config_fn=fit_config_fn,
     )
 
     start_time = time.time()

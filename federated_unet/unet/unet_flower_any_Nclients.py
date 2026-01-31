@@ -6,7 +6,7 @@ import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import flwr as fl
 import numpy as np
@@ -217,71 +217,63 @@ def evaluate_model(model: nn.Module, loader: DataLoader, device: torch.device) -
     }
 
 
-def train_epochs_standard(
-    model: nn.Module,
-    loader: DataLoader,
-    device: torch.device,
-    lr: float,
-    epochs: int,
-    cid: str = "",
-) -> Dict[str, List[float]]:
-    """Standard FedAvg local training (SGD, following McMahan et al. 2017).
-    Returns per-epoch metrics for logging."""
-    model.train()
-    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
-    epoch_losses = []
-    epoch_dices = []
-
-    for ep in range(epochs):
-        running_loss = 0.0
-        running_dice = 0.0
-        n_batches = 0
-        for x, y in loader:
-            x = x.to(device, non_blocking=True)
-            y = y.to(device, non_blocking=True)
-            opt.zero_grad(set_to_none=True)
-            logits = model(x)
-            loss = loss_bce_dice(logits, y)
-            loss.backward()
-            opt.step()
-
-            running_loss += loss.item()
-            with torch.no_grad():
-                dice = dice_per_channel_from_logits(logits, y).mean().item()
-                running_dice += dice
-            n_batches += 1
-
-        avg_loss = running_loss / max(n_batches, 1)
-        avg_dice = running_dice / max(n_batches, 1)
-        epoch_losses.append(avg_loss)
-        epoch_dices.append(avg_dice)
-        print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}")
-
-    return {"losses": epoch_losses, "dices": epoch_dices}
+# -----------------------
+# Local Training Functions
+# -----------------------
+# Following the reference implementation: github.com/litian96/FedProx
+#
+# FedAvg (McMahan et al., 2017):
+#   - Standard SGD local training
+#   - Objective: min F_k(w) where F_k is the local loss
+#
+# FedProx (Li et al., MLSys 2020):
+#   - SGD with proximal term to prevent client drift
+#   - Objective: min F_k(w) + (mu/2) * ||w - w^t||^2
+#   - w^t is the global model at round t (frozen during local training)
+#
+# Key insight: The gradient of the proximal term is mu * (w - w^t),
+# which is equivalent to the PerturbedGradientDescent optimizer
+# in the original TensorFlow implementation.
+# -----------------------
 
 
-def train_epochs_fedprox(
+def train_local_epochs(
     model: nn.Module,
     loader: DataLoader,
     device: torch.device,
     lr: float,
     epochs: int,
     mu: float,
-    global_params: List[torch.Tensor],
+    global_params: Optional[List[torch.Tensor]],
     cid: str = "",
 ) -> Dict[str, List[float]]:
-    """FedProx local training following Li et al., MLSys 2020.
+    """
+    Unified local training for FedAvg (mu=0) and FedProx (mu>0).
 
-    Uses SGD (no momentum) as in the original FedProx paper/reference
-    implementation (github.com/litian96/FedProx).  The proximal term is
-    added to the loss so that its gradient  mu * (w - w_global)  is
-    included in the SGD update:
-        w <- w - lr * (grad_loss + mu * (w - w_global))
-    This is mathematically equivalent to the paper's
-    PerturbedGradientDescent optimizer.
+    Following reference implementation (github.com/litian96/FedProx):
+    - Uses SGD without momentum (as per original FedProx paper)
+    - Creates optimizer ONCE per round (not per epoch) for efficiency
+    - For FedProx: applies proximal term (mu/2) * ||w - w_global||^2
+
+    Args:
+        model: The neural network model
+        loader: DataLoader for training data
+        device: torch device (cpu/cuda)
+        lr: Learning rate
+        epochs: Number of local epochs (E in FedAvg/FedProx papers)
+        mu: Proximal term coefficient (0 for FedAvg, >0 for FedProx)
+        global_params: Frozen snapshot of global model parameters (required if mu > 0)
+        cid: Client ID for logging
+
+    Returns:
+        Dictionary with per-epoch metrics (losses, dices, prox_terms)
     """
     model.train()
-    opt = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
+
+    # Create optimizer ONCE per round (following reference implementation)
+    # No momentum, as per the original FedProx paper
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
+
     epoch_losses = []
     epoch_dices = []
     epoch_prox_terms = []
@@ -291,26 +283,33 @@ def train_epochs_fedprox(
         running_dice = 0.0
         running_prox = 0.0
         n_batches = 0
+
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
-            opt.zero_grad(set_to_none=True)
+            optimizer.zero_grad(set_to_none=True)
+
             logits = model(x)
             base_loss = loss_bce_dice(logits, y)
 
-            # Proximal term: (mu/2) * ||w - w_global||^2
-            # Gradient w.r.t. w: mu * (w - w_global)
-            prox = 0.0
-            for p, p0 in zip(model.parameters(), global_params):
-                prox = prox + torch.sum((p - p0) ** 2)
-            prox_penalty = (mu / 2.0) * prox
+            # FedProx: Add proximal term to prevent client drift
+            # Reference: Li et al., "Federated Optimization in Heterogeneous Networks"
+            # Objective: F_k(w) + (mu/2) * ||w - w^t||^2
+            # Gradient: grad F_k(w) + mu * (w - w^t)
+            prox_value = 0.0
+            if mu > 0.0 and global_params is not None:
+                for p, p_global in zip(model.parameters(), global_params):
+                    # p_global is detached (frozen), so gradient only flows through p
+                    prox_value = prox_value + torch.sum((p - p_global) ** 2)
+                total_loss = base_loss + (mu / 2.0) * prox_value
+            else:
+                total_loss = base_loss
 
-            total_loss = base_loss + prox_penalty
             total_loss.backward()
-            opt.step()
+            optimizer.step()
 
             running_loss += total_loss.item()
-            running_prox += prox.item()
+            running_prox += float(prox_value.item() if isinstance(prox_value, torch.Tensor) else prox_value)
             with torch.no_grad():
                 dice = dice_per_channel_from_logits(logits, y).mean().item()
                 running_dice += dice
@@ -319,10 +318,15 @@ def train_epochs_fedprox(
         avg_loss = running_loss / max(n_batches, 1)
         avg_dice = running_dice / max(n_batches, 1)
         avg_prox = running_prox / max(n_batches, 1)
+
         epoch_losses.append(avg_loss)
         epoch_dices.append(avg_dice)
         epoch_prox_terms.append(avg_prox)
-        print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}, prox_term={avg_prox:.4f}")
+
+        if mu > 0.0:
+            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}, prox={avg_prox:.4f}")
+        else:
+            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}")
 
     return {"losses": epoch_losses, "dices": epoch_dices, "prox_terms": epoch_prox_terms}
 
@@ -347,9 +351,27 @@ def set_parameters(model: nn.Module, parameters: List[np.ndarray]) -> None:
 
 
 # -------------------------
-# Flower client (2 clients)
+# Flower Client
 # -------------------------
+# Following the reference implementation (github.com/litian96/FedProx):
+# - Each client maintains its own model
+# - Receives global parameters from server at start of each round
+# - Performs local training with FedAvg or FedProx objective
+# - Returns updated parameters weighted by dataset size
+# -------------------------
+
+
 class BratsClient(fl.client.NumPyClient):
+    """
+    Flower client for BraTS 2D U-Net federated learning.
+
+    Implements both FedAvg and FedProx based on mu parameter:
+    - mu = 0: FedAvg (standard SGD)
+    - mu > 0: FedProx (SGD with proximal term)
+
+    Reference: github.com/litian96/FedProx
+    """
+
     def __init__(
         self,
         cid: str,
@@ -359,7 +381,7 @@ class BratsClient(fl.client.NumPyClient):
         local_epochs: int,
         batch_size: int,
         num_workers: int,
-        mu: float,
+        mu: float,  # 0 for FedAvg, >0 for FedProx
     ):
         self.cid = cid
         self.client_root = client_root
@@ -370,87 +392,142 @@ class BratsClient(fl.client.NumPyClient):
         self.num_workers = num_workers
         self.mu = mu
 
-        # infer input channels from first sample in train split
+        # Infer input channels from first sample in train split
         train_ds = BratsNPZSliceDataset(client_root / "train")
         x0, _ = train_ds[0]
         in_ch = int(x0.shape[0])
 
         self.model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
 
-        self.train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
-                                       num_workers=num_workers, pin_memory=(device.type == "cuda"))
-        self.val_loader = DataLoader(BratsNPZSliceDataset(client_root / "val"), batch_size=batch_size, shuffle=False,
-                                     num_workers=num_workers, pin_memory=(device.type == "cuda"))
-        self.test_loader = DataLoader(BratsNPZSliceDataset(client_root / "test"), batch_size=batch_size, shuffle=False,
-                                      num_workers=num_workers, pin_memory=(device.type == "cuda"))
+        self.train_loader = DataLoader(
+            train_ds, batch_size=batch_size, shuffle=True,
+            num_workers=num_workers, pin_memory=(device.type == "cuda")
+        )
+        self.val_loader = DataLoader(
+            BratsNPZSliceDataset(client_root / "val"), batch_size=batch_size, shuffle=False,
+            num_workers=num_workers, pin_memory=(device.type == "cuda")
+        )
+        self.test_loader = DataLoader(
+            BratsNPZSliceDataset(client_root / "test"), batch_size=batch_size, shuffle=False,
+            num_workers=num_workers, pin_memory=(device.type == "cuda")
+        )
 
     def get_parameters(self, config):
         return get_parameters(self.model)
 
     def fit(self, parameters, config):
+        """
+        Local training round.
+
+        Following reference implementation (github.com/litian96/FedProx):
+        1. Load global (server) weights into local model
+        2. Snapshot global params as frozen reference for proximal term
+        3. Perform E epochs of local training with FedAvg or FedProx objective
+        4. Return updated weights and dataset size for weighted aggregation
+        """
+        # Step 1: Load global (server) weights
         set_parameters(self.model, parameters)
 
-        # snapshot global params once per round (for FedProx proximal term)
-        global_params = [p.detach().clone() for p in self.model.parameters()]
+        # Step 2: Snapshot global params BEFORE training (frozen reference)
+        # These are used as w^t in the proximal term: (mu/2) * ||w - w^t||^2
+        # Must be detached so gradients don't flow through them
+        global_params = None
+        if self.mu > 0.0:
+            global_params = [p.detach().clone() for p in self.model.parameters()]
 
-        # Train locally and get per-epoch metrics
-        if self.mu > 0:
-            train_metrics = train_epochs_fedprox(
-                self.model, self.train_loader, self.device,
-                self.lr, self.local_epochs, self.mu, global_params, cid=self.cid
-            )
-        else:
-            train_metrics = train_epochs_standard(
-                self.model, self.train_loader, self.device,
-                self.lr, self.local_epochs, cid=self.cid
-            )
+        # Step 3: Local training (unified function handles both FedAvg and FedProx)
+        train_metrics = train_local_epochs(
+            model=self.model,
+            loader=self.train_loader,
+            device=self.device,
+            lr=self.lr,
+            epochs=self.local_epochs,
+            mu=self.mu,
+            global_params=global_params,
+            cid=self.cid,
+        )
 
         # Validation metrics for debugging
         va = evaluate_model(self.model, self.val_loader, self.device)
 
-        # Return training stats (following reference repo practice)
-        return get_parameters(self.model), len(self.train_loader.dataset), {
-            "cid": self.cid,
-            "mu": float(self.mu),
-            "final_train_loss": float(train_metrics["losses"][-1]) if train_metrics["losses"] else 0.0,
-            "final_train_dice": float(train_metrics["dices"][-1]) if train_metrics["dices"] else 0.0,
-            "val_meanDice": float(va["Mean"]),
-            "val_WT": float(va["WT"]),
-            "val_TC": float(va["TC"]),
-            "val_ET": float(va["ET"]),
-        }
+        # Step 4: Return updated weights and dataset size
+        # Server uses dataset size for weighted averaging (FedAvg aggregation)
+        return (
+            get_parameters(self.model),
+            len(self.train_loader.dataset),
+            {
+                "cid": self.cid,
+                "mu": float(self.mu),
+                "final_train_loss": float(train_metrics["losses"][-1]) if train_metrics["losses"] else 0.0,
+                "final_train_dice": float(train_metrics["dices"][-1]) if train_metrics["dices"] else 0.0,
+                "val_meanDice": float(va["Mean"]),
+                "val_WT": float(va["WT"]),
+                "val_TC": float(va["TC"]),
+                "val_ET": float(va["ET"]),
+            },
+        )
 
     def evaluate(self, parameters, config):
+        """Evaluate global model on local test data."""
         set_parameters(self.model, parameters)
         te = evaluate_model(self.model, self.test_loader, self.device)
         # Flower expects (loss, num_examples, metrics)
-        return float(te["loss"]), len(self.test_loader.dataset), {
-            "test_meanDice": float(te["Mean"]),
-            "test_WT": float(te["WT"]),
-            "test_TC": float(te["TC"]),
-            "test_ET": float(te["ET"]),
-        }
+        return (
+            float(te["loss"]),
+            len(self.test_loader.dataset),
+            {
+                "test_meanDice": float(te["Mean"]),
+                "test_WT": float(te["WT"]),
+                "test_TC": float(te["TC"]),
+                "test_ET": float(te["ET"]),
+            },
+        )
 
 
 # -------------------------
-# Run + save results
+# Server Strategy
 # -------------------------
+# IMPORTANT: Both FedAvg and FedProx use the SAME server-side aggregation!
+# Following reference implementation (github.com/litian96/FedProx):
+# - Server performs weighted averaging: w_global = sum(n_k / N) * w_k
+#   where n_k is the number of samples on client k, N is total samples
+# - The ONLY difference between FedAvg and FedProx is the client objective
+# - FedAvg: min F_k(w)
+# - FedProx: min F_k(w) + (mu/2) * ||w - w^t||^2
 # -------------------------
-# Custom Strategy to save final model (following reference repo)
-# -------------------------
+
+
 class SaveModelStrategy(fl.server.strategy.FedAvg):
-    """FedAvg strategy that captures final parameters for model saving."""
+    """
+    FedAvg strategy with model saving capability.
+
+    This strategy extends Flower's built-in FedAvg to capture
+    the final aggregated parameters for model persistence.
+
+    Note: FedProx uses this same aggregation - the difference is
+    client-side only (the proximal term in the local objective).
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.final_parameters = None
 
     def aggregate_fit(self, server_round, results, failures):
-        # Call parent aggregation
+        """
+        Aggregate client updates using weighted averaging.
+
+        Following reference implementation (github.com/litian96/FedProx):
+        - w_global = sum(n_k / N) * w_k
+        - n_k = number of samples on client k
+        - N = total samples across all participating clients
+
+        This aggregation is IDENTICAL for FedAvg and FedProx.
+        """
+        # Call parent aggregation (weighted averaging)
         aggregated_parameters, aggregated_metrics = super().aggregate_fit(
             server_round, results, failures
         )
-        # Store the latest aggregated parameters
+        # Store the latest aggregated parameters for model saving
         if aggregated_parameters is not None:
             self.final_parameters = aggregated_parameters
         return aggregated_parameters, aggregated_metrics
