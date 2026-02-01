@@ -27,6 +27,8 @@ SRC_FILE="${PROJECT_DIR}/federated_unet/unet/unet_flower_any_Nclients.py"
 # 2-client ET-skewed partition:# PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_7030_et_skewed/client_data"
 # 4-client quartile partition:
 PARTITION_DIR="${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a1p0/client_data" 
+OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_dirichlet_balanced_a1p0"
+# Partition directory (override via environment variable)
 
 
 OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_dirichlet_balanced_a1p0"
@@ -36,7 +38,7 @@ OUT_BASE="${PROJECT_DIR}/results/federated/brats2d_4client_dirichlet_balanced_a1
 #   - brats2d_4client_quartile       (4-client, 29x ET gap)
 #   - brats2d_4client_dirichlet_a0p5 (4-client, Dirichlet α=0.5)
 #   - brats2d_4client_dirichlet_a0p1 (4-client, Dirichlet α=0.1)
-DEFAULT_PARTITION="${PROJECT_DIR}/data/partitions/brats2d_4client_quartile/client_data"
+DEFAULT_PARTITION="${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a1p0/client_data"
 PARTITION_DIR="${PARTITION_DIR:-$DEFAULT_PARTITION}"
 
 # Auto-detect partition name for output directory
