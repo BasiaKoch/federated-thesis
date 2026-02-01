@@ -177,43 +177,149 @@ class UNet2D(nn.Module):
 
 
 # -------------------------
-# Loss + metrics
+# Loss + metrics (repo-style)
 # -------------------------
-def dice_per_channel_from_logits(logits: torch.Tensor, targets: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
-    probs = torch.sigmoid(logits)
-    # (B,C,H,W) -> (C,)
+# Training: soft dice, micro/global, smooth=1 (like TF repo "dice_coef")
+# Evaluation: hard dice, micro/global, threshold=0.5, no smoothing (like TF repo "evaluate")
+# Key: accumulate intersection/sums across whole loader, compute dice once at end
+# -------------------------
+
+
+def _safe_div(numer: torch.Tensor, denom: torch.Tensor, default: float = 1.0) -> torch.Tensor:
+    """Avoid NaNs when denom==0 (e.g., empty masks)."""
+    return torch.where(denom > 0, numer / denom, torch.full_like(denom, float(default)))
+
+
+def dice_coef_soft_repo_style(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """
+    Repo-style SOFT Dice (like TF dice_coef):
+      - uses sigmoid probabilities (no threshold)
+      - flatten/micro across (B,H,W)
+      - smooth=1
+    Returns:
+      dice_per_channel: (C,)
+    """
+    probs = torch.sigmoid(logits)  # (B,C,H,W)
     dims = (0, 2, 3)
-    inter = torch.sum(probs * targets, dim=dims)
-    denom = torch.sum(probs + targets, dim=dims)
-    dice = (2.0 * inter + eps) / (denom + eps)
-    return dice
+
+    inter = torch.sum(probs * targets, dim=dims)  # (C,)
+    psum = torch.sum(probs, dim=dims)             # (C,)
+    tsum = torch.sum(targets, dim=dims)           # (C,)
+
+    numer = 2.0 * inter + smooth
+    denom = psum + tsum + smooth
+    return _safe_div(numer, denom, default=1.0)
 
 
-def loss_bce_dice(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+def dice_coef_hard_repo_style(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    threshold: float = 0.5,
+) -> torch.Tensor:
+    """
+    Repo-style HARD Dice (like their evaluate()):
+      - threshold at 0.5
+      - flatten/micro across (B,H,W)
+      - NO smoothing
+    Returns:
+      dice_per_channel: (C,)
+    """
+    probs = torch.sigmoid(logits)
+    preds = (probs >= threshold).to(targets.dtype)
+
+    dims = (0, 2, 3)
+    inter = torch.sum(preds * targets, dim=dims)  # (C,)
+    psum = torch.sum(preds, dim=dims)             # (C,)
+    tsum = torch.sum(targets, dim=dims)           # (C,)
+
+    numer = 2.0 * inter
+    denom = psum + tsum
+    return _safe_div(numer, denom, default=1.0)
+
+
+def dice_coef_loss_repo_style(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """Repo-style Dice loss = 1 - dice_coef (mean over channels)."""
+    dice_c = dice_coef_soft_repo_style(logits, targets, smooth=smooth)  # (C,)
+    return 1.0 - dice_c.mean()
+
+
+def combined_loss_repo_style(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    smooth: float = 1.0,
+) -> torch.Tensor:
+    """Repo-style combined loss: BCE + Dice loss."""
     bce = F.binary_cross_entropy_with_logits(logits, targets)
-    dice = dice_per_channel_from_logits(logits, targets)
-    dice_loss = 1.0 - dice.mean()
-    return bce + dice_loss
+    dloss = dice_coef_loss_repo_style(logits, targets, smooth=smooth)
+    return bce + dloss
 
 
 @torch.no_grad()
-def evaluate_model(model: nn.Module, loader: DataLoader, device: torch.device) -> Dict[str, float]:
+def evaluate_model(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    threshold: float = 0.5,
+) -> Dict[str, float]:
+    """
+    Repo-style evaluation with HARD Dice (micro/global).
+
+    Key: accumulate intersection/sums across whole loader, compute dice once at end.
+    This is "flatten" style - NOT averaging per-batch dice values.
+    """
     model.eval()
-    dices = []
-    losses = []
+
+    total_loss = 0.0
+    total_samples = 0
+
+    # Accumulate for EXACT micro dice over the whole loader
+    inter_sum = torch.zeros(3, dtype=torch.float64)
+    psum_sum = torch.zeros(3, dtype=torch.float64)
+    tsum_sum = torch.zeros(3, dtype=torch.float64)
+
     for x, y in loader:
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
+        bsz = int(x.size(0))
+
         logits = model(x)
-        losses.append(float(loss_bce_dice(logits, y).item()))
-        dices.append(dice_per_channel_from_logits(logits, y).detach().cpu())
-    d = torch.stack(dices, dim=0).mean(dim=0)  # (3,)
+
+        loss = combined_loss_repo_style(logits, y)
+        total_loss += float(loss.item()) * bsz
+        total_samples += bsz
+
+        probs = torch.sigmoid(logits)
+        preds = (probs >= threshold).to(y.dtype)
+
+        dims = (0, 2, 3)
+        inter_sum += torch.sum(preds * y, dim=dims).detach().cpu().to(torch.float64)
+        psum_sum += torch.sum(preds, dim=dims).detach().cpu().to(torch.float64)
+        tsum_sum += torch.sum(y, dim=dims).detach().cpu().to(torch.float64)
+
+    if total_samples == 0:
+        return {"loss": 0.0, "WT": 0.0, "TC": 0.0, "ET": 0.0, "Mean": 0.0}
+
+    avg_loss = total_loss / total_samples
+
+    # Compute global/micro dice from accumulated stats (no smoothing for hard dice)
+    numer = 2.0 * inter_sum
+    denom = psum_sum + tsum_sum
+    dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
+
     return {
-        "loss": float(np.mean(losses)) if losses else 0.0,
-        "WT": float(d[0].item()),
-        "TC": float(d[1].item()),
-        "ET": float(d[2].item()),
-        "Mean": float(d.mean().item()),
+        "loss": float(avg_loss),
+        "WT": float(dice_c[0].item()),
+        "TC": float(dice_c[1].item()),
+        "ET": float(dice_c[2].item()),
+        "Mean": float(dice_c.mean().item()),
     }
 
 
@@ -255,6 +361,8 @@ def train_local_epochs(
     - Creates optimizer ONCE per round (not per epoch) for efficiency
     - For FedProx: applies proximal term (mu/2) * ||w - w_global||^2
 
+    Training metric uses repo-style SOFT Dice (micro/global, smooth=1).
+
     Args:
         model: The neural network model
         loader: DataLoader for training data
@@ -279,18 +387,23 @@ def train_local_epochs(
     epoch_prox_terms = []
 
     for ep in range(epochs):
-        running_loss = 0.0
-        running_dice = 0.0
-        running_prox = 0.0
-        n_batches = 0
+        total_loss = 0.0
+        total_prox = 0.0
+        total_samples = 0
+
+        # Repo-style: accumulate soft dice stats across whole epoch
+        soft_inter_sum = torch.zeros(3, dtype=torch.float64)
+        soft_psum_sum = torch.zeros(3, dtype=torch.float64)
+        soft_tsum_sum = torch.zeros(3, dtype=torch.float64)
 
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
+            bsz = int(x.size(0))
             optimizer.zero_grad(set_to_none=True)
 
             logits = model(x)
-            base_loss = loss_bce_dice(logits, y)
+            base_loss = combined_loss_repo_style(logits, y)
 
             # FedProx: Add proximal term to prevent client drift
             # Reference: Li et al., "Federated Optimization in Heterogeneous Networks"
@@ -301,23 +414,34 @@ def train_local_epochs(
                 for p, p_global in zip(model.parameters(), global_params):
                     # p_global is detached (frozen), so gradient only flows through p
                     prox_value = prox_value + torch.sum((p - p_global) ** 2)
-                total_loss = base_loss + (mu / 2.0) * prox_value
+                loss = base_loss + (mu / 2.0) * prox_value
             else:
-                total_loss = base_loss
+                loss = base_loss
 
-            total_loss.backward()
+            loss.backward()
             optimizer.step()
 
-            running_loss += total_loss.item()
-            running_prox += float(prox_value.item() if isinstance(prox_value, torch.Tensor) else prox_value)
-            with torch.no_grad():
-                dice = dice_per_channel_from_logits(logits, y).mean().item()
-                running_dice += dice
-            n_batches += 1
+            total_loss += float(loss.item()) * bsz
+            total_prox += float(prox_value.item() if isinstance(prox_value, torch.Tensor) else prox_value) * bsz
+            total_samples += bsz
 
-        avg_loss = running_loss / max(n_batches, 1)
-        avg_dice = running_dice / max(n_batches, 1)
-        avg_prox = running_prox / max(n_batches, 1)
+            # Accumulate soft dice stats (repo-style: probs, no threshold)
+            with torch.no_grad():
+                probs = torch.sigmoid(logits)
+                dims = (0, 2, 3)
+                soft_inter_sum += torch.sum(probs * y, dim=dims).detach().cpu().to(torch.float64)
+                soft_psum_sum += torch.sum(probs, dim=dims).detach().cpu().to(torch.float64)
+                soft_tsum_sum += torch.sum(y, dim=dims).detach().cpu().to(torch.float64)
+
+        # Compute epoch averages
+        avg_loss = total_loss / max(total_samples, 1)
+        avg_prox = total_prox / max(total_samples, 1)
+
+        # Compute repo-style soft dice from accumulated stats (smooth=1)
+        numer = 2.0 * soft_inter_sum + 1.0
+        denom = soft_psum_sum + soft_tsum_sum + 1.0
+        dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
+        avg_dice = float(dice_c.mean().item())
 
         epoch_losses.append(avg_loss)
         epoch_dices.append(avg_dice)
