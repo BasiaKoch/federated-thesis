@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import math
 import os
 import time
 from dataclasses import asdict, dataclass
@@ -41,16 +42,12 @@ def _load_npz(path: Path) -> Tuple[np.ndarray, np.ndarray]:
     # Fallback: heuristics (last resort)
     if img is None or msk is None:
         keys = list(d.keys())
-        # pick 2 arrays with different dtypes/shapes; prefer 2D mask
         arrays = [(k, d[k]) for k in keys]
-        # mask tends to be integer
         arrays.sort(key=lambda kv: (kv[1].ndim, kv[1].dtype.kind != "i"))
-        # try select one 2D int as mask
         for k, arr in arrays:
             if arr.ndim in (2, 3) and arr.dtype.kind in ("i", "u"):
                 msk = arr
                 break
-        # image tends to be float with 3 dims (C,H,W) or (H,W,C)
         for k, arr in arrays:
             if arr.dtype.kind == "f" and arr.ndim in (2, 3):
                 img = arr
@@ -70,7 +67,6 @@ def _to_chw(img: np.ndarray) -> np.ndarray:
         # If last dim looks like channels (<=8), assume HWC
         if img.shape[-1] <= 8 and img.shape[0] != img.shape[-1]:
             img = np.transpose(img, (2, 0, 1))  # HWC -> CHW
-        # else assume already CHW
     else:
         raise ValueError(f"Unexpected image ndim={img.ndim}")
     return img.astype(np.float32)
@@ -85,13 +81,11 @@ def _mask_to_wt_tc_et(mask: np.ndarray) -> np.ndarray:
     Output shape: (3,H,W) float32 in {0,1}
     """
     if mask.ndim == 3:
-        # if (1,H,W) or (H,W,1)
         if mask.shape[0] == 1:
             mask = mask[0]
         elif mask.shape[-1] == 1:
             mask = mask[..., 0]
         else:
-            # if already one-hot, user should adapt; we keep simplest assumption
             mask = mask[..., 0]
     if mask.ndim != 2:
         raise ValueError(f"Unexpected mask shape {mask.shape}")
@@ -123,35 +117,51 @@ class BratsNPZSliceDataset(Dataset):
 # -------------------------
 # Small-ish 2D U-Net
 # -------------------------
-def _conv_block(in_ch: int, out_ch: int) -> nn.Module:
-    return nn.Sequential(
-        nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
-        nn.BatchNorm2d(out_ch),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
-        nn.BatchNorm2d(out_ch),
-        nn.ReLU(inplace=True),
-    )
+# GroupNorm is often more stable than BatchNorm under non-IID FL because it has
+# no running stats that become client-specific.
+# -------------------------
+def _conv_block(in_ch: int, out_ch: int, use_groupnorm: bool = True) -> nn.Module:
+    if use_groupnorm:
+        num_groups = min(32, out_ch)
+        if out_ch % num_groups != 0:
+            num_groups = 8 if out_ch % 8 == 0 else 4 if out_ch % 4 == 0 else 1
+        return nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
+            nn.GroupNorm(num_groups, out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
+            nn.GroupNorm(num_groups, out_ch),
+            nn.ReLU(inplace=True),
+        )
+    else:
+        return nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+        )
 
 
 class UNet2D(nn.Module):
-    def __init__(self, in_ch: int, out_ch: int = 3, base: int = 32):
+    def __init__(self, in_ch: int, out_ch: int = 3, base: int = 32, use_groupnorm: bool = True):
         super().__init__()
-        self.enc1 = _conv_block(in_ch, base)
+        self.enc1 = _conv_block(in_ch, base, use_groupnorm)
         self.pool1 = nn.MaxPool2d(2)
-        self.enc2 = _conv_block(base, base * 2)
+        self.enc2 = _conv_block(base, base * 2, use_groupnorm)
         self.pool2 = nn.MaxPool2d(2)
-        self.enc3 = _conv_block(base * 2, base * 4)
+        self.enc3 = _conv_block(base * 2, base * 4, use_groupnorm)
         self.pool3 = nn.MaxPool2d(2)
 
-        self.bottleneck = _conv_block(base * 4, base * 8)
+        self.bottleneck = _conv_block(base * 4, base * 8, use_groupnorm)
 
         self.up3 = nn.ConvTranspose2d(base * 8, base * 4, 2, stride=2)
-        self.dec3 = _conv_block(base * 8, base * 4)
+        self.dec3 = _conv_block(base * 8, base * 4, use_groupnorm)
         self.up2 = nn.ConvTranspose2d(base * 4, base * 2, 2, stride=2)
-        self.dec2 = _conv_block(base * 4, base * 2)
+        self.dec2 = _conv_block(base * 4, base * 2, use_groupnorm)
         self.up1 = nn.ConvTranspose2d(base * 2, base, 2, stride=2)
-        self.dec1 = _conv_block(base * 2, base)
+        self.dec1 = _conv_block(base * 2, base, use_groupnorm)
 
         self.head = nn.Conv2d(base, out_ch, 1)
 
@@ -177,89 +187,41 @@ class UNet2D(nn.Module):
 
 
 # -------------------------
-# Loss + metrics (repo-style)
+# Loss + Dice metrics (FIXED)
 # -------------------------
-# Training: soft dice, micro/global, smooth=1 (like TF repo "dice_coef")
-# Evaluation: hard dice, micro/global, threshold=0.5, no smoothing (like TF repo "evaluate")
-# Key: accumulate intersection/sums across whole loader, compute dice once at end
-# -------------------------
-
-
-def _safe_div(numer: torch.Tensor, denom: torch.Tensor, default: float = 1.0) -> torch.Tensor:
-    """Avoid NaNs when denom==0 (e.g., empty masks)."""
-    return torch.where(denom > 0, numer / denom, torch.full_like(denom, float(default)))
-
-
-def dice_coef_soft_repo_style(
-    logits: torch.Tensor,
-    targets: torch.Tensor,
-    smooth: float = 1.0,
-) -> torch.Tensor:
+def loss_bce_dice(logits: torch.Tensor, targets: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     """
-    Repo-style SOFT Dice (like TF dice_coef):
-      - uses sigmoid probabilities (no threshold)
-      - flatten/micro across (B,H,W)
-      - smooth=1
-    Returns:
-      dice_per_channel: (C,)
+    Training loss: BCE + soft Dice (common and smooth for optimization).
     """
-    probs = torch.sigmoid(logits)  # (B,C,H,W)
+    bce = F.binary_cross_entropy_with_logits(logits, targets)
+    probs = torch.sigmoid(logits)
     dims = (0, 2, 3)
-
-    inter = torch.sum(probs * targets, dim=dims)  # (C,)
-    psum = torch.sum(probs, dim=dims)             # (C,)
-    tsum = torch.sum(targets, dim=dims)           # (C,)
-
-    numer = 2.0 * inter + smooth
-    denom = psum + tsum + smooth
-    return _safe_div(numer, denom, default=1.0)
+    inter = torch.sum(probs * targets, dim=dims)
+    denom = torch.sum(probs + targets, dim=dims)
+    dice = (2.0 * inter + eps) / (denom + eps)
+    dice_loss = 1.0 - dice.mean()
+    return bce + dice_loss
 
 
-def dice_coef_hard_repo_style(
+def dice_macro_per_sample_from_logits(
     logits: torch.Tensor,
     targets: torch.Tensor,
+    eps: float = 1e-6,
     threshold: float = 0.5,
 ) -> torch.Tensor:
     """
-    Repo-style HARD Dice (like their evaluate()):
-      - threshold at 0.5
-      - flatten/micro across (B,H,W)
-      - NO smoothing
-    Returns:
-      dice_per_channel: (C,)
+    Macro Dice: compute Dice per-sample (reduce over H,W), then mean over samples.
+    Returns: (C,) macro Dice over the batch.
     """
     probs = torch.sigmoid(logits)
     preds = (probs >= threshold).to(targets.dtype)
 
-    dims = (0, 2, 3)
-    inter = torch.sum(preds * targets, dim=dims)  # (C,)
-    psum = torch.sum(preds, dim=dims)             # (C,)
-    tsum = torch.sum(targets, dim=dims)           # (C,)
+    # per-sample, per-channel dice: reduce only over spatial dims
+    inter = torch.sum(preds * targets, dim=(2, 3))          # (B,C)
+    denom = torch.sum(preds + targets, dim=(2, 3))          # (B,C)
+    dice = (2.0 * inter + eps) / (denom + eps)              # (B,C)
 
-    numer = 2.0 * inter
-    denom = psum + tsum
-    return _safe_div(numer, denom, default=1.0)
-
-
-def dice_coef_loss_repo_style(
-    logits: torch.Tensor,
-    targets: torch.Tensor,
-    smooth: float = 1.0,
-) -> torch.Tensor:
-    """Repo-style Dice loss = 1 - dice_coef (mean over channels)."""
-    dice_c = dice_coef_soft_repo_style(logits, targets, smooth=smooth)  # (C,)
-    return 1.0 - dice_c.mean()
-
-
-def combined_loss_repo_style(
-    logits: torch.Tensor,
-    targets: torch.Tensor,
-    smooth: float = 1.0,
-) -> torch.Tensor:
-    """Repo-style combined loss: BCE + Dice loss."""
-    bce = F.binary_cross_entropy_with_logits(logits, targets)
-    dloss = dice_coef_loss_repo_style(logits, targets, smooth=smooth)
-    return bce + dloss
+    return dice.mean(dim=0)  # (C,)
 
 
 @torch.no_grad()
@@ -267,23 +229,33 @@ def evaluate_model(
     model: nn.Module,
     loader: DataLoader,
     device: torch.device,
+    dice_mode: str = "macro",   # "macro" or "micro"
     threshold: float = 0.5,
+    eps: float = 1e-6,
 ) -> Dict[str, float]:
     """
-    Repo-style evaluation with HARD Dice (micro/global).
+    Evaluate with a *well-defined* Dice.
 
-    Key: accumulate intersection/sums across whole loader, compute dice once at end.
-    This is "flatten" style - NOT averaging per-batch dice values.
+    dice_mode:
+      - "macro": per-sample Dice averaged across samples (recommended for defensible reporting)
+      - "micro": global Dice computed from accumulated intersections/denominators
+
+    Loss is sample-weighted to avoid last-batch bias.
     """
     model.eval()
 
     total_loss = 0.0
     total_samples = 0
 
-    # Accumulate for EXACT micro dice over the whole loader
-    inter_sum = torch.zeros(3, dtype=torch.float64)
-    psum_sum = torch.zeros(3, dtype=torch.float64)
-    tsum_sum = torch.zeros(3, dtype=torch.float64)
+    if dice_mode == "micro":
+        # accumulate globally across the whole loader (true micro)
+        inter_sum = torch.zeros(3, dtype=torch.float64)
+        denom_sum = torch.zeros(3, dtype=torch.float64)
+    elif dice_mode == "macro":
+        # accumulate per-sample macro dice (sum of per-batch macro * batch_size)
+        dice_sum = torch.zeros(3, dtype=torch.float64)
+    else:
+        raise ValueError(f"Invalid dice_mode='{dice_mode}', expected 'macro' or 'micro'")
 
     for x, y in loader:
         x = x.to(device, non_blocking=True)
@@ -292,27 +264,37 @@ def evaluate_model(
 
         logits = model(x)
 
-        loss = combined_loss_repo_style(logits, y)
-        total_loss += float(loss.item()) * bsz
+        # sample-weighted loss
+        batch_loss = float(loss_bce_dice(logits, y, eps=eps).item())
+        total_loss += batch_loss * bsz
         total_samples += bsz
 
         probs = torch.sigmoid(logits)
         preds = (probs >= threshold).to(y.dtype)
 
-        dims = (0, 2, 3)
-        inter_sum += torch.sum(preds * y, dim=dims).detach().cpu().to(torch.float64)
-        psum_sum += torch.sum(preds, dim=dims).detach().cpu().to(torch.float64)
-        tsum_sum += torch.sum(y, dim=dims).detach().cpu().to(torch.float64)
+        if dice_mode == "micro":
+            # true micro: accumulate intersections/denominators across ALL pixels and ALL samples
+            inter = torch.sum(preds * y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)   # (C,)
+            denom = torch.sum(preds + y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)   # (C,)
+            inter_sum += inter
+            denom_sum += denom
+        else:
+            # macro: compute per-sample dice then average over samples in the batch
+            batch_macro = dice_macro_per_sample_from_logits(
+                logits, y, eps=eps, threshold=threshold
+            ).detach().cpu().to(torch.float64)  # (C,)
+            # weight by number of samples to make the final mean over samples
+            dice_sum += batch_macro * bsz
 
     if total_samples == 0:
         return {"loss": 0.0, "WT": 0.0, "TC": 0.0, "ET": 0.0, "Mean": 0.0}
 
     avg_loss = total_loss / total_samples
 
-    # Compute global/micro dice from accumulated stats (no smoothing for hard dice)
-    numer = 2.0 * inter_sum
-    denom = psum_sum + tsum_sum
-    dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
+    if dice_mode == "micro":
+        dice_c = (2.0 * inter_sum + eps) / (denom_sum + eps)
+    else:
+        dice_c = dice_sum / total_samples
 
     return {
         "loss": float(avg_loss),
@@ -324,25 +306,8 @@ def evaluate_model(
 
 
 # -----------------------
-# Local Training Functions
+# Local Training Functions (training dice logging FIXED)
 # -----------------------
-# Following the reference implementation: github.com/litian96/FedProx
-#
-# FedAvg (McMahan et al., 2017):
-#   - Standard SGD local training
-#   - Objective: min F_k(w) where F_k is the local loss
-#
-# FedProx (Li et al., MLSys 2020):
-#   - SGD with proximal term to prevent client drift
-#   - Objective: min F_k(w) + (mu/2) * ||w - w^t||^2
-#   - w^t is the global model at round t (frozen during local training)
-#
-# Key insight: The gradient of the proximal term is mu * (w - w^t),
-# which is equivalent to the PerturbedGradientDescent optimizer
-# in the original TensorFlow implementation.
-# -----------------------
-
-
 def train_local_epochs(
     model: nn.Module,
     loader: DataLoader,
@@ -351,70 +316,55 @@ def train_local_epochs(
     epochs: int,
     mu: float,
     global_params: Optional[List[torch.Tensor]],
+    weight_decay: float = 0.0,
     cid: str = "",
+    dice_mode: str = "macro",
+    dice_threshold: float = 0.5,
 ) -> Dict[str, List[float]]:
     """
     Unified local training for FedAvg (mu=0) and FedProx (mu>0).
 
-    Following reference implementation (github.com/litian96/FedProx):
-    - Uses SGD without momentum (as per original FedProx paper)
-    - Creates optimizer ONCE per round (not per epoch) for efficiency
-    - For FedProx: applies proximal term (mu/2) * ||w - w_global||^2
 
-    Training metric uses repo-style SOFT Dice (micro/global, smooth=1).
-
-    Args:
-        model: The neural network model
-        loader: DataLoader for training data
-        device: torch device (cpu/cuda)
-        lr: Learning rate
-        epochs: Number of local epochs (E in FedAvg/FedProx papers)
-        mu: Proximal term coefficient (0 for FedAvg, >0 for FedProx)
-        global_params: Frozen snapshot of global model parameters (required if mu > 0)
-        cid: Client ID for logging
-
-    Returns:
-        Dictionary with per-epoch metrics (losses, dices, prox_terms)
+    Training dice logging is computed with the SAME definition as evaluation
+    (by default macro-per-sample), so it’s not misleading.
     """
     model.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0, weight_decay=weight_decay)
 
-    # Create optimizer ONCE per round (following reference implementation)
-    # No momentum, as per the original FedProx paper
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
-
-    epoch_losses = []
-    epoch_dices = []
-    epoch_prox_terms = []
+    epoch_losses: List[float] = []
+    epoch_dices: List[float] = []
+    epoch_prox_terms: List[float] = []
 
     for ep in range(epochs):
         total_loss = 0.0
-        total_prox = 0.0
         total_samples = 0
+        total_prox = 0.0
 
-        # Repo-style: accumulate soft dice stats across whole epoch
-        soft_inter_sum = torch.zeros(3, dtype=torch.float64)
-        soft_psum_sum = torch.zeros(3, dtype=torch.float64)
-        soft_tsum_sum = torch.zeros(3, dtype=torch.float64)
+        if dice_mode == "micro":
+            inter_sum = torch.zeros(3, dtype=torch.float64)
+            denom_sum = torch.zeros(3, dtype=torch.float64)
+        elif dice_mode == "macro":
+            dice_sum = torch.zeros(3, dtype=torch.float64)
+        else:
+            raise ValueError(f"Invalid dice_mode='{dice_mode}'")
 
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
             bsz = int(x.size(0))
+
             optimizer.zero_grad(set_to_none=True)
 
             logits = model(x)
-            base_loss = combined_loss_repo_style(logits, y)
+            base_loss = loss_bce_dice(logits, y)
 
-            # FedProx: Add proximal term to prevent client drift
-            # Reference: Li et al., "Federated Optimization in Heterogeneous Networks"
-            # Objective: F_k(w) + (mu/2) * ||w - w^t||^2
-            # Gradient: grad F_k(w) + mu * (w - w^t)
             prox_value = 0.0
             if mu > 0.0 and global_params is not None:
+                prox = 0.0
                 for p, p_global in zip(model.parameters(), global_params):
-                    # p_global is detached (frozen), so gradient only flows through p
-                    prox_value = prox_value + torch.sum((p - p_global) ** 2)
-                loss = base_loss + (mu / 2.0) * prox_value
+                    prox = prox + torch.sum((p - p_global) ** 2)
+                prox_value = prox
+                loss = base_loss + (mu / 2.0) * prox
             else:
                 loss = base_loss
 
@@ -422,35 +372,44 @@ def train_local_epochs(
             optimizer.step()
 
             total_loss += float(loss.item()) * bsz
-            total_prox += float(prox_value.item() if isinstance(prox_value, torch.Tensor) else prox_value) * bsz
             total_samples += bsz
+            total_prox += (float(prox_value.item()) if isinstance(prox_value, torch.Tensor) else float(prox_value)) * bsz
 
-            # Accumulate soft dice stats (repo-style: probs, no threshold)
             with torch.no_grad():
                 probs = torch.sigmoid(logits)
-                dims = (0, 2, 3)
-                soft_inter_sum += torch.sum(probs * y, dim=dims).detach().cpu().to(torch.float64)
-                soft_psum_sum += torch.sum(probs, dim=dims).detach().cpu().to(torch.float64)
-                soft_tsum_sum += torch.sum(y, dim=dims).detach().cpu().to(torch.float64)
+                preds = (probs >= dice_threshold).to(y.dtype)
 
-        # Compute epoch averages
+                if dice_mode == "micro":
+                    inter = torch.sum(preds * y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)
+                    denom = torch.sum(preds + y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)
+                    inter_sum += inter
+                    denom_sum += denom
+                else:
+                    batch_macro = dice_macro_per_sample_from_logits(
+                        logits, y, threshold=dice_threshold
+                    ).detach().cpu().to(torch.float64)
+                    dice_sum += batch_macro * bsz
+
         avg_loss = total_loss / max(total_samples, 1)
         avg_prox = total_prox / max(total_samples, 1)
 
-        # Compute repo-style soft dice from accumulated stats (smooth=1)
-        numer = 2.0 * soft_inter_sum + 1.0
-        denom = soft_psum_sum + soft_tsum_sum + 1.0
-        dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
-        avg_dice = float(dice_c.mean().item())
+        if total_samples == 0:
+            avg_dice_mean = 0.0
+        else:
+            if dice_mode == "micro":
+                dice_c = (2.0 * inter_sum + 1e-6) / (denom_sum + 1e-6)
+            else:
+                dice_c = dice_sum / total_samples
+            avg_dice_mean = float(dice_c.mean().item())
 
         epoch_losses.append(avg_loss)
-        epoch_dices.append(avg_dice)
+        epoch_dices.append(avg_dice_mean)
         epoch_prox_terms.append(avg_prox)
 
         if mu > 0.0:
-            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}, prox={avg_prox:.4f}")
+            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice_mean:.4f}, prox={avg_prox:.4f}")
         else:
-            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}")
+            print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice_mean:.4f}")
 
     return {"losses": epoch_losses, "dices": epoch_dices, "prox_terms": epoch_prox_terms}
 
@@ -477,25 +436,7 @@ def set_parameters(model: nn.Module, parameters: List[np.ndarray]) -> None:
 # -------------------------
 # Flower Client
 # -------------------------
-# Following the reference implementation (github.com/litian96/FedProx):
-# - Each client maintains its own model
-# - Receives global parameters from server at start of each round
-# - Performs local training with FedAvg or FedProx objective
-# - Returns updated parameters weighted by dataset size
-# -------------------------
-
-
 class BratsClient(fl.client.NumPyClient):
-    """
-    Flower client for BraTS 2D U-Net federated learning.
-
-    Implements both FedAvg and FedProx based on mu parameter:
-    - mu = 0: FedAvg (standard SGD)
-    - mu > 0: FedProx (SGD with proximal term)
-
-    Reference: github.com/litian96/FedProx
-    """
-
     def __init__(
         self,
         cid: str,
@@ -505,7 +446,11 @@ class BratsClient(fl.client.NumPyClient):
         local_epochs: int,
         batch_size: int,
         num_workers: int,
-        mu: float,  # 0 for FedAvg, >0 for FedProx
+        mu: float,
+        weight_decay: float = 0.0,
+        use_groupnorm: bool = True,
+        dice_mode: str = "macro",
+        dice_threshold: float = 0.5,
     ):
         self.cid = cid
         self.client_root = client_root
@@ -515,13 +460,16 @@ class BratsClient(fl.client.NumPyClient):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.mu = mu
+        self.weight_decay = weight_decay
+        self.use_groupnorm = use_groupnorm
+        self.dice_mode = dice_mode
+        self.dice_threshold = dice_threshold
 
-        # Infer input channels from first sample in train split
         train_ds = BratsNPZSliceDataset(client_root / "train")
         x0, _ = train_ds[0]
         in_ch = int(x0.shape[0])
 
-        self.model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        self.model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
 
         self.train_loader = DataLoader(
             train_ds, batch_size=batch_size, shuffle=True,
@@ -540,26 +488,12 @@ class BratsClient(fl.client.NumPyClient):
         return get_parameters(self.model)
 
     def fit(self, parameters, config):
-        """
-        Local training round.
-
-        Following reference implementation (github.com/litian96/FedProx):
-        1. Load global (server) weights into local model
-        2. Snapshot global params as frozen reference for proximal term
-        3. Perform E epochs of local training with FedAvg or FedProx objective
-        4. Return updated weights and dataset size for weighted aggregation
-        """
-        # Step 1: Load global (server) weights
         set_parameters(self.model, parameters)
 
-        # Step 2: Snapshot global params BEFORE training (frozen reference)
-        # These are used as w^t in the proximal term: (mu/2) * ||w - w^t||^2
-        # Must be detached so gradients don't flow through them
         global_params = None
         if self.mu > 0.0:
             global_params = [p.detach().clone() for p in self.model.parameters()]
 
-        # Step 3: Local training (unified function handles both FedAvg and FedProx)
         train_metrics = train_local_epochs(
             model=self.model,
             loader=self.train_loader,
@@ -568,14 +502,17 @@ class BratsClient(fl.client.NumPyClient):
             epochs=self.local_epochs,
             mu=self.mu,
             global_params=global_params,
+            weight_decay=self.weight_decay,
             cid=self.cid,
+            dice_mode=self.dice_mode,
+            dice_threshold=self.dice_threshold,
         )
 
-        # Validation metrics for debugging
-        va = evaluate_model(self.model, self.val_loader, self.device)
+        va = evaluate_model(
+            self.model, self.val_loader, self.device,
+            dice_mode=self.dice_mode, threshold=self.dice_threshold
+        )
 
-        # Step 4: Return updated weights and dataset size
-        # Server uses dataset size for weighted averaging (FedAvg aggregation)
         return (
             get_parameters(self.model),
             len(self.train_loader.dataset),
@@ -592,10 +529,11 @@ class BratsClient(fl.client.NumPyClient):
         )
 
     def evaluate(self, parameters, config):
-        """Evaluate global model on local test data."""
         set_parameters(self.model, parameters)
-        te = evaluate_model(self.model, self.test_loader, self.device)
-        # Flower expects (loss, num_examples, metrics)
+        te = evaluate_model(
+            self.model, self.test_loader, self.device,
+            dice_mode=self.dice_mode, threshold=self.dice_threshold
+        )
         return (
             float(te["loss"]),
             len(self.test_loader.dataset),
@@ -611,47 +549,13 @@ class BratsClient(fl.client.NumPyClient):
 # -------------------------
 # Server Strategy
 # -------------------------
-# IMPORTANT: Both FedAvg and FedProx use the SAME server-side aggregation!
-# Following reference implementation (github.com/litian96/FedProx):
-# - Server performs weighted averaging: w_global = sum(n_k / N) * w_k
-#   where n_k is the number of samples on client k, N is total samples
-# - The ONLY difference between FedAvg and FedProx is the client objective
-# - FedAvg: min F_k(w)
-# - FedProx: min F_k(w) + (mu/2) * ||w - w^t||^2
-# -------------------------
-
-
 class SaveModelStrategy(fl.server.strategy.FedAvg):
-    """
-    FedAvg strategy with model saving capability.
-
-    This strategy extends Flower's built-in FedAvg to capture
-    the final aggregated parameters for model persistence.
-
-    Note: FedProx uses this same aggregation - the difference is
-    client-side only (the proximal term in the local objective).
-    """
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.final_parameters = None
 
     def aggregate_fit(self, server_round, results, failures):
-        """
-        Aggregate client updates using weighted averaging.
-
-        Following reference implementation (github.com/litian96/FedProx):
-        - w_global = sum(n_k / N) * w_k
-        - n_k = number of samples on client k
-        - N = total samples across all participating clients
-
-        This aggregation is IDENTICAL for FedAvg and FedProx.
-        """
-        # Call parent aggregation (weighted averaging)
-        aggregated_parameters, aggregated_metrics = super().aggregate_fit(
-            server_round, results, failures
-        )
-        # Store the latest aggregated parameters for model saving
+        aggregated_parameters, aggregated_metrics = super().aggregate_fit(server_round, results, failures)
         if aggregated_parameters is not None:
             self.final_parameters = aggregated_parameters
         return aggregated_parameters, aggregated_metrics
@@ -669,35 +573,45 @@ class RunCfg:
     seed: int
     partition_dir: str
     out_dir: str
+    dice_mode: str
+    dice_threshold: float
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--partition_dir", required=True, help=".../client_data (contains client_0, client_1)")
     ap.add_argument("--rounds", type=int, default=20)
-    ap.add_argument("--local_epochs", type=int, default=3, help="Local epochs per round (ref repo uses 3)")
+    ap.add_argument("--local_epochs", type=int, default=3)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--batch_size", type=int, default=4)
     ap.add_argument("--num_workers", type=int, default=0)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
-    ap.add_argument("--mu", type=float, default=0.1, help="FedProx mu (proximal term weight). Use 0.1-1.0 for heterogeneous data")
+    ap.add_argument("--mu", type=float, default=0.1)
     ap.add_argument("--out_dir", default="./results/unet_flower_2clients")
-    ap.add_argument("--save_model", action="store_true", default=True, help="Save final global model")
+    ap.add_argument("--save_model", action="store_true", default=True)
     ap.add_argument("--num_clients", type=int, default=2)
+    ap.add_argument("--fraction_fit", type=float, default=1.0,
+                    help="Fraction of clients to sample per round (0.0-1.0).")
+    ap.add_argument("--weight_decay", type=float, default=0.0)
+    ap.add_argument("--use_batchnorm", action="store_true", default=False)
+    ap.add_argument("--dice_mode", choices=["macro", "micro"], default="macro",
+                    help="Dice definition: macro (per-sample mean) or micro (global).")
+    ap.add_argument("--dice_threshold", type=float, default=0.5,
+                    help="Threshold for hard Dice computation.")
     args = ap.parse_args()
 
-    # Repro
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     device = torch.device("cuda" if (args.use_cuda and torch.cuda.is_available()) else "cpu")
     partition_dir = Path(args.partition_dir)
 
-    # For FedAvg, force mu=0
     mu = float(args.mu) if args.strategy == "fedprox" else 0.0
 
     run_name = f"{args.strategy}_mu{mu}_R{args.rounds}_E{args.local_epochs}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -715,9 +629,10 @@ def main() -> None:
         seed=args.seed,
         partition_dir=str(partition_dir),
         out_dir=str(out_dir),
+        dice_mode=args.dice_mode,
+        dice_threshold=args.dice_threshold,
     )
 
-    # Sanity check: print client partition info
     print("Client partition sanity check:")
     for cid in range(args.num_clients):
         client_dir = partition_dir / f"client_{cid}"
@@ -726,13 +641,9 @@ def main() -> None:
         test_count = len(list((client_dir / "test").rglob("*.npz")))
         print(f"  client_{cid}: train={train_count} val={val_count} test={test_count}")
 
-    print("Starting federated training...")
-
-    # Pooled GLOBAL test loader (all clients' test sets combined)
-    pooled_files = []
+    pooled_files: List[Path] = []
     for cid in range(args.num_clients):
         pooled_files.extend(sorted((partition_dir / f"client_{cid}" / "test").rglob("*.npz")))
-
 
     class PooledTest(Dataset):
         def __len__(self): return len(pooled_files)
@@ -748,8 +659,7 @@ def main() -> None:
         pin_memory=(device.type == "cuda"),
     )
 
-    # Create per-client test loaders for server-side evaluation
-    client_test_loaders = {}
+    client_test_loaders: Dict[int, DataLoader] = {}
     for cid in range(args.num_clients):
         client_test_loaders[cid] = DataLoader(
             BratsNPZSliceDataset(partition_dir / f"client_{cid}" / "test"),
@@ -759,44 +669,32 @@ def main() -> None:
             pin_memory=(device.type == "cuda"),
         )
 
+    use_groupnorm = not args.use_batchnorm
+    print("Using GroupNorm" if use_groupnorm else "WARNING: Using BatchNorm in FL")
+
     def evaluate_fn(server_round: int, parameters, config):
-        # Build a fresh model with correct in_ch (infer from client_0 train)
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
         x0, _ = ds0[0]
         in_ch = int(x0.shape[0])
-        model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
         set_parameters(model, parameters)
 
-        # -------------------------
-        # DEBUG: verify loaders + shapes + channel counts
-        # -------------------------
-        print(f"DEBUG Round {server_round}: model in_ch={in_ch}")
-        for cid in range(args.num_clients):
-            xb, yb = next(iter(client_test_loaders[cid]))
-            print(f"  client_{cid} test batch: x={tuple(xb.shape)} y={tuple(yb.shape)}")
-            try:
-                print(f"  client_{cid} test first files:", [str(p) for p in client_test_loaders[cid].dataset.files[:3]])
-            except Exception as e:
-                print(f"  DEBUG: could not print dataset files for client_{cid}:", e)
-
-        # -------------------------
-        # Normal evaluation
-        # -------------------------
-
-        # Evaluate global model on each client's test set (for thesis comparison)
         client_metrics = {}
         for cid in range(args.num_clients):
-            client_metrics[cid] = evaluate_model(model, client_test_loaders[cid], device)
+            client_metrics[cid] = evaluate_model(
+                model, client_test_loaders[cid], device,
+                dice_mode=args.dice_mode, threshold=args.dice_threshold
+            )
 
-        # Also evaluate on pooled test
-        pooled_metrics = evaluate_model(model, global_test_loader, device)
+        pooled_metrics = evaluate_model(
+            model, global_test_loader, device,
+            dice_mode=args.dice_mode, threshold=args.dice_threshold
+        )
 
-        # Print summary for all clients
         client_strs = " | ".join([f"Client{cid} Mean={client_metrics[cid]['Mean']:.4f}"
-                                   for cid in range(args.num_clients)])
+                                  for cid in range(args.num_clients)])
         print(f"[Round {server_round}] {client_strs} | Pooled Mean={pooled_metrics['Mean']:.4f}")
 
-        # Build metrics dict dynamically for all clients
         metrics_dict = {}
         for cid in range(args.num_clients):
             metrics_dict[f"client{cid}_meanDice"] = float(client_metrics[cid]["Mean"])
@@ -804,7 +702,6 @@ def main() -> None:
             metrics_dict[f"client{cid}_TC"] = float(client_metrics[cid]["TC"])
             metrics_dict[f"client{cid}_ET"] = float(client_metrics[cid]["ET"])
 
-        # Add global/pooled metrics
         metrics_dict["global_meanDice"] = float(pooled_metrics["Mean"])
         metrics_dict["global_WT"] = float(pooled_metrics["WT"])
         metrics_dict["global_TC"] = float(pooled_metrics["TC"])
@@ -823,14 +720,22 @@ def main() -> None:
             batch_size=args.batch_size,
             num_workers=args.num_workers,
             mu=mu,
+            weight_decay=args.weight_decay,
+            use_groupnorm=use_groupnorm,
+            dice_mode=args.dice_mode,
+            dice_threshold=args.dice_threshold,
         )
 
-    # 2 clients, always fit both
-    # Use custom strategy that saves final parameters (following reference repo)
+    # FIX: use ceil for min_fit_clients
+    min_fit = max(1, int(math.ceil(args.num_clients * args.fraction_fit)))
+
+    # FIX: min_available_clients consistent with partial participation
+    min_available = min_fit
+
     strategy = SaveModelStrategy(
-        fraction_fit=1.0,
-        min_fit_clients=args.num_clients,
-        min_available_clients=args.num_clients,
+        fraction_fit=args.fraction_fit,
+        min_fit_clients=min_fit,
+        min_available_clients=min_available,
         evaluate_fn=evaluate_fn,
     )
 
@@ -840,22 +745,17 @@ def main() -> None:
         num_clients=args.num_clients,
         config=fl.server.ServerConfig(num_rounds=args.rounds),
         strategy=strategy,
-        # IMPORTANT: if you have only 1 GPU, requesting 1 per client forces sequential execution
         client_resources={"num_cpus": 1, "num_gpus": 1 if device.type == "cuda" else 0},
     )
     total = time.time() - t0
 
-    # Extract centralized metrics (per-client + pooled)
-    rounds = []
-
-    # Build metrics_store dynamically for N clients
-    metrics_store = {}
+    rounds: List[int] = []
+    metrics_store: Dict[str, List[float]] = {}
     for cid in range(args.num_clients):
         metrics_store[f"client{cid}_meanDice"] = []
         metrics_store[f"client{cid}_WT"] = []
         metrics_store[f"client{cid}_TC"] = []
         metrics_store[f"client{cid}_ET"] = []
-    # Add global metrics
     metrics_store["global_meanDice"] = []
     metrics_store["global_WT"] = []
     metrics_store["global_TC"] = []
@@ -864,43 +764,29 @@ def main() -> None:
     if history.metrics_centralized:
         for key, store in history.metrics_centralized.items():
             if key in metrics_store:
-                if not rounds:  # extract rounds from first metric
+                if not rounds:
                     rounds = [int(r) for r, _ in store]
                 metrics_store[key] = [float(v) for _, v in store]
 
-    # Build final metrics dynamically
-    final_metrics = {}
+    final_metrics: Dict[str, Optional[float]] = {}
     for cid in range(args.num_clients):
         key = f"client{cid}_meanDice"
-        if metrics_store[key]:
-            final_metrics[f"client{cid}_meanDice"] = metrics_store[key][-1]
-            final_metrics[f"client{cid}_best_meanDice"] = max(metrics_store[key])
-        else:
-            final_metrics[f"client{cid}_meanDice"] = None
-            final_metrics[f"client{cid}_best_meanDice"] = None
+        final_metrics[f"client{cid}_meanDice"] = metrics_store[key][-1] if metrics_store[key] else None
+        final_metrics[f"client{cid}_best_meanDice"] = max(metrics_store[key]) if metrics_store[key] else None
 
-    # Add global final metrics
-    if metrics_store["global_meanDice"]:
-        final_metrics["global_meanDice"] = metrics_store["global_meanDice"][-1]
-        final_metrics["global_best_meanDice"] = max(metrics_store["global_meanDice"])
-    else:
-        final_metrics["global_meanDice"] = None
-        final_metrics["global_best_meanDice"] = None
+    final_metrics["global_meanDice"] = metrics_store["global_meanDice"][-1] if metrics_store["global_meanDice"] else None
+    final_metrics["global_best_meanDice"] = max(metrics_store["global_meanDice"]) if metrics_store["global_meanDice"] else None
 
     result = {
         "config": asdict(cfg),
         "timing": {"total_seconds": total, "seconds_per_round": total / max(args.rounds, 1)},
-        "per_round": {
-            "rounds": rounds,
-            **metrics_store,
-        },
+        "per_round": {"rounds": rounds, **metrics_store},
         "final": final_metrics,
     }
 
-    # Print summary for thesis comparison
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print(f"FEDERATED TRAINING COMPLETE - {args.num_clients}-Client Results")
-    print("="*60)
+    print("=" * 60)
     for cid in range(args.num_clients):
         key = f"client{cid}_meanDice"
         if metrics_store[key]:
@@ -909,24 +795,20 @@ def main() -> None:
     if metrics_store["global_meanDice"]:
         print(f"Pooled (global model):   Final Mean Dice = {result['final']['global_meanDice']:.4f}, "
               f"Best = {result['final']['global_best_meanDice']:.4f}")
-    print("="*60)
+    print("=" * 60)
 
     (out_dir / "results.json").write_text(json.dumps(result, indent=2))
     print(f"\nSaved: {out_dir / 'results.json'}")
 
-    # Save final global model (following reference repo practice)
     if args.save_model and strategy.final_parameters is not None:
-        # Get final parameters from strategy
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
         x0, _ = ds0[0]
         in_ch = int(x0.shape[0])
-        final_model = UNet2D(in_ch=in_ch, out_ch=3, base=32).to(device)
+        final_model = UNet2D(in_ch=in_ch, out_ch=3, base=32, use_groupnorm=use_groupnorm).to(device)
 
-        # Convert Flower parameters to numpy and set model weights
         final_weights = fl.common.parameters_to_ndarrays(strategy.final_parameters)
         set_parameters(final_model, final_weights)
 
-        # Save the trained model
         model_path = out_dir / "global_model.pt"
         torch.save({
             "model_state_dict": final_model.state_dict(),
@@ -936,10 +818,9 @@ def main() -> None:
         }, model_path)
         print(f"Saved final global model: {model_path}")
 
-    # Write training log summary (following reference repo practice)
     log_path = out_dir / "training_log.txt"
     with open(log_path, "w") as f:
-        f.write(f"Federated Learning Training Log\n")
+        f.write("Federated Learning Training Log\n")
         f.write(f"{'='*60}\n")
         f.write(f"Strategy: {cfg.strategy}\n")
         f.write(f"Mu (FedProx): {cfg.mu}\n")
@@ -949,16 +830,17 @@ def main() -> None:
         f.write(f"Learning Rate: {cfg.lr}\n")
         f.write(f"Batch Size: {cfg.batch_size}\n")
         f.write(f"Seed: {cfg.seed}\n")
+        f.write(f"Dice mode: {cfg.dice_mode} (threshold={cfg.dice_threshold})\n")
         f.write(f"{'='*60}\n")
         f.write(f"Total Time: {total:.2f}s ({total/60:.2f} min)\n")
         f.write(f"Time per Round: {total/max(args.rounds,1):.2f}s\n")
         f.write(f"{'='*60}\n")
-        f.write(f"Final Results:\n")
+        f.write("Final Results:\n")
         for cid in range(args.num_clients):
             key = f"client{cid}_meanDice"
-            if result['final'].get(key) is not None:
+            if result["final"].get(key) is not None:
                 f.write(f"  Client {cid} Mean Dice: {result['final'][key]:.4f}\n")
-        if result['final'].get('global_meanDice') is not None:
+        if result["final"].get("global_meanDice") is not None:
             f.write(f"  Global Mean Dice:   {result['final']['global_meanDice']:.4f}\n")
         f.write(f"{'='*60}\n")
     print(f"Saved training log: {log_path}")
