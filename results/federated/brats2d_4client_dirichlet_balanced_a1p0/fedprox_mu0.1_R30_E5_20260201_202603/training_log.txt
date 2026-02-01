@@ -1,0 +1,16 @@
+Federated Learning Training Log
+============================================================
+Strategy: fedprox
+Mu (FedProx): 0.1
+Num Clients: 4
+Rounds: 30
+Local Epochs: 5
+Learning Rate: 0.01
+Batch Size: 8
+Seed: 42
+============================================================
+Total Time: 1448.14s (24.14 min)
+Time per Round: 48.27s
+============================================================
+Final Results:
+============================================================
