@@ -374,7 +374,7 @@ def evaluate_model(
     denom = psum_sum + tsum_sum
 
     # Per-class dice: NaN if no GT pixels for that class
-    dice_c = torch.full(3, float('nan'), dtype=torch.float64)
+    dice_c = torch.full((3,), float('nan'), dtype=torch.float64)
     has_gt = tsum_sum > 0  # Classes that have GT pixels
 
     for c in range(3):
