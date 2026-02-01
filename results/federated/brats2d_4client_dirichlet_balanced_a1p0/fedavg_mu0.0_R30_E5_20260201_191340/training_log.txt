@@ -1,0 +1,21 @@
+Federated Learning Training Log
+============================================================
+Strategy: fedavg
+Mu (FedProx): 0.0
+Num Clients: 4
+Rounds: 30
+Local Epochs: 5
+Learning Rate: 0.01
+Batch Size: 8
+Seed: 42
+============================================================
+Total Time: 1347.34s (22.46 min)
+Time per Round: 44.91s
+============================================================
+Final Results:
+  Client 0 Mean Dice: 0.8855
+  Client 1 Mean Dice: 0.8811
+  Client 2 Mean Dice: 0.8264
+  Client 3 Mean Dice: 0.8085
+  Global Mean Dice:   0.8492
+============================================================

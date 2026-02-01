@@ -269,32 +269,6 @@ def dice_coef_soft_repo_style(
     return _safe_div(numer, denom, default=0.0)
 
 
-def dice_coef_hard_repo_style(
-    logits: torch.Tensor,
-    targets: torch.Tensor,
-    threshold: float = 0.5,
-) -> torch.Tensor:
-    """
-    Repo-style HARD Dice (like their evaluate()):
-      - threshold at 0.5
-      - flatten/micro across (B,H,W)
-      - NO smoothing
-    Returns:
-      dice_per_channel: (C,)
-    """
-    probs = torch.sigmoid(logits)
-    preds = (probs >= threshold).to(targets.dtype)
-
-    dims = (0, 2, 3)
-    inter = torch.sum(preds * targets, dim=dims)  # (C,)
-    psum = torch.sum(preds, dim=dims)             # (C,)
-    tsum = torch.sum(targets, dim=dims)           # (C,)
-
-    numer = 2.0 * inter
-    denom = psum + tsum
-    return _safe_div(numer, denom, default=1.0)
-
-
 def dice_coef_loss_repo_style(
     logits: torch.Tensor,
     targets: torch.Tensor,
