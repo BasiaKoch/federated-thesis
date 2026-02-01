@@ -328,6 +328,11 @@ def evaluate_model(
 
     Key: accumulate intersection/sums across whole loader, compute dice once at end.
     This is "flatten" style - NOT averaging per-batch dice values.
+
+    Empty-class handling (recommended for thesis):
+    - Only compute Dice for classes with GT pixels (tsum > 0)
+    - Mean is computed only over non-empty classes
+    - Empty classes get NaN (excluded from mean)
     """
     model.eval()
 
@@ -364,16 +369,33 @@ def evaluate_model(
     avg_loss = total_loss / total_samples
 
     # Compute global/micro dice from accumulated stats (no smoothing for hard dice)
+    # Only compute for classes with GT pixels; others get NaN
     numer = 2.0 * inter_sum
     denom = psum_sum + tsum_sum
-    dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
+
+    # Per-class dice: NaN if no GT pixels for that class
+    dice_c = torch.full(3, float('nan'), dtype=torch.float64)
+    has_gt = tsum_sum > 0  # Classes that have GT pixels
+
+    for c in range(3):
+        if has_gt[c]:
+            if denom[c] > 0:
+                dice_c[c] = numer[c] / denom[c]
+            else:
+                # GT exists but denom=0 means pred=0 and gt=0 after accumulation
+                # This shouldn't happen if has_gt[c] is True, but handle it
+                dice_c[c] = 0.0
+
+    # Mean only over classes with GT pixels (exclude NaN)
+    valid_dice = dice_c[has_gt]
+    mean_dice = float(valid_dice.mean().item()) if len(valid_dice) > 0 else 0.0
 
     return {
         "loss": float(avg_loss),
         "WT": float(dice_c[0].item()),
         "TC": float(dice_c[1].item()),
         "ET": float(dice_c[2].item()),
-        "Mean": float(dice_c.mean().item()),
+        "Mean": mean_dice,
     }
 
 
@@ -492,10 +514,19 @@ def train_local_epochs(
         avg_prox = total_prox / max(total_samples, 1)
 
         # Compute repo-style soft dice from accumulated stats (smooth=1)
+        # Only average over classes with GT pixels (exclude empty classes)
         numer = 2.0 * soft_inter_sum + 1.0
         denom = soft_psum_sum + soft_tsum_sum + 1.0
-        dice_c = torch.where(denom > 0, numer / denom, torch.ones_like(denom))
-        avg_dice = float(dice_c.mean().item())
+        has_gt = soft_tsum_sum > 0  # Classes that have GT pixels
+
+        dice_c = torch.zeros(3, dtype=torch.float64)
+        for c in range(3):
+            if denom[c] > 0:
+                dice_c[c] = numer[c] / denom[c]
+
+        # Mean only over classes with GT pixels
+        valid_dice = dice_c[has_gt]
+        avg_dice = float(valid_dice.mean().item()) if len(valid_dice) > 0 else 0.0
 
         epoch_losses.append(avg_loss)
         epoch_dices.append(avg_dice)
