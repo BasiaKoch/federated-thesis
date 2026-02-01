@@ -365,41 +365,50 @@ def evaluate_model(
 
     if total_samples == 0:
         return {
-            "loss": 0.0, "WT": 0.0, "TC": 0.0, "ET": 0.0, "Mean": 0.0,
+            "loss": 0.0,
+            "WT": 0.0, "TC": 0.0, "ET": 0.0,
+            "MeanAll": 0.0, "MeanPresent": 0.0,
             "gt_pixels_WT": 0.0, "gt_pixels_TC": 0.0, "gt_pixels_ET": 0.0,
         }
 
     avg_loss = total_loss / total_samples
 
     # Compute global/micro dice from accumulated stats (no smoothing for hard dice)
-    # Only compute for classes with GT pixels; others get NaN
     numer = 2.0 * inter_sum
     denom = psum_sum + tsum_sum
 
-    # Per-class dice: NaN if no GT pixels for that class
-    dice_c = torch.full((3,), float('nan'), dtype=torch.float64)
-    has_gt = tsum_sum > 0  # Classes that have GT pixels
+    # dice_all: includes empty-class handling
+    # - empty GT & empty pred → 1.0 (correct negative)
+    # - empty GT & non-empty pred → 0.0 (false positive)
+    # - non-empty GT → standard dice
+    dice_all = torch.zeros(3, dtype=torch.float64)
+    for c in range(3):
+        if tsum_sum[c] == 0:  # empty GT
+            dice_all[c] = 1.0 if psum_sum[c] == 0 else 0.0
+        else:
+            dice_all[c] = (numer[c] / denom[c]) if denom[c] > 0 else 0.0
 
+    mean_all = float(dice_all.mean().item())
+
+    # dice_present: only for classes with GT pixels (thesis-defensible)
+    dice_present = torch.full((3,), float("nan"), dtype=torch.float64)
+    has_gt = tsum_sum > 0
     for c in range(3):
         if has_gt[c]:
-            if denom[c] > 0:
-                dice_c[c] = numer[c] / denom[c]
-            else:
-                # GT exists but denom=0 means pred=0 and gt=0 after accumulation
-                # This shouldn't happen if has_gt[c] is True, but handle it
-                dice_c[c] = 0.0
+            dice_present[c] = (numer[c] / denom[c]) if denom[c] > 0 else 0.0
 
-    # Mean only over classes with GT pixels (exclude NaN)
-    valid_dice = dice_c[has_gt]
-    mean_dice = float(valid_dice.mean().item()) if len(valid_dice) > 0 else 0.0
+    mean_present = float(dice_present[has_gt].mean().item()) if has_gt.any() else 0.0
 
     return {
         "loss": float(avg_loss),
-        "WT": float(dice_c[0].item()),
-        "TC": float(dice_c[1].item()),
-        "ET": float(dice_c[2].item()),
-        "Mean": mean_dice,
-        # GT prevalence for defensibility (shows reviewer we're not hiding class absence)
+        # Per-class dice (includes empty-class handling)
+        "WT": float(dice_all[0].item()),
+        "TC": float(dice_all[1].item()),
+        "ET": float(dice_all[2].item()),
+        # Two mean metrics for comparison
+        "MeanAll": mean_all,        # Includes empty classes (can be inflated)
+        "MeanPresent": mean_present, # Only present classes (thesis-defensible)
+        # GT prevalence for defensibility
         "gt_pixels_WT": float(tsum_sum[0].item()),
         "gt_pixels_TC": float(tsum_sum[1].item()),
         "gt_pixels_ET": float(tsum_sum[2].item()),
@@ -680,7 +689,8 @@ class BratsClient(fl.client.NumPyClient):
                 "mu": float(self.mu),
                 "final_train_loss": float(train_metrics["losses"][-1]) if train_metrics["losses"] else 0.0,
                 "final_train_dice": float(train_metrics["dices"][-1]) if train_metrics["dices"] else 0.0,
-                "val_meanDice": float(va["Mean"]),
+                "val_MeanPresent": float(va["MeanPresent"]),
+                "val_MeanAll": float(va["MeanAll"]),
                 "val_WT": float(va["WT"]),
                 "val_TC": float(va["TC"]),
                 "val_ET": float(va["ET"]),
@@ -696,7 +706,8 @@ class BratsClient(fl.client.NumPyClient):
             float(te["loss"]),
             len(self.test_loader.dataset),
             {
-                "test_meanDice": float(te["Mean"]),
+                "test_MeanPresent": float(te["MeanPresent"]),
+                "test_MeanAll": float(te["MeanAll"]),
                 "test_WT": float(te["WT"]),
                 "test_TC": float(te["TC"]),
                 "test_ET": float(te["ET"]),
@@ -897,15 +908,16 @@ def main() -> None:
         # Also evaluate on pooled test
         pooled_metrics = evaluate_model(model, global_test_loader, device)
 
-        # Print summary for all clients (Mean excludes absent classes)
-        client_strs = " | ".join([f"Client{cid} Mean={client_metrics[cid]['Mean']:.4f}"
+        # Print summary for all clients (MeanPresent excludes absent classes)
+        client_strs = " | ".join([f"Client{cid} Mean={client_metrics[cid]['MeanPresent']:.4f}"
                                    for cid in range(args.num_clients)])
-        print(f"[Round {server_round}] {client_strs} | Pooled Mean={pooled_metrics['Mean']:.4f}")
+        print(f"[Round {server_round}] {client_strs} | Pooled Mean={pooled_metrics['MeanPresent']:.4f}")
 
         # Build metrics dict dynamically for all clients
         metrics_dict = {}
         for cid in range(args.num_clients):
-            metrics_dict[f"client{cid}_meanDice"] = float(client_metrics[cid]["Mean"])
+            metrics_dict[f"client{cid}_MeanAll"] = float(client_metrics[cid]["MeanAll"])
+            metrics_dict[f"client{cid}_MeanPresent"] = float(client_metrics[cid]["MeanPresent"])
             metrics_dict[f"client{cid}_WT"] = float(client_metrics[cid]["WT"])
             metrics_dict[f"client{cid}_TC"] = float(client_metrics[cid]["TC"])
             metrics_dict[f"client{cid}_ET"] = float(client_metrics[cid]["ET"])
@@ -915,7 +927,8 @@ def main() -> None:
             metrics_dict[f"client{cid}_gt_pixels_ET"] = float(client_metrics[cid]["gt_pixels_ET"])
 
         # Add global/pooled metrics
-        metrics_dict["global_meanDice"] = float(pooled_metrics["Mean"])
+        metrics_dict["global_MeanAll"] = float(pooled_metrics["MeanAll"])
+        metrics_dict["global_MeanPresent"] = float(pooled_metrics["MeanPresent"])
         metrics_dict["global_WT"] = float(pooled_metrics["WT"])
         metrics_dict["global_TC"] = float(pooled_metrics["TC"])
         metrics_dict["global_ET"] = float(pooled_metrics["ET"])
@@ -966,12 +979,14 @@ def main() -> None:
     # Build metrics_store dynamically for N clients
     metrics_store = {}
     for cid in range(args.num_clients):
-        metrics_store[f"client{cid}_meanDice"] = []
+        metrics_store[f"client{cid}_MeanAll"] = []
+        metrics_store[f"client{cid}_MeanPresent"] = []
         metrics_store[f"client{cid}_WT"] = []
         metrics_store[f"client{cid}_TC"] = []
         metrics_store[f"client{cid}_ET"] = []
     # Add global metrics
-    metrics_store["global_meanDice"] = []
+    metrics_store["global_MeanAll"] = []
+    metrics_store["global_MeanPresent"] = []
     metrics_store["global_WT"] = []
     metrics_store["global_TC"] = []
     metrics_store["global_ET"] = []
@@ -983,24 +998,28 @@ def main() -> None:
                     rounds = [int(r) for r, _ in store]
                 metrics_store[key] = [float(v) for _, v in store]
 
-    # Build final metrics dynamically
+    # Build final metrics dynamically (use MeanPresent as primary metric)
     final_metrics = {}
     for cid in range(args.num_clients):
-        key = f"client{cid}_meanDice"
+        key = f"client{cid}_MeanPresent"
         if metrics_store[key]:
-            final_metrics[f"client{cid}_meanDice"] = metrics_store[key][-1]
-            final_metrics[f"client{cid}_best_meanDice"] = max(metrics_store[key])
+            final_metrics[f"client{cid}_MeanPresent"] = metrics_store[key][-1]
+            final_metrics[f"client{cid}_best_MeanPresent"] = max(metrics_store[key])
+            final_metrics[f"client{cid}_MeanAll"] = metrics_store[f"client{cid}_MeanAll"][-1]
         else:
-            final_metrics[f"client{cid}_meanDice"] = None
-            final_metrics[f"client{cid}_best_meanDice"] = None
+            final_metrics[f"client{cid}_MeanPresent"] = None
+            final_metrics[f"client{cid}_best_MeanPresent"] = None
+            final_metrics[f"client{cid}_MeanAll"] = None
 
     # Add global final metrics
-    if metrics_store["global_meanDice"]:
-        final_metrics["global_meanDice"] = metrics_store["global_meanDice"][-1]
-        final_metrics["global_best_meanDice"] = max(metrics_store["global_meanDice"])
+    if metrics_store["global_MeanPresent"]:
+        final_metrics["global_MeanPresent"] = metrics_store["global_MeanPresent"][-1]
+        final_metrics["global_best_MeanPresent"] = max(metrics_store["global_MeanPresent"])
+        final_metrics["global_MeanAll"] = metrics_store["global_MeanAll"][-1]
     else:
-        final_metrics["global_meanDice"] = None
-        final_metrics["global_best_meanDice"] = None
+        final_metrics["global_MeanPresent"] = None
+        final_metrics["global_best_MeanPresent"] = None
+        final_metrics["global_MeanAll"] = None
 
     result = {
         "config": asdict(cfg),
@@ -1017,13 +1036,13 @@ def main() -> None:
     print(f"FEDERATED TRAINING COMPLETE - {args.num_clients}-Client Results")
     print("="*60)
     for cid in range(args.num_clients):
-        key = f"client{cid}_meanDice"
+        key = f"client{cid}_MeanPresent"
         if metrics_store[key]:
-            print(f"Client {cid} (global model): Final Mean Dice = {result['final'][key]:.4f}, "
-                  f"Best = {result['final'][f'client{cid}_best_meanDice']:.4f}")
-    if metrics_store["global_meanDice"]:
-        print(f"Pooled (global model):   Final Mean Dice = {result['final']['global_meanDice']:.4f}, "
-              f"Best = {result['final']['global_best_meanDice']:.4f}")
+            print(f"Client {cid}: MeanPresent={result['final'][key]:.4f} (best={result['final'][f'client{cid}_best_MeanPresent']:.4f}), "
+                  f"MeanAll={result['final'][f'client{cid}_MeanAll']:.4f}")
+    if metrics_store["global_MeanPresent"]:
+        print(f"Pooled:    MeanPresent={result['final']['global_MeanPresent']:.4f} (best={result['final']['global_best_MeanPresent']:.4f}), "
+              f"MeanAll={result['final']['global_MeanAll']:.4f}")
     print("="*60)
 
     (out_dir / "results.json").write_text(json.dumps(result, indent=2))
