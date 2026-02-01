@@ -596,7 +596,7 @@ def main() -> None:
                     help="Fraction of clients to sample per round (0.0-1.0).")
     ap.add_argument("--weight_decay", type=float, default=0.0)
     ap.add_argument("--use_batchnorm", action="store_true", default=False)
-    ap.add_argument("--dice_mode", choices=["macro", "micro"], default="macro",
+    ap.add_argument("--dice_mode", choices=["macro", "micro"], default="micro",
                     help="Dice definition: macro (per-sample mean) or micro (global).")
     ap.add_argument("--dice_threshold", type=float, default=0.5,
                     help="Threshold for hard Dice computation.")
