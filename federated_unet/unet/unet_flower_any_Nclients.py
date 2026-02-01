@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
-import os
+import math
 import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -243,31 +243,120 @@ def dice_per_channel_from_logits(logits: torch.Tensor, targets: torch.Tensor, ep
     return dice
 
 
-def loss_bce_dice(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+def loss_bce_dice(logits: torch.Tensor, targets: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
     bce = F.binary_cross_entropy_with_logits(logits, targets)
-    dice = dice_per_channel_from_logits(logits, targets)
+    dice = dice_per_channel_from_logits(logits, targets, eps=eps)
     dice_loss = 1.0 - dice.mean()
     return bce + dice_loss
 
 
+def dice_macro_per_sample_from_logits(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    eps: float = 1e-6,
+    threshold: float = 0.5,
+) -> torch.Tensor:
+    """
+    Hard Dice, macro-per-sample:
+      - Threshold sigmoid(logits) -> {0,1}
+      - Compute Dice per sample, per channel (reduce over H,W only)
+      - Return mean over samples -> (C,)
+
+    Args:
+        logits: (B,C,H,W)
+        targets: (B,C,H,W) in {0,1}
+    Returns:
+        (C,) float tensor
+    """
+    probs = torch.sigmoid(logits)
+    preds = (probs >= threshold).to(targets.dtype)
+
+    # (B,C,H,W) -> (B,C) by reducing over spatial dims only
+    inter = torch.sum(preds * targets, dim=(2, 3))
+    denom = torch.sum(preds + targets, dim=(2, 3))
+    dice = (2.0 * inter + eps) / (denom + eps)  # (B,C)
+
+    return dice.mean(dim=0)  # (C,)
+
+
 @torch.no_grad()
-def evaluate_model(model: nn.Module, loader: DataLoader, device: torch.device) -> Dict[str, float]:
+def evaluate_model(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    dice_mode: str = "macro",   # "macro" or "micro"
+    threshold: float = 0.5,
+    eps: float = 1e-6,
+) -> Dict[str, float]:
+    """
+    Evaluate with HARD Dice (thresholded), with correct macro/micro definitions,
+    and sample-weighted loss to avoid last-batch bias.
+
+    dice_mode:
+      - "macro": average Dice over samples (compute per-sample Dice, then mean)
+                 Recommended for thesis reporting (matches BraTS challenge)
+      - "micro": global Dice from accumulated intersections/denominators
+
+    Returns dict with: loss, WT, TC, ET, Mean
+    """
     model.eval()
-    dices = []
-    losses = []
+
+    total_loss = 0.0
+    total_samples = 0
+
+    if dice_mode == "micro":
+        inter_sum = torch.zeros(3, dtype=torch.float64)
+        denom_sum = torch.zeros(3, dtype=torch.float64)
+    elif dice_mode == "macro":
+        dice_sum = torch.zeros(3, dtype=torch.float64)
+    else:
+        raise ValueError(f"Invalid dice_mode='{dice_mode}', expected 'macro' or 'micro'")
+
     for x, y in loader:
         x = x.to(device, non_blocking=True)
         y = y.to(device, non_blocking=True)
+        bsz = int(x.size(0))
+
         logits = model(x)
-        losses.append(float(loss_bce_dice(logits, y).item()))
-        dices.append(dice_per_channel_from_logits(logits, y).detach().cpu())
-    d = torch.stack(dices, dim=0).mean(dim=0)  # (3,)
+
+        # sample-weighted loss (avoid last-batch bias)
+        batch_loss = float(loss_bce_dice(logits, y, eps=eps).item())
+        total_loss += batch_loss * bsz
+        total_samples += bsz
+
+        probs = torch.sigmoid(logits)
+        preds = (probs >= threshold).to(y.dtype)
+
+        if dice_mode == "micro":
+            # accumulate over ALL samples + pixels
+            inter = torch.sum(preds * y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)  # (C,)
+            denom = torch.sum(preds + y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)  # (C,)
+            inter_sum += inter
+            denom_sum += denom
+        else:
+            # true macro: per-sample Dice, then mean over samples
+            batch_macro = dice_macro_per_sample_from_logits(
+                logits, y, eps=eps, threshold=threshold
+            ).detach().cpu().to(torch.float64)  # (C,)
+            # weight by number of samples to get mean over the whole loader
+            dice_sum += batch_macro * bsz
+
+    if total_samples == 0:
+        return {"loss": 0.0, "WT": 0.0, "TC": 0.0, "ET": 0.0, "Mean": 0.0}
+
+    avg_loss = total_loss / total_samples
+
+    if dice_mode == "micro":
+        dice_c = (2.0 * inter_sum + eps) / (denom_sum + eps)
+    else:
+        dice_c = dice_sum / total_samples
+
     return {
-        "loss": float(np.mean(losses)) if losses else 0.0,
-        "WT": float(d[0].item()),
-        "TC": float(d[1].item()),
-        "ET": float(d[2].item()),
-        "Mean": float(d.mean().item()),
+        "loss": float(avg_loss),
+        "WT": float(dice_c[0].item()),
+        "TC": float(dice_c[1].item()),
+        "ET": float(dice_c[2].item()),
+        "Mean": float(dice_c.mean().item()),
     }
 
 
@@ -299,83 +388,102 @@ def train_local_epochs(
     epochs: int,
     mu: float,
     global_params: Optional[List[torch.Tensor]],
+    weight_decay: float = 0.0,
     cid: str = "",
+    dice_mode: str = "macro",     # "macro" or "micro"
+    threshold: float = 0.5,       # hard dice threshold
+    eps: float = 1e-6,
 ) -> Dict[str, List[float]]:
     """
-    Unified local training for FedAvg (mu=0) and FedProx (mu>0).
+    Local training for FedAvg (mu=0) / FedProx (mu>0),
+    with HARD Dice logging consistent with evaluate_model().
 
-    Following reference implementation (github.com/litian96/FedProx):
-    - Uses SGD without momentum (as per original FedProx paper)
-    - Creates optimizer ONCE per round (not per epoch) for efficiency
-    - For FedProx: applies proximal term (mu/2) * ||w - w_global||^2
-
-    Args:
-        model: The neural network model
-        loader: DataLoader for training data
-        device: torch device (cpu/cuda)
-        lr: Learning rate
-        epochs: Number of local epochs (E in FedAvg/FedProx papers)
-        mu: Proximal term coefficient (0 for FedAvg, >0 for FedProx)
-        global_params: Frozen snapshot of global model parameters (required if mu > 0)
-        cid: Client ID for logging
-
-    Returns:
-        Dictionary with per-epoch metrics (losses, dices, prox_terms)
+    Dice logging:
+      - macro: per-sample Dice averaged over samples
+      - micro: global Dice from accumulated inter/denom
     """
     model.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0, weight_decay=weight_decay)
 
-    # Create optimizer ONCE per round (following reference implementation)
-    # No momentum, as per the original FedProx paper
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
-
-    epoch_losses = []
-    epoch_dices = []
-    epoch_prox_terms = []
+    epoch_losses: List[float] = []
+    epoch_dices: List[float] = []
+    epoch_prox_terms: List[float] = []
 
     for ep in range(epochs):
-        running_loss = 0.0
-        running_dice = 0.0
-        running_prox = 0.0
-        n_batches = 0
+        total_loss = 0.0
+        total_samples = 0
+        total_prox = 0.0
+
+        if dice_mode == "micro":
+            inter_sum = torch.zeros(3, dtype=torch.float64)
+            denom_sum = torch.zeros(3, dtype=torch.float64)
+        elif dice_mode == "macro":
+            dice_sum = torch.zeros(3, dtype=torch.float64)
+        else:
+            raise ValueError(f"Invalid dice_mode='{dice_mode}', expected 'macro' or 'micro'")
 
         for x, y in loader:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
+            bsz = int(x.size(0))
+
             optimizer.zero_grad(set_to_none=True)
 
             logits = model(x)
-            base_loss = loss_bce_dice(logits, y)
+            base_loss = loss_bce_dice(logits, y, eps=eps)
 
-            # FedProx: Add proximal term to prevent client drift
-            # Reference: Li et al., "Federated Optimization in Heterogeneous Networks"
-            # Objective: F_k(w) + (mu/2) * ||w - w^t||^2
-            # Gradient: grad F_k(w) + mu * (w - w^t)
             prox_value = 0.0
             if mu > 0.0 and global_params is not None:
+                prox = 0.0
                 for p, p_global in zip(model.parameters(), global_params):
-                    # p_global is detached (frozen), so gradient only flows through p
-                    prox_value = prox_value + torch.sum((p - p_global) ** 2)
-                total_loss = base_loss + (mu / 2.0) * prox_value
+                    prox = prox + torch.sum((p - p_global) ** 2)
+                prox_value = prox
+                loss = base_loss + (mu / 2.0) * prox
             else:
-                total_loss = base_loss
+                loss = base_loss
 
-            total_loss.backward()
+            loss.backward()
             optimizer.step()
 
-            running_loss += total_loss.item()
-            running_prox += float(prox_value.item() if isinstance(prox_value, torch.Tensor) else prox_value)
+            # sample-weighted loss/prox
+            total_loss += float(loss.item()) * bsz
+            total_prox += (float(prox_value.item()) if isinstance(prox_value, torch.Tensor) else float(prox_value)) * bsz
+            total_samples += bsz
+
+            # HARD Dice logging consistent with evaluate_model()
             with torch.no_grad():
-                dice = dice_per_channel_from_logits(logits, y).mean().item()
-                running_dice += dice
-            n_batches += 1
+                probs = torch.sigmoid(logits)
+                preds = (probs >= threshold).to(y.dtype)
 
-        avg_loss = running_loss / max(n_batches, 1)
-        avg_dice = running_dice / max(n_batches, 1)
-        avg_prox = running_prox / max(n_batches, 1)
+                if dice_mode == "micro":
+                    inter = torch.sum(preds * y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)  # (C,)
+                    denom = torch.sum(preds + y, dim=(0, 2, 3)).detach().cpu().to(torch.float64)  # (C,)
+                    inter_sum += inter
+                    denom_sum += denom
+                else:
+                    batch_macro = dice_macro_per_sample_from_logits(
+                        logits, y, eps=eps, threshold=threshold
+                    ).detach().cpu().to(torch.float64)  # (C,)
+                    dice_sum += batch_macro * bsz
 
-        epoch_losses.append(avg_loss)
-        epoch_dices.append(avg_dice)
-        epoch_prox_terms.append(avg_prox)
+        if total_samples == 0:
+            avg_loss = 0.0
+            avg_prox = 0.0
+            avg_dice = 0.0
+        else:
+            avg_loss = total_loss / total_samples
+            avg_prox = total_prox / total_samples
+
+            if dice_mode == "micro":
+                dice_c = (2.0 * inter_sum + eps) / (denom_sum + eps)
+            else:
+                dice_c = dice_sum / total_samples
+
+            avg_dice = float(dice_c.mean().item())
+
+        epoch_losses.append(float(avg_loss))
+        epoch_dices.append(float(avg_dice))
+        epoch_prox_terms.append(float(avg_prox))
 
         if mu > 0.0:
             print(f"  [Client {cid}] Epoch {ep+1}/{epochs}: loss={avg_loss:.4f}, dice={avg_dice:.4f}, prox={avg_prox:.4f}")
@@ -436,7 +544,10 @@ class BratsClient(fl.client.NumPyClient):
         batch_size: int,
         num_workers: int,
         mu: float,  # 0 for FedAvg, >0 for FedProx
+        weight_decay: float = 0.0,  # L2 regularization
         use_groupnorm: bool = True,  # True for FL (recommended), False for centralized baseline
+        dice_mode: str = "macro",  # "macro" (recommended) or "micro"
+        dice_threshold: float = 0.5,  # Threshold for hard Dice
     ):
         self.cid = cid
         self.client_root = client_root
@@ -446,7 +557,10 @@ class BratsClient(fl.client.NumPyClient):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.mu = mu
+        self.weight_decay = weight_decay
         self.use_groupnorm = use_groupnorm
+        self.dice_mode = dice_mode
+        self.dice_threshold = dice_threshold
 
         # Infer input channels from first sample in train split
         train_ds = BratsNPZSliceDataset(client_root / "train")
@@ -502,11 +616,18 @@ class BratsClient(fl.client.NumPyClient):
             epochs=self.local_epochs,
             mu=self.mu,
             global_params=global_params,
+            weight_decay=self.weight_decay,
             cid=self.cid,
+            dice_mode=self.dice_mode,
+            threshold=self.dice_threshold,
         )
 
-        # Validation metrics for debugging
-        va = evaluate_model(self.model, self.val_loader, self.device)
+
+        # Validation metrics for debugging (uses hard Dice for thesis-safe reporting)
+        va = evaluate_model(
+            self.model, self.val_loader, self.device,
+            dice_mode=self.dice_mode, threshold=self.dice_threshold
+        )
 
         # Step 4: Return updated weights and dataset size
         # Server uses dataset size for weighted averaging (FedAvg aggregation)
@@ -526,9 +647,12 @@ class BratsClient(fl.client.NumPyClient):
         )
 
     def evaluate(self, parameters, config):
-        """Evaluate global model on local test data."""
+        """Evaluate global model on local test data (uses hard Dice)."""
         set_parameters(self.model, parameters)
-        te = evaluate_model(self.model, self.test_loader, self.device)
+        te = evaluate_model(
+            self.model, self.test_loader, self.device,
+            dice_mode=self.dice_mode, threshold=self.dice_threshold
+        )
         # Flower expects (loss, num_examples, metrics)
         return (
             float(te["loss"]),
@@ -603,6 +727,8 @@ class RunCfg:
     seed: int
     partition_dir: str
     out_dir: str
+    dice_mode: str  # "macro" or "micro"
+    dice_threshold: float
 
 
 def main() -> None:
@@ -620,16 +746,29 @@ def main() -> None:
     ap.add_argument("--out_dir", default="./results/unet_flower_2clients")
     ap.add_argument("--save_model", action="store_true", default=True, help="Save final global model")
     ap.add_argument("--num_clients", type=int, default=2)
+    ap.add_argument("--fraction_fit", type=float, default=1.0,
+                    help="Fraction of clients to sample per round (0.0-1.0). "
+                         "Use <1.0 to test realistic FL with partial participation.")
+    ap.add_argument("--weight_decay", type=float, default=0.0,
+                    help="Weight decay (L2 regularization). Typical: 1e-4 to 1e-3")
     ap.add_argument("--use_batchnorm", action="store_true", default=False,
                     help="Use BatchNorm instead of GroupNorm. WARNING: BatchNorm causes issues in FL! "
                          "Only use for centralized baseline comparison.")
+    ap.add_argument("--dice_mode", choices=["macro", "micro"], default="macro",
+                    help="Dice evaluation mode: 'macro' (per-sample, recommended for thesis) or 'micro' (global)")
+    ap.add_argument("--dice_threshold", type=float, default=0.5,
+                    help="Threshold for hard Dice (default 0.5)")
     args = ap.parse_args()
 
-    # Repro
+    # Reproducibility setup (peer-reviewed practice)
+    # Reference: PyTorch reproducibility docs, FL best practices
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+        # CUDA determinism for reproducible results
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False  # Disable auto-tuning for reproducibility
 
     device = torch.device("cuda" if (args.use_cuda and torch.cuda.is_available()) else "cpu")
     partition_dir = Path(args.partition_dir)
@@ -652,6 +791,8 @@ def main() -> None:
         seed=args.seed,
         partition_dir=str(partition_dir),
         out_dir=str(out_dir),
+        dice_mode=args.dice_mode,
+        dice_threshold=args.dice_threshold,
     )
 
     # Sanity check: print client partition info
@@ -704,6 +845,8 @@ def main() -> None:
     else:
         print("WARNING: Using BatchNorm - this may cause noisy results in FL!")
 
+    print(f"Using HARD Dice evaluation: mode='{args.dice_mode}', threshold={args.dice_threshold}")
+
     def evaluate_fn(server_round: int, parameters, config):
         # Build a fresh model with correct in_ch (infer from client_0 train)
         ds0 = BratsNPZSliceDataset(partition_dir / "client_0" / "train")
@@ -729,12 +872,19 @@ def main() -> None:
         # -------------------------
 
         # Evaluate global model on each client's test set (for thesis comparison)
+        # Uses hard Dice with configurable mode for thesis-safe reporting
         client_metrics = {}
         for cid in range(args.num_clients):
-            client_metrics[cid] = evaluate_model(model, client_test_loaders[cid], device)
+            client_metrics[cid] = evaluate_model(
+                model, client_test_loaders[cid], device,
+                dice_mode=args.dice_mode, threshold=args.dice_threshold
+            )
 
         # Also evaluate on pooled test
-        pooled_metrics = evaluate_model(model, global_test_loader, device)
+        pooled_metrics = evaluate_model(
+            model, global_test_loader, device,
+            dice_mode=args.dice_mode, threshold=args.dice_threshold
+        )
 
         # Print summary for all clients
         client_strs = " | ".join([f"Client{cid} Mean={client_metrics[cid]['Mean']:.4f}"
@@ -769,14 +919,20 @@ def main() -> None:
             batch_size=args.batch_size,
             num_workers=args.num_workers,
             mu=mu,
+            weight_decay=args.weight_decay,
             use_groupnorm=use_groupnorm,  # Use GroupNorm for FL stability
+            dice_mode=args.dice_mode,  # "macro" recommended for thesis
+            dice_threshold=args.dice_threshold,
         )
 
-    # 2 clients, always fit both
+    # Calculate minimum clients to fit based on fraction_fit
+    # Use ceil to ensure we don't under-sample in edge cases (e.g., 3 * 0.5 = 1.5 → 2)
+    min_fit = max(1, math.ceil(args.num_clients * args.fraction_fit))
+
     # Use custom strategy that saves final parameters (following reference repo)
     strategy = SaveModelStrategy(
-        fraction_fit=1.0,
-        min_fit_clients=args.num_clients,
+        fraction_fit=args.fraction_fit,
+        min_fit_clients=min_fit,
         min_available_clients=args.num_clients,
         evaluate_fn=evaluate_fn,
     )
@@ -896,6 +1052,7 @@ def main() -> None:
         f.write(f"Learning Rate: {cfg.lr}\n")
         f.write(f"Batch Size: {cfg.batch_size}\n")
         f.write(f"Seed: {cfg.seed}\n")
+        f.write(f"Dice Mode: {cfg.dice_mode} (hard, threshold={cfg.dice_threshold})\n")
         f.write(f"{'='*60}\n")
         f.write(f"Total Time: {total:.2f}s ({total/60:.2f} min)\n")
         f.write(f"Time per Round: {total/max(args.rounds,1):.2f}s\n")

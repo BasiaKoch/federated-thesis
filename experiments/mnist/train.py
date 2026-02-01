@@ -432,11 +432,14 @@ def main() -> None:
     if args.num_clients != 10:
         raise ValueError("This script currently implements the neat 10-client pairing (i, i+5). Use 10 clients.")
 
-    # Reproducibility (best-effort)
+    # Reproducibility setup (peer-reviewed practice)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(args.seed)
+        # CUDA determinism for reproducible results
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
 
     os.makedirs(args.output_dir, exist_ok=True)
 
