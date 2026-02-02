@@ -25,6 +25,7 @@ data/partitions/*
 !data/brats_fl
 !data/prepare_brats_single_slice.py
 !data/brats_fl_standard_eval
+!data/partitions/reextract_standard_test.py
 
 # Python cache
 __pycache__/
