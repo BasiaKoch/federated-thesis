@@ -24,6 +24,7 @@ data/partitions/*
 !data/partitions/make_dirichlet_balanced_partition.py
 !data/brats_fl
 !data/prepare_brats_single_slice.py
+!data/brats_fl_standard_eval
 
 # Python cache
 __pycache__/
