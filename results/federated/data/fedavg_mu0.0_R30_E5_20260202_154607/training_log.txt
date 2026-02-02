@@ -1,0 +1,16 @@
+Federated Learning Training Log
+============================================================
+Strategy: fedavg
+Mu (FedProx): 0.0
+Num Clients: 2
+Rounds: 30
+Local Epochs: 5
+Learning Rate: 0.01
+Batch Size: 8
+Seed: 42
+============================================================
+Total Time: 1673.47s (27.89 min)
+Time per Round: 55.78s
+============================================================
+Final Results:
+============================================================
