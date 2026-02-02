@@ -1063,11 +1063,11 @@ def main() -> None:
         f.write(f"{'='*60}\n")
         f.write(f"Final Results:\n")
         for cid in range(args.num_clients):
-            key = f"client{cid}_meanDice"
+            key = f"client{cid}_MeanPresent"
             if result['final'].get(key) is not None:
                 f.write(f"  Client {cid} Mean Dice: {result['final'][key]:.4f}\n")
-        if result['final'].get('global_meanDice') is not None:
-            f.write(f"  Global Mean Dice:   {result['final']['global_meanDice']:.4f}\n")
+        if result['final'].get('global_MeanPresent') is not None:
+            f.write(f"  Global Mean Dice:   {result['final']['global_MeanPresent']:.4f}\n")
         f.write(f"{'='*60}\n")
     print(f"Saved training log: {log_path}")
 
