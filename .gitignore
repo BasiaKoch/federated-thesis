@@ -22,6 +22,8 @@ data/partitions/*
 !data/partitions/make_4client_quartile_partition.py
 !data/partitions/make_dirichlet_partition.py
 !data/partitions/make_dirichlet_balanced_partition.py
+!data/brats_fl
+!data/prepare_brats_single_slice.py
 
 # Python cache
 __pycache__/

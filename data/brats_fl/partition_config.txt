@@ -1,0 +1,23 @@
+Federated Learning Partition Configuration
+==========================================
+Date: 2026-02-02T14:21:06
+Seed: 42
+Total cases: 369
+
+Client 0:
+  - Slice mode: max
+  - Patients: 184
+  - Train/Val/Test: 128/27/29
+  - Mean tumor area: 2649.0 pixels
+
+Client 1:
+  - Slice mode: p25
+  - Patients: 185
+  - Train/Val/Test: 129/27/29
+  - Mean tumor area: 633.2 pixels
+
+Heterogeneity:
+  - This partition creates QUALITY-based non-IID
+  - Client 0 sees most informative slices (max tumor)
+  - Client 1 sees less informative slices (p25)
+  - Expected: FedProx should handle this better than FedAvg
