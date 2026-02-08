@@ -18,7 +18,6 @@ import os
 import struct
 import time
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -51,33 +50,36 @@ def read_idx_labels(path: str) -> np.ndarray:
 
 def load_mnist(data_dir: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Load MNIST from raw IDX files. Tries both naming conventions."""
-    data_dir = Path(data_dir)
+    data_dir = os.path.abspath(data_dir)
 
-    # Try different naming conventions
+    # Try different naming conventions (dot-variant first — dash-variant may be a dir on macOS)
     train_img_candidates = [
-        "train-images-idx3-ubyte", "train-images.idx3-ubyte",
+        "train-images.idx3-ubyte", "train-images-idx3-ubyte",
         "train-images-idx3-ubyte.gz",
     ]
     train_lbl_candidates = [
-        "train-labels-idx1-ubyte", "train-labels.idx1-ubyte",
+        "train-labels.idx1-ubyte", "train-labels-idx1-ubyte",
         "train-labels-idx1-ubyte.gz",
     ]
     test_img_candidates = [
-        "t10k-images-idx3-ubyte", "t10k-images.idx3-ubyte",
+        "t10k-images.idx3-ubyte", "t10k-images-idx3-ubyte",
         "t10k-images-idx3-ubyte.gz",
     ]
     test_lbl_candidates = [
-        "t10k-labels-idx1-ubyte", "t10k-labels.idx1-ubyte",
+        "t10k-labels.idx1-ubyte", "t10k-labels-idx1-ubyte",
         "t10k-labels-idx1-ubyte.gz",
     ]
 
     def find_file(candidates):
         for name in candidates:
-            p = data_dir / name
-            if p.is_file():
-                return str(p)
+            full = os.path.join(data_dir, name)
+            if os.path.isfile(full):
+                return full
+        # List what actually exists for debugging
+        contents = os.listdir(data_dir) if os.path.isdir(data_dir) else []
         raise FileNotFoundError(
-            f"Could not find any of {candidates} in {data_dir}"
+            f"Could not find any of {candidates} in {data_dir}\n"
+            f"Directory contents: {contents}"
         )
 
     train_images = read_idx_images(find_file(train_img_candidates))
