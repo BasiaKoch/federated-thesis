@@ -286,6 +286,17 @@ class SmallCNN(nn.Module):
         return x
 
 
+class MCLR(nn.Module):
+    """Multinomial logistic regression (FedProx paper model)."""
+    def __init__(self) -> None:
+        super().__init__()
+        self.fc = nn.Linear(784, 10)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = torch.flatten(x, 1)
+        return self.fc(x)
+
+
 # -----------------------
 # Local training
 # -----------------------
@@ -297,6 +308,7 @@ def train_local(
     epochs: int,
     mu: float,
     global_params: Optional[List[torch.Tensor]],
+    weight_decay: float = 0.0,
 ) -> float:
     """
     Local training for FedAvg (mu=0) or FedProx (mu>0).
@@ -305,7 +317,8 @@ def train_local(
     Reference: Li et al., "Federated Optimization in Heterogeneous Networks", MLSys 2020
     """
     model.train()
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.0,
+                                weight_decay=weight_decay)
 
     total_loss = 0.0
     num_batches = 0
@@ -398,17 +411,20 @@ def run_federated(
     print(f"\n{'='*60}")
     print(f"Federated Learning — {args.strategy.upper()}")
     print(f"{'='*60}")
+    print(f"Model: {args.model}")
     print(f"Clients: {args.num_clients}")
     print(f"Rounds: {args.rounds}")
     print(f"Local epochs: {args.local_epochs}")
     print(f"Batch size: {args.batch_size}")
     print(f"Learning rate: {args.lr}")
+    print(f"Weight decay: {args.weight_decay}")
     print(f"Fraction fit: {args.fraction_fit}")
     print(f"Partition: {args.partition}")
     if args.partition == "dirichlet":
         print(f"Dirichlet alpha: {args.alpha}")
     if args.strategy == "fedprox":
         print(f"Proximal mu: {args.mu}")
+    print(f"Drop percent (stragglers): {args.drop_percent}")
     print(f"Device: {device}")
     print(f"{'='*60}\n")
 
@@ -454,7 +470,12 @@ def run_federated(
 
     # Initialize global model
     torch.manual_seed(args.seed)
-    global_model = SmallCNN().to(device)
+    if args.model == "cnn":
+        global_model = SmallCNN().to(device)
+    else:
+        global_model = MCLR().to(device)
+    num_params = sum(p.numel() for p in global_model.parameters())
+    print(f"Model: {args.model} ({num_params:,} parameters)\n")
 
     mu = args.mu if args.strategy == "fedprox" else 0.0
 
@@ -479,22 +500,42 @@ def run_federated(
         selected_sizes = []
         client_losses = []
 
+        # Straggler simulation (FedProx paper, Section 4)
+        num_stragglers = int(len(selected) * args.drop_percent)
+        straggler_set = set(rng.choice(selected, size=num_stragglers, replace=False)) if num_stragglers > 0 else set()
+
         for k in selected:
+            is_straggler = k in straggler_set
+
+            # FedAvg drops stragglers entirely; FedProx lets them do partial work
+            if is_straggler and args.strategy == "fedavg":
+                continue
+
             local_model = copy.deepcopy(global_model)
 
             global_params = None
             if mu > 0.0:
                 global_params = [p.detach().clone() for p in local_model.parameters()]
 
+            if is_straggler:
+                local_ep = int(rng.integers(1, args.local_epochs))
+            else:
+                local_ep = args.local_epochs
+
             avg_loss = train_local(
                 model=local_model,
                 loader=client_loaders[k],
                 device=device,
                 lr=args.lr,
-                epochs=args.local_epochs,
+                epochs=local_ep,
                 mu=mu,
                 global_params=global_params,
+                weight_decay=args.weight_decay,
             )
+
+            if rnd <= 3 or rnd % 50 == 0:
+                tag = f" [straggler, {local_ep} ep]" if is_straggler else ""
+                print(f"    Client {k:2d}: loss={avg_loss:.4f}, epochs={local_ep}{tag}")
 
             client_models.append(local_model)
             selected_sizes.append(client_sizes[k])
@@ -534,14 +575,17 @@ def run_federated(
         "experiment": {
             "strategy": args.strategy,
             "mu": args.mu if args.strategy == "fedprox" else None,
+            "model": args.model,
             "num_clients": args.num_clients,
             "rounds": args.rounds,
             "local_epochs": args.local_epochs,
             "batch_size": args.batch_size,
             "learning_rate": args.lr,
+            "weight_decay": args.weight_decay,
             "fraction_fit": args.fraction_fit,
             "partition": args.partition,
             "alpha": args.alpha if args.partition == "dirichlet" else None,
+            "drop_percent": args.drop_percent,
             "seed": args.seed,
             "device": str(device),
             "timestamp": datetime.now().isoformat(),
@@ -607,16 +651,22 @@ def main() -> None:
     ap.add_argument("--data_dir", type=str, default="./data/mnistdataset",
                     help="Path to directory with raw MNIST IDX files")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
+    ap.add_argument("--model", choices=["cnn", "mclr"], default="mclr",
+                    help="Model architecture: cnn (SmallCNN 1.2M) or mclr (logistic regression 7.8K)")
     ap.add_argument("--num_clients", type=int, default=10)
-    ap.add_argument("--rounds", type=int, default=30)
+    ap.add_argument("--rounds", type=int, default=200)
     ap.add_argument("--fraction_fit", type=float, default=0.5,
                     help="Fraction of clients selected each round")
-    ap.add_argument("--local_epochs", type=int, default=5)
-    ap.add_argument("--lr", type=float, default=0.05)
-    ap.add_argument("--batch_size", type=int, default=32)
+    ap.add_argument("--local_epochs", type=int, default=20)
+    ap.add_argument("--lr", type=float, default=0.01)
+    ap.add_argument("--batch_size", type=int, default=10)
     ap.add_argument("--mu", type=float, default=0.01,
                     help="FedProx proximal term coefficient (ignored for FedAvg)")
-    ap.add_argument("--partition", choices=["iid", "dirichlet", "shard", "niid"], default="shard",
+    ap.add_argument("--weight_decay", type=float, default=0.001,
+                    help="L2 regularization (weight decay) for SGD")
+    ap.add_argument("--drop_percent", type=float, default=0.5,
+                    help="Fraction of selected clients that are stragglers (0=none, 0.5=50%%)")
+    ap.add_argument("--partition", choices=["iid", "dirichlet", "shard", "niid"], default="niid",
                     help="Data partitioning strategy (niid = FedProx paper power-law)")
     ap.add_argument("--alpha", type=float, default=0.5,
                     help="Dirichlet concentration parameter (lower = more non-IID)")

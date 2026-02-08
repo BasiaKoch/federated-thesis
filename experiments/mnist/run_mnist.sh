@@ -17,7 +17,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/mnist/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/mnist/logs/%x_%j.err
 #SBATCH --qos=INTR
@@ -33,13 +33,16 @@ LOG_DIR="${PROJECT_DIR}/experiments/mnist/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-fedavg}"          # fedavg, fedprox, or both
+MODEL="${MODEL:-mclr}"                  # cnn or mclr (FedProx paper uses mclr)
 NUM_CLIENTS="${NUM_CLIENTS:-10}"
-ROUNDS="${ROUNDS:-20}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"
-BATCH_SIZE="${BATCH_SIZE:-32}"
-LR="${LR:-0.05}"
+ROUNDS="${ROUNDS:-200}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
+BATCH_SIZE="${BATCH_SIZE:-10}"
+LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-0.5}"
 MU="${MU:-0.01}"                        # only used if STRATEGY=fedprox or both
+WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"   # L2 regularization
+DROP_PERCENT="${DROP_PERCENT:-0.5}"     # fraction of stragglers
 PARTITION="${PARTITION:-niid}"           # iid, shard, dirichlet, or niid (FedProx paper)
 ALPHA="${ALPHA:-0.1}"                   # Dirichlet alpha (only if PARTITION=dirichlet)
 SEED="${SEED:-42}"
@@ -73,9 +76,11 @@ echo "Script:      ${SRC_FILE}"
 echo "Data dir:    ${DATA_DIR}"
 echo "Results dir: ${RESULTS_DIR}"
 echo "Strategy:    ${STRATEGY} (mu=${MU})"
+echo "Model:       ${MODEL}"
 echo "Clients:     ${NUM_CLIENTS} | Fraction: ${FRACTION_FIT}"
 echo "Rounds:      ${ROUNDS} | LocalEpochs: ${LOCAL_EPOCHS}"
 echo "Batch:       ${BATCH_SIZE} | LR: ${LR} | Seed: ${SEED}"
+echo "WeightDecay: ${WEIGHT_DECAY} | DropPercent: ${DROP_PERCENT}"
 echo "Partition:   ${PARTITION} (alpha=${ALPHA})"
 echo "Python:      $(which python)"
 python -c "import sys; print('Python', sys.version)"
@@ -96,11 +101,14 @@ fi
 # ======= Common args =======
 COMMON_ARGS=(
     --data_dir "${DATA_DIR}"
+    --model "${MODEL}"
     --num_clients "${NUM_CLIENTS}"
     --rounds "${ROUNDS}"
     --local_epochs "${LOCAL_EPOCHS}"
     --batch_size "${BATCH_SIZE}"
     --lr "${LR}"
+    --weight_decay "${WEIGHT_DECAY}"
+    --drop_percent "${DROP_PERCENT}"
     --fraction_fit "${FRACTION_FIT}"
     --partition "${PARTITION}"
     --alpha "${ALPHA}"
