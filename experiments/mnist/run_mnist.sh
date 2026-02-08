@@ -27,7 +27,7 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/mnist/mnist_n_clients.py"
-DATA_DIR="${DATA_DIR:-$HOME/data/mnistdataset}"
+DATA_DIR="${DATA_DIR:-$HOME/federated/federated-thesis/data/mnistdataset}"
 RESULTS_DIR="${PROJECT_DIR}/results/mnist"
 LOG_DIR="${PROJECT_DIR}/experiments/mnist/logs"
 

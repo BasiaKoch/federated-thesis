@@ -518,7 +518,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(
         description="Federated MNIST with N clients (FedAvg / FedProx)"
     )
-    ap.add_argument("--data_dir", type=str, default="/Users/basiakoch/Downloads/mnistdataset",
+    ap.add_argument("--data_dir", type=str, default="./data/mnistdataset",
                     help="Path to directory with raw MNIST IDX files")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox"], default="fedavg")
     ap.add_argument("--num_clients", type=int, default=10)
