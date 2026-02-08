@@ -70,12 +70,21 @@ def load_mnist(data_dir: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.nd
         "t10k-labels-idx1-ubyte.gz",
     ]
 
+    # Handle nested directory (e.g. scp -r creating mnistdataset/mnistdataset/)
+    nested = os.path.join(data_dir, "mnistdataset")
+    if os.path.isdir(nested):
+        data_dir = nested
+
     def find_file(candidates):
         for name in candidates:
+            # Check as a regular file
             full = os.path.join(data_dir, name)
             if os.path.isfile(full):
                 return full
-        # List what actually exists for debugging
+            # macOS extracts gzip into a directory with the file inside
+            inner = os.path.join(data_dir, name, name)
+            if os.path.isfile(inner):
+                return inner
         contents = os.listdir(data_dir) if os.path.isdir(data_dir) else []
         raise FileNotFoundError(
             f"Could not find any of {candidates} in {data_dir}\n"
