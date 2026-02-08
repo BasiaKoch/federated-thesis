@@ -1,0 +1,197 @@
+==============================================
+MNIST Federated Learning (10 clients)
+Job ID:      22344394
+Node(s):     gpu-q-1
+Workdir:     /home/bk489/federated/federated-thesis
+Script:      /home/bk489/federated/federated-thesis/experiments/mnist/mnist_n_clients.py
+Data dir:    /home/bk489/federated/federated-thesis/data/mnistdataset
+Results dir: /home/bk489/federated/federated-thesis/results/mnist
+Strategy:    both (mu=0.1)
+Clients:     10 | Fraction: 0.5
+Rounds:      30 | LocalEpochs: 5
+Batch:       32 | LR: 0.05 | Seed: 42
+Partition:   niid (alpha=0.1)
+Python:      /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Sun Feb  8 20:27:43 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   34C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDAVG (mu=0.0) ...
+
+Loading MNIST from /home/bk489/federated/federated-thesis/data/mnistdataset ...
+Train: (60000, 28, 28), Test: (10000, 28, 28)
+
+============================================================
+Federated Learning — FEDAVG
+============================================================
+Clients: 10
+Rounds: 30
+Local epochs: 5
+Batch size: 32
+Learning rate: 0.05
+Fraction fit: 0.5
+Partition: niid
+Device: cuda
+============================================================
+
+Client data distribution:
+  Client  0:  7754 samples, digits=[np.int64(0), np.int64(1)]
+  Client  1:  5981 samples, digits=[np.int64(1), np.int64(2)]
+  Client  2:  5225 samples, digits=[np.int64(2), np.int64(3)]
+  Client  3:  9204 samples, digits=[np.int64(3), np.int64(4)]
+  Client  4:  2426 samples, digits=[np.int64(4), np.int64(5)]
+  Client  5: 10738 samples, digits=[np.int64(5), np.int64(6)]
+  Client  6:   970 samples, digits=[np.int64(6), np.int64(7)]
+  Client  7: 11245 samples, digits=[np.int64(7), np.int64(8)]
+  Client  8:   682 samples, digits=[np.int64(8), np.int64(9)]
+  Client  9:  5765 samples, digits=[np.int64(0), np.int64(9)]
+
+  Round   1/30: Test Loss=2.0171, Test Acc=0.3152, Avg Client Loss=0.0335
+  Round   2/30: Test Loss=2.0940, Test Acc=0.2992, Avg Client Loss=0.0262
+  Round   3/30: Test Loss=2.1173, Test Acc=0.3259, Avg Client Loss=0.0383
+  Round   4/30: Test Loss=1.1545, Test Acc=0.5625, Avg Client Loss=0.0095
+  Round   5/30: Test Loss=2.4082, Test Acc=0.3958, Avg Client Loss=0.0055
+  Round   6/30: Test Loss=1.5359, Test Acc=0.6028, Avg Client Loss=0.0102
+  Round   7/30: Test Loss=1.1374, Test Acc=0.6197, Avg Client Loss=0.0059
+  Round   8/30: Test Loss=0.8284, Test Acc=0.6676, Avg Client Loss=0.0228
+  Round   9/30: Test Loss=0.8315, Test Acc=0.7273, Avg Client Loss=0.0342
+  Round  10/30: Test Loss=1.1350, Test Acc=0.5822, Avg Client Loss=0.0287
+  Round  11/30: Test Loss=1.2022, Test Acc=0.6338, Avg Client Loss=0.0191
+  Round  12/30: Test Loss=0.7062, Test Acc=0.7667, Avg Client Loss=0.0060
+  Round  13/30: Test Loss=0.4469, Test Acc=0.8460, Avg Client Loss=0.0843
+  Round  14/30: Test Loss=0.3759, Test Acc=0.8724, Avg Client Loss=0.0019
+  Round  15/30: Test Loss=0.6244, Test Acc=0.7876, Avg Client Loss=0.0110
+  Round  16/30: Test Loss=0.3167, Test Acc=0.8886, Avg Client Loss=0.0020
+  Round  17/30: Test Loss=0.4901, Test Acc=0.8220, Avg Client Loss=0.0021
+  Round  18/30: Test Loss=0.8791, Test Acc=0.8157, Avg Client Loss=0.0025
+  Round  19/30: Test Loss=1.7008, Test Acc=0.6174, Avg Client Loss=0.0310
+  Round  20/30: Test Loss=0.5218, Test Acc=0.8125, Avg Client Loss=0.0262
+  Round  21/30: Test Loss=0.3947, Test Acc=0.8746, Avg Client Loss=0.0192
+  Round  22/30: Test Loss=0.5010, Test Acc=0.8304, Avg Client Loss=0.0015
+  Round  23/30: Test Loss=0.4838, Test Acc=0.8291, Avg Client Loss=0.0321
+  Round  24/30: Test Loss=1.3704, Test Acc=0.7010, Avg Client Loss=0.0414
+  Round  25/30: Test Loss=0.9071, Test Acc=0.7633, Avg Client Loss=0.0051
+  Round  26/30: Test Loss=0.2383, Test Acc=0.9159, Avg Client Loss=0.0035
+  Round  27/30: Test Loss=0.3104, Test Acc=0.8977, Avg Client Loss=0.0046
+  Round  28/30: Test Loss=0.2566, Test Acc=0.9161, Avg Client Loss=0.0011
+  Round  29/30: Test Loss=0.1549, Test Acc=0.9474, Avg Client Loss=0.0014
+  Round  30/30: Test Loss=0.3139, Test Acc=0.9036, Avg Client Loss=0.0009
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:       FEDAVG
+Final Accuracy: 0.9036
+Best Accuracy:  0.9474
+Final Loss:     0.3139
+Convergence 90%: round 28
+Convergence 95%: round -1
+Convergence 98%: round -1
+Total Time:     201.70s
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/mnist/fedavg_n10_niid_r30_20260208_203112_results.json
+
+>>> FEDAVG done.
+
+>>> Running FEDPROX (mu=0.1) ...
+
+Loading MNIST from /home/bk489/federated/federated-thesis/data/mnistdataset ...
+Train: (60000, 28, 28), Test: (10000, 28, 28)
+
+============================================================
+Federated Learning — FEDPROX
+============================================================
+Clients: 10
+Rounds: 30
+Local epochs: 5
+Batch size: 32
+Learning rate: 0.05
+Fraction fit: 0.5
+Partition: niid
+Proximal mu: 0.1
+Device: cuda
+============================================================
+
+Client data distribution:
+  Client  0:  7754 samples, digits=[np.int64(0), np.int64(1)]
+  Client  1:  5981 samples, digits=[np.int64(1), np.int64(2)]
+  Client  2:  5225 samples, digits=[np.int64(2), np.int64(3)]
+  Client  3:  9204 samples, digits=[np.int64(3), np.int64(4)]
+  Client  4:  2426 samples, digits=[np.int64(4), np.int64(5)]
+  Client  5: 10738 samples, digits=[np.int64(5), np.int64(6)]
+  Client  6:   970 samples, digits=[np.int64(6), np.int64(7)]
+  Client  7: 11245 samples, digits=[np.int64(7), np.int64(8)]
+  Client  8:   682 samples, digits=[np.int64(8), np.int64(9)]
+  Client  9:  5765 samples, digits=[np.int64(0), np.int64(9)]
+
+  Round   1/30: Test Loss=2.0662, Test Acc=0.2884, Avg Client Loss=0.1369
+  Round   2/30: Test Loss=1.5101, Test Acc=0.5518, Avg Client Loss=0.0845
+  Round   3/30: Test Loss=1.5413, Test Acc=0.4493, Avg Client Loss=0.1427
+  Round   4/30: Test Loss=1.8520, Test Acc=0.2879, Avg Client Loss=0.0628
+  Round   5/30: Test Loss=2.2413, Test Acc=0.3937, Avg Client Loss=0.0350
+  Round   6/30: Test Loss=1.6197, Test Acc=0.4829, Avg Client Loss=0.0714
+  Round   7/30: Test Loss=1.4570, Test Acc=0.4964, Avg Client Loss=0.0355
+  Round   8/30: Test Loss=1.1804, Test Acc=0.5720, Avg Client Loss=0.0750
+  Round   9/30: Test Loss=0.8986, Test Acc=0.6800, Avg Client Loss=0.2088
+  Round  10/30: Test Loss=0.8347, Test Acc=0.6712, Avg Client Loss=0.0886
+  Round  11/30: Test Loss=1.4635, Test Acc=0.5548, Avg Client Loss=0.0840
+  Round  12/30: Test Loss=1.2368, Test Acc=0.6092, Avg Client Loss=0.0474
+  Round  13/30: Test Loss=0.9396, Test Acc=0.6474, Avg Client Loss=0.1895
+  Round  14/30: Test Loss=0.4383, Test Acc=0.8691, Avg Client Loss=0.0400
+  Round  15/30: Test Loss=0.6358, Test Acc=0.7500, Avg Client Loss=0.0958
+  Round  16/30: Test Loss=1.1953, Test Acc=0.5905, Avg Client Loss=0.0406
+  Round  17/30: Test Loss=0.9521, Test Acc=0.7872, Avg Client Loss=0.0286
+  Round  18/30: Test Loss=0.3352, Test Acc=0.8981, Avg Client Loss=0.0453
+  Round  19/30: Test Loss=0.5774, Test Acc=0.7794, Avg Client Loss=0.0977
+  Round  20/30: Test Loss=0.8872, Test Acc=0.6468, Avg Client Loss=0.1020
+  Round  21/30: Test Loss=0.6056, Test Acc=0.7887, Avg Client Loss=0.0747
+  Round  22/30: Test Loss=0.8476, Test Acc=0.6956, Avg Client Loss=0.0110
+  Round  23/30: Test Loss=0.6014, Test Acc=0.7857, Avg Client Loss=0.0881
+  Round  24/30: Test Loss=0.3285, Test Acc=0.8878, Avg Client Loss=0.1933
+  Round  25/30: Test Loss=0.2606, Test Acc=0.9177, Avg Client Loss=0.0290
+  Round  26/30: Test Loss=0.2933, Test Acc=0.9124, Avg Client Loss=0.0378
+  Round  27/30: Test Loss=0.3424, Test Acc=0.8791, Avg Client Loss=0.0740
+  Round  28/30: Test Loss=0.3002, Test Acc=0.8991, Avg Client Loss=0.0142
+  Round  29/30: Test Loss=0.2255, Test Acc=0.9345, Avg Client Loss=0.0146
+  Round  30/30: Test Loss=0.3773, Test Acc=0.8646, Avg Client Loss=0.0100
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:       FEDPROX (mu=0.1)
+Final Accuracy: 0.8646
+Best Accuracy:  0.9345
+Final Loss:     0.3773
+Convergence 90%: round -1
+Convergence 95%: round -1
+Convergence 98%: round -1
+Total Time:     319.02s
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/mnist/fedprox_n10_niid_mu0.1_r30_20260208_203651_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/mnist
