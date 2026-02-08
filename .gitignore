@@ -9,7 +9,7 @@ env/
 .venv/
 fed/
 results/*
-!results/mnist/# Slurm output
+!results/mnist/
 *.out
 *.err
 
@@ -64,4 +64,5 @@ data/brats2020_top10_slices_npz
 
 jobs/*/workspace/
 jobs/*/logs/
-jobs/*/checkpoints/!experiments/mnist/logs/*.out
+jobs/*/checkpoints/
+!experiments/mnist/logs/*.out
