@@ -157,6 +157,77 @@ def partition_dirichlet(
     return [np.array(idx) for idx in client_indices]
 
 
+def partition_niid_powerlaw(
+    labels: np.ndarray, num_clients: int, seed: int = 42,
+) -> List[np.ndarray]:
+    """
+    FedProx paper non-IID partition (Li et al., MLSys 2020).
+
+    Each client i gets 2 digit classes: (i % 10) and ((i+1) % 10).
+    First assigns a small fixed base per class, then distributes remaining
+    samples via power law (lognormal), creating both label heterogeneity
+    and quantity imbalance across clients.
+
+    Reference: github.com/litian96/FedProx/blob/master/data/mnist/generate_niid.py
+    """
+    rng = np.random.default_rng(seed)
+    num_classes = 10
+
+    # Group indices by digit
+    class_indices: List[np.ndarray] = []
+    for c in range(num_classes):
+        idx = np.where(labels == c)[0].copy()
+        rng.shuffle(idx)
+        class_indices.append(idx)
+
+    # Pointer into each class's index array
+    ptr = np.zeros(num_classes, dtype=np.int64)
+
+    # Number of groups of 10 clients (for the lognormal props table)
+    num_groups = max(1, (num_clients + 9) // 10)
+
+    # Phase 1: Assign a small fixed base (5 samples per class) to each client
+    base_per_class = 5
+    client_idx: List[List[int]] = [[] for _ in range(num_clients)]
+    for k in range(num_clients):
+        for j in range(2):
+            c = (k + j) % num_classes
+            end = min(ptr[c] + base_per_class, len(class_indices[c]))
+            client_idx[k].extend(class_indices[c][ptr[c]:end].tolist())
+            ptr[c] = end
+
+    # Phase 2: Distribute remaining samples via power law (lognormal)
+    # Shape: (num_classes, num_groups, 2) — proportions for each (class, group, j)
+    props = rng.lognormal(0, 2.0, (num_classes, num_groups, 2))
+    # Scale so that proportions for each class sum to the remaining samples
+    remaining = np.array([len(ci) - ptr[c] for c, ci in enumerate(class_indices)],
+                         dtype=np.float64)
+    for c in range(num_classes):
+        if remaining[c] > 0:
+            props[c] = remaining[c] * props[c] / props[c].sum()
+
+    for k in range(num_clients):
+        group = k // 10
+        within = k % 10
+        for j in range(2):
+            c = (within + j) % num_classes
+            if group < num_groups:
+                n_samples = int(props[c, group, j])
+            else:
+                n_samples = 0
+            end = min(ptr[c] + n_samples, len(class_indices[c]))
+            client_idx[k].extend(class_indices[c][ptr[c]:end].tolist())
+            ptr[c] = end
+
+    # Shuffle each client's data
+    for k in range(num_clients):
+        arr = np.array(client_idx[k])
+        rng.shuffle(arr)
+        client_idx[k] = arr.tolist()
+
+    return [np.array(idx) for idx in client_idx]
+
+
 def partition_shard(
     labels: np.ndarray, num_clients: int, shards_per_client: int = 2, seed: int = 42,
 ) -> List[np.ndarray]:
@@ -352,6 +423,10 @@ def run_federated(
         client_indices = partition_shard(
             train_labels, args.num_clients, shards_per_client=2, seed=args.seed
         )
+    elif args.partition == "niid":
+        client_indices = partition_niid_powerlaw(
+            train_labels, args.num_clients, seed=args.seed
+        )
     else:
         raise ValueError(f"Unknown partition: {args.partition}")
 
@@ -541,8 +616,8 @@ def main() -> None:
     ap.add_argument("--batch_size", type=int, default=32)
     ap.add_argument("--mu", type=float, default=0.01,
                     help="FedProx proximal term coefficient (ignored for FedAvg)")
-    ap.add_argument("--partition", choices=["iid", "dirichlet", "shard"], default="shard",
-                    help="Data partitioning strategy")
+    ap.add_argument("--partition", choices=["iid", "dirichlet", "shard", "niid"], default="shard",
+                    help="Data partitioning strategy (niid = FedProx paper power-law)")
     ap.add_argument("--alpha", type=float, default=0.5,
                     help="Dirichlet concentration parameter (lower = more non-IID)")
     ap.add_argument("--seed", type=int, default=42)

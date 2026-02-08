@@ -40,7 +40,7 @@ BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-0.05}"
 FRACTION_FIT="${FRACTION_FIT:-0.5}"
 MU="${MU:-0.01}"                        # only used if STRATEGY=fedprox or both
-PARTITION="${PARTITION:-shard}"          # iid, shard, or dirichlet
+PARTITION="${PARTITION:-niid}"           # iid, shard, dirichlet, or niid (FedProx paper)
 ALPHA="${ALPHA:-0.1}"                   # Dirichlet alpha (only if PARTITION=dirichlet)
 SEED="${SEED:-42}"
 
