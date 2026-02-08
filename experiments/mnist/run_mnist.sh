@@ -34,14 +34,14 @@ LOG_DIR="${PROJECT_DIR}/experiments/mnist/logs"
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-fedavg}"          # fedavg, fedprox, or both
 NUM_CLIENTS="${NUM_CLIENTS:-10}"
-ROUNDS="${ROUNDS:-30}"
+ROUNDS="${ROUNDS:-20}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"
 BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-0.05}"
 FRACTION_FIT="${FRACTION_FIT:-0.5}"
 MU="${MU:-0.01}"                        # only used if STRATEGY=fedprox or both
 PARTITION="${PARTITION:-shard}"          # iid, shard, or dirichlet
-ALPHA="${ALPHA:-0.5}"                   # Dirichlet alpha (only if PARTITION=dirichlet)
+ALPHA="${ALPHA:-0.1}"                   # Dirichlet alpha (only if PARTITION=dirichlet)
 SEED="${SEED:-42}"
 
 # ======= Modules =======

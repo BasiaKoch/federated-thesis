@@ -1,0 +1,109 @@
+==============================================
+MNIST Federated Learning (10 clients)
+Job ID:      22343579
+Node(s):     gpu-q-7
+Workdir:     /home/bk489/federated/federated-thesis
+Script:      /home/bk489/federated/federated-thesis/experiments/mnist/mnist_n_clients.py
+Data dir:    /home/bk489/federated/federated-thesis/data/mnistdataset
+Results dir: /home/bk489/federated/federated-thesis/results/mnist
+Strategy:    fedprox (mu=0.01)
+Clients:     10 | Fraction: 0.5
+Rounds:      20 | LocalEpochs: 5
+Batch:       32 | LR: 0.05 | Seed: 42
+Partition:   shard (alpha=0.1)
+Python:      /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Sun Feb  8 19:51:04 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   36C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDPROX (mu=0.01) ...
+
+Loading MNIST from /home/bk489/federated/federated-thesis/data/mnistdataset ...
+Train: (60000, 28, 28), Test: (10000, 28, 28)
+
+============================================================
+Federated Learning — FEDPROX
+============================================================
+Clients: 10
+Rounds: 20
+Local epochs: 5
+Batch size: 32
+Learning rate: 0.05
+Fraction fit: 0.5
+Partition: shard
+Proximal mu: 0.01
+Device: cuda
+============================================================
+
+Client data distribution:
+  Client  0:  6000 samples, digits=[np.int64(4), np.int64(7)]
+  Client  1:  6000 samples, digits=[np.int64(3), np.int64(7)]
+  Client  2:  6000 samples, digits=[np.int64(4), np.int64(5), np.int64(6)]
+  Client  3:  6000 samples, digits=[np.int64(2), np.int64(3), np.int64(9)]
+  Client  4:  6000 samples, digits=[np.int64(0), np.int64(1)]
+  Client  5:  6000 samples, digits=[np.int64(2), np.int64(7), np.int64(8)]
+  Client  6:  6000 samples, digits=[np.int64(5), np.int64(8), np.int64(9)]
+  Client  7:  6000 samples, digits=[np.int64(1), np.int64(2)]
+  Client  8:  6000 samples, digits=[np.int64(0), np.int64(1), np.int64(8)]
+  Client  9:  6000 samples, digits=[np.int64(3), np.int64(4), np.int64(6), np.int64(7)]
+
+  Round   1/20: Test Loss=2.2716, Test Acc=0.2584, Avg Client Loss=0.0728
+  Round   2/20: Test Loss=1.5723, Test Acc=0.4350, Avg Client Loss=0.0526
+  Round   3/20: Test Loss=0.9609, Test Acc=0.7016, Avg Client Loss=0.0335
+  Round   4/20: Test Loss=0.6699, Test Acc=0.7552, Avg Client Loss=0.0382
+  Round   5/20: Test Loss=0.3578, Test Acc=0.8810, Avg Client Loss=0.0138
+  Round   6/20: Test Loss=0.4482, Test Acc=0.8372, Avg Client Loss=0.0229
+  Round   7/20: Test Loss=0.6221, Test Acc=0.7689, Avg Client Loss=0.0150
+  Round   8/20: Test Loss=0.3762, Test Acc=0.8589, Avg Client Loss=0.0229
+  Round   9/20: Test Loss=0.2357, Test Acc=0.9111, Avg Client Loss=0.0152
+  Round  10/20: Test Loss=0.1785, Test Acc=0.9402, Avg Client Loss=0.0069
+  Round  11/20: Test Loss=0.1955, Test Acc=0.9324, Avg Client Loss=0.0064
+  Round  12/20: Test Loss=0.1295, Test Acc=0.9564, Avg Client Loss=0.0087
+  Round  13/20: Test Loss=0.1622, Test Acc=0.9474, Avg Client Loss=0.0141
+  Round  14/20: Test Loss=0.1872, Test Acc=0.9348, Avg Client Loss=0.0065
+  Round  15/20: Test Loss=0.1070, Test Acc=0.9641, Avg Client Loss=0.0045
+  Round  16/20: Test Loss=0.1200, Test Acc=0.9617, Avg Client Loss=0.0102
+  Round  17/20: Test Loss=0.0913, Test Acc=0.9713, Avg Client Loss=0.0038
+  Round  18/20: Test Loss=0.2154, Test Acc=0.9295, Avg Client Loss=0.0070
+  Round  19/20: Test Loss=0.1022, Test Acc=0.9653, Avg Client Loss=0.0047
+  Round  20/20: Test Loss=0.1623, Test Acc=0.9453, Avg Client Loss=0.0028
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:       FEDPROX (mu=0.01)
+Final Accuracy: 0.9453
+Best Accuracy:  0.9713
+Final Loss:     0.1623
+Convergence 90%: round 9
+Convergence 95%: round 15
+Convergence 98%: round -1
+Total Time:     254.89s
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/mnist/fedprox_n10_shard_mu0.01_r20_20260208_195530_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/mnist

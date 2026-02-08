@@ -28,8 +28,7 @@ data/partitions/*
 !data/partitions/reextract_standard_test.py
 !data/partitions/brats2d_quality_2client_strong
 !data/mnistdataset
-!experiments/mnist/logs
-
+!experiments/mnist/logs/*.out
 # Python cache
 __pycache__/
 *.py[cod]
@@ -65,4 +64,4 @@ data/brats2020_top10_slices_npz
 
 jobs/*/workspace/
 jobs/*/logs/
-jobs/*/checkpoints/
+jobs/*/checkpoints/!experiments/mnist/logs/*.out
