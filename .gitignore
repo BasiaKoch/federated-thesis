@@ -8,8 +8,8 @@ venv/
 env/
 .venv/
 fed/
-results/
-# Slurm output
+results/*
+!results/mnist/# Slurm output
 *.out
 *.err
 
