@@ -8,7 +8,7 @@ venv/
 env/
 .venv/
 fed/
-
+results/
 # Slurm output
 *.out
 *.err
@@ -27,6 +27,8 @@ data/partitions/*
 !data/brats_fl_standard_eval
 !data/partitions/reextract_standard_test.py
 !data/partitions/brats2d_quality_2client_strong
+!data/mnistdataset
+!experiments/mnist/logs
 
 # Python cache
 __pycache__/
