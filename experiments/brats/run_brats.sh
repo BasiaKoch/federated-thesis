@@ -34,18 +34,14 @@ LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
 ROUNDS="${ROUNDS:-30}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-50}"          # high drift amplifies FedProx benefit
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNIST)
-MU="${MU:-1.0}"                            # raw mu (auto-normalized by param count in script)
-WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"
+MU="${MU:-0.01}"                           # proximal term (used directly, no normalization)
+WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
 DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
-<<<<<<< HEAD
-MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters (smaller = more drift = more FedProx benefit)
-=======
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
->>>>>>> e814d56acca514b14ddc39fd44d2ff214741247c
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
 

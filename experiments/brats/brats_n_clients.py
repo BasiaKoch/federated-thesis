@@ -477,15 +477,11 @@ def run_federated(args: argparse.Namespace) -> Dict:
                           use_groupnorm=True).to(device)
     num_params = sum(p.numel() for p in global_model.parameters())
 
-    # Normalize mu by parameter count so the proximal term has comparable
-    # strength to small models (MCLR 7850 params) used in the FedProx paper.
-    # ||w - w^t||^2 scales linearly with d (number of params), so we divide
-    # mu by (d / d_ref) to keep the per-parameter penalty constant.
-    FEDPROX_REF_PARAMS = 7850  # MCLR on MNIST (FedProx paper baseline)
-    if mu_raw > 0.0:
-        mu = mu_raw * (FEDPROX_REF_PARAMS / num_params)
-    else:
-        mu = 0.0
+    # Use mu directly — no parameter-count normalization.
+    # The proximal gradient (mu * delta per param) must compete with the
+    # task-loss gradient, which is also larger for deeper models, so
+    # normalizing by param count makes the term invisible.
+    mu = mu_raw
 
     # Config banner
     print(f"\n{'='*60}")
@@ -502,7 +498,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     print(f"Fraction fit:   {args.fraction_fit}")
     print(f"Drop percent:   {args.drop_percent}")
     if args.strategy == "fedprox":
-        print(f"Proximal mu:    {args.mu} (raw) -> {mu:.6f} (normalized for {num_params:,} params)")
+        print(f"Proximal mu:    {mu}")
     print(f"Device:         {device}")
     print(f"Partition dir:  {partition_dir}")
     print(f"{'='*60}")
@@ -641,8 +637,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     results = {
         "experiment": {
             "strategy": args.strategy,
-            "mu_raw": args.mu if args.strategy == "fedprox" else None,
-            "mu_effective": mu if args.strategy == "fedprox" else None,
+            "mu": mu if args.strategy == "fedprox" else None,
             "model": f"UNet2D_base{args.base}",
             "in_channels": in_ch,
             "num_params": num_params,
@@ -696,7 +691,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     print("RESULTS SUMMARY")
     print(f"{'='*60}")
     print(f"Strategy:            {args.strategy.upper()}"
-          + (f" (mu_raw={args.mu}, mu_eff={mu:.6f})" if args.strategy == "fedprox" else ""))
+          + (f" (mu={mu})" if args.strategy == "fedprox" else ""))
     print(f"Global MeanPresent:  {final_mp:.4f} (best={best_mp:.4f})")
     print(f"Global WT:           {round_metrics['global_WT'][-1]:.4f}")
     print(f"Global TC:           {round_metrics['global_TC'][-1]:.4f}")
@@ -727,12 +722,12 @@ def main() -> None:
     ap.add_argument("--strategy", choices=["fedavg", "fedprox", "both"],
                     default="fedavg")
     ap.add_argument("--rounds", type=int, default=30)
-    ap.add_argument("--local_epochs", type=int, default=20)
+    ap.add_argument("--local_epochs", type=int, default=50)
     ap.add_argument("--lr", type=float, default=0.01)
     ap.add_argument("--batch_size", type=int, default=4)
-    ap.add_argument("--mu", type=float, default=1.0,
+    ap.add_argument("--mu", type=float, default=0.01,
                     help="FedProx proximal term coefficient (ignored for FedAvg)")
-    ap.add_argument("--weight_decay", type=float, default=0.001)
+    ap.add_argument("--weight_decay", type=float, default=0.0)
     ap.add_argument("--drop_percent", type=float, default=0.5,
                     help="Fraction of selected clients that are stragglers")
     ap.add_argument("--fraction_fit", type=float, default=0.75,
