@@ -15,7 +15,7 @@ results/*
 
 # Accidental files
 =*
-
+!data/partitions/
 data/*
 data/partitions/*
 !data/partitions/make_4client_quartile_partition.py
