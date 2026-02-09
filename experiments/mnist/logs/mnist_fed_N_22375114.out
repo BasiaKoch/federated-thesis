@@ -1,0 +1,119 @@
+==============================================
+MNIST Federated Learning (10 clients)
+Job ID:      22375114
+Node(s):     gpu-q-1
+Workdir:     /home/bk489/federated/federated-thesis
+Script:      /home/bk489/federated/federated-thesis/experiments/mnist/mnist_n_clients.py
+Data dir:    /home/bk489/federated/federated-thesis/data/mnistdataset
+Results dir: /home/bk489/federated/federated-thesis/results/mnist
+Strategy:    both (mu=1)
+Model:       mclr
+Clients:     10 | Fraction: 0.5
+Rounds:      30 | LocalEpochs: 20
+Batch:       10 | LR: 0.01 | Seed: 42
+WeightDecay: 0.001 | DropPercent: 0.5
+Partition:   niid (alpha=0.1)
+Python:      /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Mon Feb  9 11:42:36 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   37C    P0             67W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDAVG (mu=0.0) ...
+
+Loading MNIST from /home/bk489/federated/federated-thesis/data/mnistdataset ...
+Train: (60000, 28, 28), Test: (10000, 28, 28)
+
+============================================================
+Federated Learning — FEDAVG
+============================================================
+Model: mclr
+Clients: 10
+Rounds: 30
+Local epochs: 20
+Batch size: 10
+Learning rate: 0.01
+Weight decay: 0.001
+Fraction fit: 0.5
+Partition: niid
+Drop percent (stragglers): 0.5
+Device: cuda
+============================================================
+
+Client data distribution:
+  Client  0:  7754 samples, digits=[np.int64(0), np.int64(1)]
+  Client  1:  5981 samples, digits=[np.int64(1), np.int64(2)]
+  Client  2:  5225 samples, digits=[np.int64(2), np.int64(3)]
+  Client  3:  9204 samples, digits=[np.int64(3), np.int64(4)]
+  Client  4:  2426 samples, digits=[np.int64(4), np.int64(5)]
+  Client  5: 10738 samples, digits=[np.int64(5), np.int64(6)]
+  Client  6:   970 samples, digits=[np.int64(6), np.int64(7)]
+  Client  7: 11245 samples, digits=[np.int64(7), np.int64(8)]
+  Client  8:   682 samples, digits=[np.int64(8), np.int64(9)]
+  Client  9:  5765 samples, digits=[np.int64(0), np.int64(9)]
+
+Model: mclr (7,850 parameters)
+
+    Client  0: loss=0.0025, epochs=20
+    Client  5: loss=0.0461, epochs=20
+    Client  7: loss=0.0185, epochs=17 [straggler, 17 ep]
+    Client  4: loss=0.0176, epochs=20
+    Client  3: loss=0.0151, epochs=15 [straggler, 15 ep]
+  Round   1/30: Test Loss=2.0733, Test Acc=0.3355, Avg Client Loss=0.0200
+    Client  2: loss=0.0916, epochs=1 [straggler, 1 ep]
+    Client  0: loss=0.0021, epochs=20
+    Client  9: loss=0.0055, epochs=20
+    Client  4: loss=0.0147, epochs=20
+    Client  6: loss=0.0274, epochs=4 [straggler, 4 ep]
+  Round   2/30: Test Loss=2.1008, Test Acc=0.2908, Avg Client Loss=0.0283
+    Client  5: loss=0.0429, epochs=20
+    Client  4: loss=0.0142, epochs=20
+    Client  9: loss=0.0054, epochs=11 [straggler, 11 ep]
+    Client  7: loss=0.0161, epochs=20
+    Client  8: loss=0.0442, epochs=16 [straggler, 16 ep]
+  Round   3/30: Test Loss=2.2834, Test Acc=0.3430, Avg Client Loss=0.0246
+  Round   4/30: Test Loss=1.6333, Test Acc=0.4843, Avg Client Loss=0.0182
+  Round   5/30: Test Loss=2.7684, Test Acc=0.3780, Avg Client Loss=0.0137
+  Round   6/30: Test Loss=1.9972, Test Acc=0.5073, Avg Client Loss=0.0203
+  Round   7/30: Test Loss=1.9794, Test Acc=0.4338, Avg Client Loss=0.0178
+  Round   8/30: Test Loss=1.6082, Test Acc=0.4743, Avg Client Loss=0.0251
+  Round   9/30: Test Loss=2.5397, Test Acc=0.3795, Avg Client Loss=0.0204
+  Round  10/30: Test Loss=1.9142, Test Acc=0.3231, Avg Client Loss=0.0246
+  Round  11/30: Test Loss=3.2031, Test Acc=0.3215, Avg Client Loss=0.0193
+  Round  12/30: Test Loss=2.3853, Test Acc=0.3851, Avg Client Loss=0.0232
+  Round  13/30: Test Loss=2.0209, Test Acc=0.3756, Avg Client Loss=0.0260
+  Round  14/30: Test Loss=1.3915, Test Acc=0.5160, Avg Client Loss=0.0176
+  Round  15/30: Test Loss=2.2524, Test Acc=0.3679, Avg Client Loss=0.0160
+  Round  16/30: Test Loss=1.6131, Test Acc=0.4762, Avg Client Loss=0.0180
+  Round  17/30: Test Loss=1.9511, Test Acc=0.3804, Avg Client Loss=0.0237
+  Round  18/30: Test Loss=1.4891, Test Acc=0.5302, Avg Client Loss=0.0149
+  Round  19/30: Test Loss=2.9823, Test Acc=0.2582, Avg Client Loss=0.0202
+  Round  20/30: Test Loss=3.4615, Test Acc=0.2499, Avg Client Loss=0.0283
+  Round  21/30: Test Loss=2.2284, Test Acc=0.4056, Avg Client Loss=0.0245
+  Round  22/30: Test Loss=2.7942, Test Acc=0.3798, Avg Client Loss=0.0149
+  Round  23/30: Test Loss=2.3598, Test Acc=0.4625, Avg Client Loss=0.0267
+  Round  24/30: Test Loss=1.4714, Test Acc=0.5125, Avg Client Loss=0.0309
+  Round  25/30: Test Loss=1.3648, Test Acc=0.5147, Avg Client Loss=0.0162
+  Round  26/30: Test Loss=1.6050, Test Acc=0.4605, Avg Client Loss=0.0146
+  Round  27/30: Test Loss=1.6967, Test Acc=0.5128, Avg Client Loss=0.0220
+  Round  28/30: Test Loss=1.6958, Test Acc=0.4611, Avg Client Loss=0.0150

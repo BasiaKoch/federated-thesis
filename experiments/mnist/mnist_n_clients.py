@@ -125,38 +125,6 @@ def partition_iid(
     return [shard for shard in np.array_split(indices, num_clients)]
 
 
-def partition_dirichlet(
-    labels: np.ndarray, num_clients: int, alpha: float = 0.5, seed: int = 42,
-) -> List[np.ndarray]:
-    """
-    Non-IID Dirichlet partitioning (Hsu et al., 2019).
-
-    Lower alpha -> more heterogeneous. alpha -> inf is IID.
-    """
-    rng = np.random.default_rng(seed)
-    num_classes = int(labels.max()) + 1
-    client_indices: List[List[int]] = [[] for _ in range(num_clients)]
-
-    for c in range(num_classes):
-        class_idx = np.where(labels == c)[0]
-        rng.shuffle(class_idx)
-        proportions = rng.dirichlet(np.repeat(alpha, num_clients))
-        # Ensure at least 1 sample per split (avoid empty)
-        proportions = proportions / proportions.sum()
-        splits = (proportions * len(class_idx)).astype(int)
-        # Distribute remainder
-        remainder = len(class_idx) - splits.sum()
-        for i in range(remainder):
-            splits[i % num_clients] += 1
-
-        start = 0
-        for k in range(num_clients):
-            client_indices[k].extend(class_idx[start : start + splits[k]].tolist())
-            start += splits[k]
-
-    return [np.array(idx) for idx in client_indices]
-
-
 def partition_niid_powerlaw(
     labels: np.ndarray, num_clients: int, seed: int = 42,
 ) -> List[np.ndarray]:
@@ -227,65 +195,6 @@ def partition_niid_powerlaw(
 
     return [np.array(idx) for idx in client_idx]
 
-
-def partition_shard(
-    labels: np.ndarray, num_clients: int, shards_per_client: int = 2, seed: int = 42,
-) -> List[np.ndarray]:
-    """
-    Shard-based non-IID partitioning (McMahan et al., 2017).
-
-    Sort by label, split into shards, assign shards_per_client shards per client.
-    With shards_per_client=2, each client gets ~2 digit classes.
-    """
-    rng = np.random.default_rng(seed)
-    num_shards = num_clients * shards_per_client
-    sorted_indices = np.argsort(labels)
-    shard_size = len(labels) // num_shards
-    shards = [
-        sorted_indices[i * shard_size : (i + 1) * shard_size]
-        for i in range(num_shards)
-    ]
-    # Distribute leftover samples to last shard
-    leftover = sorted_indices[num_shards * shard_size :]
-    if len(leftover) > 0:
-        shards[-1] = np.concatenate([shards[-1], leftover])
-
-    shard_order = np.arange(num_shards)
-    rng.shuffle(shard_order)
-
-    client_indices = []
-    for k in range(num_clients):
-        assigned = shard_order[k * shards_per_client : (k + 1) * shards_per_client]
-        idx = np.concatenate([shards[s] for s in assigned])
-        rng.shuffle(idx)
-        client_indices.append(idx)
-
-    return client_indices
-
-
-# -----------------------
-# Model (same SmallCNN as train.py / baseline.py)
-# -----------------------
-class SmallCNN(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.dropout = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(9216, 128)
-        self.fc2 = nn.Linear(128, 10)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2)
-        x = self.dropout(x)
-        x = torch.flatten(x, 1)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
-
-
 class MCLR(nn.Module):
     """Multinomial logistic regression (FedProx paper model)."""
     def __init__(self) -> None:
@@ -295,7 +204,6 @@ class MCLR(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = torch.flatten(x, 1)
         return self.fc(x)
-
 
 # -----------------------
 # Local training
@@ -431,14 +339,6 @@ def run_federated(
     # Partition training data
     if args.partition == "iid":
         client_indices = partition_iid(train_labels, args.num_clients, args.seed)
-    elif args.partition == "dirichlet":
-        client_indices = partition_dirichlet(
-            train_labels, args.num_clients, args.alpha, args.seed
-        )
-    elif args.partition == "shard":
-        client_indices = partition_shard(
-            train_labels, args.num_clients, shards_per_client=2, seed=args.seed
-        )
     elif args.partition == "niid":
         client_indices = partition_niid_powerlaw(
             train_labels, args.num_clients, seed=args.seed
@@ -470,13 +370,13 @@ def run_federated(
 
     # Initialize global model
     torch.manual_seed(args.seed)
-    if args.model == "cnn":
-        global_model = SmallCNN().to(device)
-    else:
+    if args.model == "mclr":
         global_model = MCLR().to(device)
+    else:
+        raise ValueError(f"Unknown model: {args.model}")
     num_params = sum(p.numel() for p in global_model.parameters())
     print(f"Model: {args.model} ({num_params:,} parameters)\n")
-
+  
     mu = args.mu if args.strategy == "fedprox" else 0.0
 
     # Tracking
