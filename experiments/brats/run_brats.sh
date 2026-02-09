@@ -17,7 +17,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=01:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.err
 #SBATCH --qos=INTR
@@ -33,14 +33,14 @@ LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
-ROUNDS="${ROUNDS:-20}"
+ROUNDS="${ROUNDS:-30}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
-FRACTION_FIT="${FRACTION_FIT:-0.25}"
-MU="${MU:-0.1}"                            # only used if STRATEGY=fedprox or both
+FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNIST)
+MU="${MU:-1.0}"                            # raw mu (auto-normalized by param count in script)
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"
-DROP_PERCENT="${DROP_PERCENT:-0.0}"        # fraction of stragglers
+DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
 MODEL_BASE="${MODEL_BASE:-32}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"

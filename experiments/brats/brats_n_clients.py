@@ -427,7 +427,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
         )
 
     # For FedAvg, force mu=0
-    mu = float(args.mu) if args.strategy == "fedprox" else 0.0
+    mu_raw = float(args.mu) if args.strategy == "fedprox" else 0.0
 
     # Build train loaders + test loaders
     client_train_loaders: List[DataLoader] = []
@@ -477,6 +477,16 @@ def run_federated(args: argparse.Namespace) -> Dict:
                           use_groupnorm=True).to(device)
     num_params = sum(p.numel() for p in global_model.parameters())
 
+    # Normalize mu by parameter count so the proximal term has comparable
+    # strength to small models (MCLR 7850 params) used in the FedProx paper.
+    # ||w - w^t||^2 scales linearly with d (number of params), so we divide
+    # mu by (d / d_ref) to keep the per-parameter penalty constant.
+    FEDPROX_REF_PARAMS = 7850  # MCLR on MNIST (FedProx paper baseline)
+    if mu_raw > 0.0:
+        mu = mu_raw * (FEDPROX_REF_PARAMS / num_params)
+    else:
+        mu = 0.0
+
     # Config banner
     print(f"\n{'='*60}")
     print(f"Federated Learning -- {args.strategy.upper()}")
@@ -492,7 +502,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     print(f"Fraction fit:   {args.fraction_fit}")
     print(f"Drop percent:   {args.drop_percent}")
     if args.strategy == "fedprox":
-        print(f"Proximal mu:    {args.mu}")
+        print(f"Proximal mu:    {args.mu} (raw) -> {mu:.6f} (normalized for {num_params:,} params)")
     print(f"Device:         {device}")
     print(f"Partition dir:  {partition_dir}")
     print(f"{'='*60}")
@@ -631,7 +641,8 @@ def run_federated(args: argparse.Namespace) -> Dict:
     results = {
         "experiment": {
             "strategy": args.strategy,
-            "mu": args.mu if args.strategy == "fedprox" else None,
+            "mu_raw": args.mu if args.strategy == "fedprox" else None,
+            "mu_effective": mu if args.strategy == "fedprox" else None,
             "model": f"UNet2D_base{args.base}",
             "in_channels": in_ch,
             "num_params": num_params,
@@ -685,7 +696,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     print("RESULTS SUMMARY")
     print(f"{'='*60}")
     print(f"Strategy:            {args.strategy.upper()}"
-          + (f" (mu={args.mu})" if args.strategy == "fedprox" else ""))
+          + (f" (mu_raw={args.mu}, mu_eff={mu:.6f})" if args.strategy == "fedprox" else ""))
     print(f"Global MeanPresent:  {final_mp:.4f} (best={best_mp:.4f})")
     print(f"Global WT:           {round_metrics['global_WT'][-1]:.4f}")
     print(f"Global TC:           {round_metrics['global_TC'][-1]:.4f}")
