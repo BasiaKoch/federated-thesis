@@ -27,20 +27,20 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
-PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a1p0/client_data}"
+PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data}"
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
-ROUNDS="${ROUNDS:-30}"
+ROUNDS="${ROUNDS:-20}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
-FRACTION_FIT="${FRACTION_FIT:-0.75}"
-MU="${MU:-1.0}"                            # only used if STRATEGY=fedprox or both
+FRACTION_FIT="${FRACTION_FIT:-0.25}"
+MU="${MU:-0.1}"                            # only used if STRATEGY=fedprox or both
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"
-DROP_PERCENT="${DROP_PERCENT:-0.5}"        # fraction of stragglers
+DROP_PERCENT="${DROP_PERCENT:-0.0}"        # fraction of stragglers
 MODEL_BASE="${MODEL_BASE:-32}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"

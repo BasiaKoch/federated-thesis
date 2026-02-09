@@ -1,0 +1,131 @@
+==============================================
+BraTS 2D Federated Learning
+Job ID:       22388617
+Node(s):      gpu-q-1
+Workdir:      /home/bk489/federated/federated-thesis
+Script:       /home/bk489/federated/federated-thesis/experiments/brats/brats_n_clients.py
+Partition dir:/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data
+Results dir:  /home/bk489/federated/federated-thesis/results/brats
+Strategy:     fedprox (mu=0.1)
+Model:        UNet2D base=32
+Fraction:     0.25 | DropPercent: 0.0
+Rounds:       20 | LocalEpochs: 20
+Batch:        4 | LR: 0.01 | Seed: 42
+WeightDecay:  0.001 | NumWorkers: 2
+Python:       /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Mon Feb  9 15:58:00 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   36C    P0             65W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDPROX (mu=0.1) ...
+
+
+============================================================
+Federated Learning -- FEDPROX
+============================================================
+Model:          UNet2D (base=32, 1,927,363 params)
+Input channels: 4
+Clients:        4
+Rounds:         20
+Local epochs:   20
+Batch size:     4
+Learning rate:  0.01
+Weight decay:   0.001
+Fraction fit:   0.25
+Drop percent:   0.0
+Proximal mu:    0.1
+Device:         cuda
+Partition dir:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data
+============================================================
+
+Client data distribution:
+  client_0: train=60  test=7
+  client_1: train=60  test=7
+  client_2: train=60  test=7
+  client_3: train=59  test=7
+
+    Client 2: loss=1.3329, epochs=20
+  Round   1/20: Pooled Loss=1.0840, Pooled Mean=0.4160 (WT=0.7742 TC=0.4737 ET=0.0000) | C0 Mean=0.4097 | C1 Mean=0.4021 | C2 Mean=0.4661 | C3 Mean=0.3677 [10.3s]
+    Client 2: loss=0.9270, epochs=20
+  Round   2/20: Pooled Loss=0.8082, Pooled Mean=0.4529 (WT=0.8257 TC=0.5329 ET=0.0000) | C0 Mean=0.4227 | C1 Mean=0.4626 | C2 Mean=0.4815 | C3 Mean=0.4343 [7.4s]
+    Client 3: loss=0.5956, epochs=20
+  Round   3/20: Pooled Loss=0.5223, Pooled Mean=0.7352 (WT=0.8479 TC=0.6983 ET=0.6596) | C0 Mean=0.7415 | C1 Mean=0.8641 | C2 Mean=0.4436 | C3 Mean=0.8337 [7.5s]
+    Client 2: loss=0.5807, epochs=20
+  Round   4/20: Pooled Loss=0.6674, Pooled Mean=0.4947 (WT=0.6884 TC=0.4075 ET=0.3883) | C0 Mean=0.5175 | C1 Mean=0.5221 | C2 Mean=0.4645 | C3 Mean=0.4398 [7.6s]
+    Client 0: loss=0.3935, epochs=20
+  Round   5/20: Pooled Loss=0.3573, Pooled Mean=0.7688 (WT=0.8745 TC=0.6641 ET=0.7677) | C0 Mean=0.7747 | C1 Mean=0.8626 | C2 Mean=0.4712 | C3 Mean=0.8503 [7.6s]
+    Client 0: loss=0.2547, epochs=20
+  Round   6/20: Pooled Loss=0.2945, Pooled Mean=0.7998 (WT=0.8899 TC=0.7235 ET=0.7860) | C0 Mean=0.8126 | C1 Mean=0.8790 | C2 Mean=0.5277 | C3 Mean=0.8685 [7.5s]
+    Client 0: loss=0.1856, epochs=20
+  Round   7/20: Pooled Loss=0.2780, Pooled Mean=0.8002 (WT=0.8855 TC=0.7369 ET=0.7782) | C0 Mean=0.8229 | C1 Mean=0.8816 | C2 Mean=0.5117 | C3 Mean=0.8861 [7.6s]
+    Client 3: loss=0.1598, epochs=20
+  Round   8/20: Pooled Loss=0.2771, Pooled Mean=0.8008 (WT=0.8858 TC=0.7424 ET=0.7742) | C0 Mean=0.8227 | C1 Mean=0.8669 | C2 Mean=0.5471 | C3 Mean=0.8804 [7.4s]
+    Client 1: loss=0.1220, epochs=20
+  Round   9/20: Pooled Loss=0.3141, Pooled Mean=0.7570 (WT=0.8910 TC=0.7109 ET=0.6691) | C0 Mean=0.7346 | C1 Mean=0.8485 | C2 Mean=0.5318 | C3 Mean=0.8474 [7.5s]
+    Client 3: loss=0.1170, epochs=20
+  Round  10/20: Pooled Loss=0.2501, Pooled Mean=0.8210 (WT=0.8945 TC=0.7488 ET=0.8197) | C0 Mean=0.8173 | C1 Mean=0.9027 | C2 Mean=0.5396 | C3 Mean=0.8983 [7.5s]
+    Client 3: loss=0.0998, epochs=20
+  Round  11/20: Pooled Loss=0.2424, Pooled Mean=0.8243 (WT=0.8926 TC=0.7685 ET=0.8117) | C0 Mean=0.8127 | C1 Mean=0.9050 | C2 Mean=0.5589 | C3 Mean=0.8987 [7.4s]
+    Client 1: loss=0.0971, epochs=20
+  Round  12/20: Pooled Loss=0.2674, Pooled Mean=0.7930 (WT=0.8931 TC=0.7628 ET=0.7231) | C0 Mean=0.7948 | C1 Mean=0.8758 | C2 Mean=0.5251 | C3 Mean=0.8960 [7.5s]
+    Client 3: loss=0.0914, epochs=20
+  Round  13/20: Pooled Loss=0.2452, Pooled Mean=0.8215 (WT=0.8968 TC=0.7539 ET=0.8138) | C0 Mean=0.8201 | C1 Mean=0.8932 | C2 Mean=0.5350 | C3 Mean=0.9063 [7.5s]
+    Client 1: loss=0.0798, epochs=20
+  Round  14/20: Pooled Loss=0.2622, Pooled Mean=0.7991 (WT=0.8955 TC=0.7626 ET=0.7393) | C0 Mean=0.7848 | C1 Mean=0.8818 | C2 Mean=0.5429 | C3 Mean=0.8917 [7.5s]
+    Client 0: loss=0.1556, epochs=20
+  Round  15/20: Pooled Loss=0.2348, Pooled Mean=0.8255 (WT=0.9025 TC=0.7555 ET=0.8186) | C0 Mean=0.8356 | C1 Mean=0.8873 | C2 Mean=0.5878 | C3 Mean=0.8927 [7.5s]
+    Client 2: loss=0.3697, epochs=20
+  Round  16/20: Pooled Loss=0.4191, Pooled Mean=0.6426 (WT=0.8645 TC=0.5820 ET=0.4812) | C0 Mean=0.6861 | C1 Mean=0.6505 | C2 Mean=0.6083 | C3 Mean=0.6155 [7.4s]
+    Client 3: loss=0.0909, epochs=20
+  Round  17/20: Pooled Loss=0.2287, Pooled Mean=0.8333 (WT=0.9058 TC=0.7595 ET=0.8346) | C0 Mean=0.8326 | C1 Mean=0.9030 | C2 Mean=0.5881 | C3 Mean=0.9010 [7.5s]
+    Client 0: loss=0.1200, epochs=20
+  Round  18/20: Pooled Loss=0.2559, Pooled Mean=0.8040 (WT=0.9036 TC=0.6994 ET=0.8090) | C0 Mean=0.7978 | C1 Mean=0.8642 | C2 Mean=0.6189 | C3 Mean=0.8571 [7.7s]
+    Client 1: loss=0.0781, epochs=20
+  Round  19/20: Pooled Loss=0.2454, Pooled Mean=0.8116 (WT=0.8978 TC=0.7770 ET=0.7599) | C0 Mean=0.8148 | C1 Mean=0.8974 | C2 Mean=0.5452 | C3 Mean=0.8946 [7.4s]
+    Client 1: loss=0.0617, epochs=20
+  Round  20/20: Pooled Loss=0.2436, Pooled Mean=0.8115 (WT=0.9019 TC=0.7756 ET=0.7569) | C0 Mean=0.8157 | C1 Mean=0.9016 | C2 Mean=0.5397 | C3 Mean=0.8969 [7.4s]
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:            FEDPROX (mu=0.1)
+Global MeanPresent:  0.8115 (best=0.8333)
+Global WT:           0.9019
+Global TC:           0.7756
+Global ET:           0.7569
+Client 0 MeanPresent: 0.8157 (best=0.8356)
+Client 1 MeanPresent: 0.9016 (best=0.9050)
+Client 2 MeanPresent: 0.5397 (best=0.6189)
+Client 3 MeanPresent: 0.8969 (best=0.9063)
+Convergence 50%:     round 5
+Convergence 60%:     round 5
+Convergence 70%:     round 5
+Total Time:          152.56s (2.5min)
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/brats/fedprox_brats_r20_mu0.1_20260209_160035_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/brats

@@ -38,7 +38,7 @@ NUM_CLIENTS="${NUM_CLIENTS:-10}"
 ROUNDS="${ROUNDS:-30}"
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
 BATCH_SIZE="${BATCH_SIZE:-10}"
-LR="${LR:-0.01}"
+LR="${LR:-0.1}"
 FRACTION_FIT="${FRACTION_FIT:-0.5}"
 MU="${MU:-1}"                            # only used if STRATEGY=fedprox or both
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"   # L2 regularization

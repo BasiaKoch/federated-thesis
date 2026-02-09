@@ -1,0 +1,18 @@
+==============================================
+MNIST Federated Learning (10 clients)
+Job ID:      22388331
+Node(s):     gpu-q-1
+Workdir:     /home/bk489/federated/federated-thesis
+Script:      /home/bk489/federated/federated-thesis/experiments/mnist/mnist_n_clients.py
+Data dir:    /home/bk489/federated/federated-thesis/data/mnistdataset
+Results dir: /home/bk489/federated/federated-thesis/results/mnist
+Strategy:    feprox (mu=1)
+Model:       mclr
+Clients:     10 | Fraction: 0.5
+Rounds:      30 | LocalEpochs: 20
+Batch:       10 | LR: 0.1 | Seed: 42
+WeightDecay: 0.001 | DropPercent: 0.5
+Partition:   niid (alpha=0.1)
+Python:      /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
