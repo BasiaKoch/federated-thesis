@@ -117,3 +117,123 @@ Model: mclr (7,850 parameters)
   Round  26/30: Test Loss=1.6050, Test Acc=0.4605, Avg Client Loss=0.0146
   Round  27/30: Test Loss=1.6967, Test Acc=0.5128, Avg Client Loss=0.0220
   Round  28/30: Test Loss=1.6958, Test Acc=0.4611, Avg Client Loss=0.0150
+  Round  29/30: Test Loss=1.4242, Test Acc=0.5006, Avg Client Loss=0.0188
+  Round  30/30: Test Loss=2.1407, Test Acc=0.4977, Avg Client Loss=0.0144
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:       FEDAVG
+Final Accuracy: 0.4977
+Best Accuracy:  0.5302
+Final Loss:     2.1407
+Convergence 90%: round -1
+Convergence 95%: round -1
+Convergence 98%: round -1
+Total Time:     833.97s
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/mnist/fedavg_n10_niid_r30_20260209_115632_results.json
+
+>>> FEDAVG done.
+
+>>> Running FEDPROX (mu=1) ...
+
+Loading MNIST from /home/bk489/federated/federated-thesis/data/mnistdataset ...
+Train: (60000, 28, 28), Test: (10000, 28, 28)
+
+============================================================
+Federated Learning — FEDPROX
+============================================================
+Model: mclr
+Clients: 10
+Rounds: 30
+Local epochs: 20
+Batch size: 10
+Learning rate: 0.01
+Weight decay: 0.001
+Fraction fit: 0.5
+Partition: niid
+Proximal mu: 1.0
+Drop percent (stragglers): 0.5
+Device: cuda
+============================================================
+
+Client data distribution:
+  Client  0:  7754 samples, digits=[np.int64(0), np.int64(1)]
+  Client  1:  5981 samples, digits=[np.int64(1), np.int64(2)]
+  Client  2:  5225 samples, digits=[np.int64(2), np.int64(3)]
+  Client  3:  9204 samples, digits=[np.int64(3), np.int64(4)]
+  Client  4:  2426 samples, digits=[np.int64(4), np.int64(5)]
+  Client  5: 10738 samples, digits=[np.int64(5), np.int64(6)]
+  Client  6:   970 samples, digits=[np.int64(6), np.int64(7)]
+  Client  7: 11245 samples, digits=[np.int64(7), np.int64(8)]
+  Client  8:   682 samples, digits=[np.int64(8), np.int64(9)]
+  Client  9:  5765 samples, digits=[np.int64(0), np.int64(9)]
+
+Model: mclr (7,850 parameters)
+
+    Client  0: loss=0.1616, epochs=20
+    Client  5: loss=0.2985, epochs=20
+    Client  7: loss=0.2356, epochs=17 [straggler, 17 ep]
+    Client  4: loss=0.2377, epochs=20
+    Client  3: loss=0.2266, epochs=15 [straggler, 15 ep]
+  Round   1/30: Test Loss=1.9709, Test Acc=0.3426, Avg Client Loss=0.2320
+    Client  2: loss=0.2544, epochs=1 [straggler, 1 ep]
+    Client  0: loss=0.1400, epochs=20
+    Client  9: loss=0.1607, epochs=20
+    Client  4: loss=0.1815, epochs=20
+    Client  6: loss=0.1543, epochs=4 [straggler, 4 ep]
+  Round   2/30: Test Loss=1.6607, Test Acc=0.4280, Avg Client Loss=0.1782
+    Client  5: loss=0.2610, epochs=20
+    Client  4: loss=0.1867, epochs=20
+    Client  9: loss=0.1104, epochs=11 [straggler, 11 ep]
+    Client  7: loss=0.2128, epochs=20
+    Client  8: loss=0.2595, epochs=16 [straggler, 16 ep]
+  Round   3/30: Test Loss=1.5686, Test Acc=0.5004, Avg Client Loss=0.2061
+  Round   4/30: Test Loss=1.3820, Test Acc=0.5074, Avg Client Loss=0.1677
+  Round   5/30: Test Loss=1.6153, Test Acc=0.4513, Avg Client Loss=0.1302
+  Round   6/30: Test Loss=1.4093, Test Acc=0.5299, Avg Client Loss=0.1536
+  Round   7/30: Test Loss=1.4026, Test Acc=0.4971, Avg Client Loss=0.1332
+  Round   8/30: Test Loss=1.2242, Test Acc=0.5388, Avg Client Loss=0.1744
+  Round   9/30: Test Loss=1.0500, Test Acc=0.6746, Avg Client Loss=0.1685
+  Round  10/30: Test Loss=1.0278, Test Acc=0.6525, Avg Client Loss=0.1623
+  Round  11/30: Test Loss=1.2378, Test Acc=0.5206, Avg Client Loss=0.1323
+  Round  12/30: Test Loss=1.2404, Test Acc=0.5288, Avg Client Loss=0.1374
+  Round  13/30: Test Loss=1.0675, Test Acc=0.5996, Avg Client Loss=0.1585
+  Round  14/30: Test Loss=0.8221, Test Acc=0.7324, Avg Client Loss=0.1350
+  Round  15/30: Test Loss=0.7955, Test Acc=0.7366, Avg Client Loss=0.1226
+  Round  16/30: Test Loss=0.7092, Test Acc=0.8112, Avg Client Loss=0.1315
+  Round  17/30: Test Loss=0.7674, Test Acc=0.7724, Avg Client Loss=0.1198
+  Round  18/30: Test Loss=0.6563, Test Acc=0.8263, Avg Client Loss=0.1274
+  Round  19/30: Test Loss=0.8330, Test Acc=0.7180, Avg Client Loss=0.1334
+  Round  20/30: Test Loss=1.1153, Test Acc=0.6026, Avg Client Loss=0.1230
+  Round  21/30: Test Loss=0.9986, Test Acc=0.6559, Avg Client Loss=0.1294
+  Round  22/30: Test Loss=1.1257, Test Acc=0.6291, Avg Client Loss=0.1075
+  Round  23/30: Test Loss=0.9877, Test Acc=0.6791, Avg Client Loss=0.1349
+  Round  24/30: Test Loss=0.5975, Test Acc=0.8445, Avg Client Loss=0.1550
+  Round  25/30: Test Loss=0.5986, Test Acc=0.8434, Avg Client Loss=0.1124
+  Round  26/30: Test Loss=0.6629, Test Acc=0.7997, Avg Client Loss=0.1097
+  Round  27/30: Test Loss=0.6582, Test Acc=0.7829, Avg Client Loss=0.1263
+  Round  28/30: Test Loss=0.7130, Test Acc=0.7660, Avg Client Loss=0.1052
+  Round  29/30: Test Loss=0.5964, Test Acc=0.8265, Avg Client Loss=0.1244
+  Round  30/30: Test Loss=0.7361, Test Acc=0.7302, Avg Client Loss=0.0976
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:       FEDPROX (mu=1.0)
+Final Accuracy: 0.7302
+Best Accuracy:  0.8445
+Final Loss:     0.7361
+Convergence 90%: round -1
+Convergence 95%: round -1
+Convergence 98%: round -1
+Total Time:     1268.59s
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/mnist/fedprox_n10_niid_mu1.0_r30_20260209_121743_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/mnist
