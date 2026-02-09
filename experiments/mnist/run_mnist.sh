@@ -40,7 +40,7 @@ LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"
 BATCH_SIZE="${BATCH_SIZE:-10}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-0.5}"
-MU="${MU:-0.01}"                        # only used if STRATEGY=fedprox or both
+MU="${MU:-1}"                            # only used if STRATEGY=fedprox or both
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"   # L2 regularization
 DROP_PERCENT="${DROP_PERCENT:-0.5}"     # fraction of stragglers
 PARTITION="${PARTITION:-niid}"           # iid, shard, dirichlet, or niid (FedProx paper)

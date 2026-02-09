@@ -500,16 +500,14 @@ def run_federated(
         selected_sizes = []
         client_losses = []
 
-        # Straggler simulation (FedProx paper, Section 4)
+        # Straggler simulation — both strategies train the SAME clients
+        # with the SAME reduced epochs. The only difference is mu (proximal term).
+        # This ensures a controlled comparison isolating FedProx's benefit.
         num_stragglers = int(len(selected) * args.drop_percent)
         straggler_set = set(rng.choice(selected, size=num_stragglers, replace=False)) if num_stragglers > 0 else set()
 
         for k in selected:
             is_straggler = k in straggler_set
-
-            # FedAvg drops stragglers entirely; FedProx lets them do partial work
-            if is_straggler and args.strategy == "fedavg":
-                continue
 
             local_model = copy.deepcopy(global_model)
 
