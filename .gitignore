@@ -14,22 +14,25 @@ results/*
 *.err
 
 # Accidental files
-=*
-!data/partitions/
 data/*
+!data/partitions/
+
+# Ignore all partitions by default...
 data/partitions/*
+
+# ...But keep these specific scripts and folders:
 !data/partitions/make_4client_quartile_partition.py
 !data/partitions/make_dirichlet_partition.py
 !data/partitions/make_dirichlet_balanced_partition.py
-!data/brats_fl
-!data/prepare_brats_single_slice.py
-!data/brats_fl_standard_eval
 !data/partitions/reextract_standard_test.py
-!data/partitions/brats2d_quality_2client_strong
-!data/mnistdataset
-!experiments/mnist/logs/*.out
-!data/partitions/make_4client_quartile_partition.py
-!data/partitions/brats2d_4client_dirichlet_balanced_a1p0
+!data/partitions/prepare_brats_single_slice.py
+
+# Keep these specific data folders AND their contents:
+!data/partitions/brats2d_quality_2client_strong/
+!data/partitions/brats2d_quality_2client_strong/*
+
+!data/partitions/brats2d_4client_dirichlet_balanced_a1p0/
+!data/partitions/brats2d_4client_dirichlet_balanced_a1p0/*
 # Python cache
 __pycache__/
 *.py[cod]
