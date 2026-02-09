@@ -26,6 +26,7 @@ data/partitions/*
 !data/partitions/make_dirichlet_balanced_partition.py
 !data/partitions/reextract_standard_test.py
 !data/partitions/prepare_brats_single_slice.py
+!data/partitions/brats2d_4client_dirichlet_balanced_a0p1
 
 # Keep these specific data folders AND their contents:
 !data/partitions/brats2d_quality_2client_strong/
