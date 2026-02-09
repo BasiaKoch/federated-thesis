@@ -17,7 +17,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=04:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.err
 #SBATCH --qos=INTR
@@ -41,7 +41,11 @@ FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNI
 MU="${MU:-1.0}"                            # raw mu (auto-normalized by param count in script)
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"
 DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
+<<<<<<< HEAD
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters (smaller = more drift = more FedProx benefit)
+=======
+MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
+>>>>>>> e814d56acca514b14ddc39fd44d2ff214741247c
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
 
