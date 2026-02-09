@@ -17,7 +17,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=04:00:00
+#SBATCH --time=01:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.err
 #SBATCH --qos=INTR
@@ -27,7 +27,7 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
-PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_a0p1/client_data}"
+PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a1p0/client_data}"
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 

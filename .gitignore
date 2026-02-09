@@ -17,7 +17,6 @@ results/*
 =*
 
 data/*
-!data/partitions/
 data/partitions/*
 !data/partitions/make_4client_quartile_partition.py
 !data/partitions/make_dirichlet_partition.py
@@ -29,6 +28,7 @@ data/partitions/*
 !data/partitions/brats2d_quality_2client_strong
 !data/mnistdataset
 !experiments/mnist/logs/*.out
+!data/partitions/make_4client_quartile_partition.py
 # Python cache
 __pycache__/
 *.py[cod]
