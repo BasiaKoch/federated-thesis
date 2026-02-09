@@ -41,7 +41,7 @@ FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNI
 MU="${MU:-1.0}"                            # raw mu (auto-normalized by param count in script)
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.001}"
 DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
-MODEL_BASE="${MODEL_BASE:-32}"             # UNet2D base filters
+MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters (smaller = more drift = more FedProx benefit)
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
 

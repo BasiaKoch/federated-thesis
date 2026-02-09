@@ -737,7 +737,7 @@ def main() -> None:
                     help="Fraction of selected clients that are stragglers")
     ap.add_argument("--fraction_fit", type=float, default=0.75,
                     help="Fraction of clients selected per round")
-    ap.add_argument("--base", type=int, default=32,
+    ap.add_argument("--base", type=int, default=16,
                     help="UNet2D base filter count")
     ap.add_argument("--num_workers", type=int, default=0)
     ap.add_argument("--seed", type=int, default=42)
