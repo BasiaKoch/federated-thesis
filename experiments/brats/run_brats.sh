@@ -27,24 +27,21 @@ set -euo pipefail
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
 PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_8client_noisy_heavy/client_data}"
-<<<<<<< HEAD
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-${PROJECT_DIR}/data/partitions/brats2d_8client_noisy_heavy/global_test}"
-=======
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-}"   # set to e.g. .../brats2d_8client_noisy/global_test if available
->>>>>>> 3c065e476bd3edb56dadac58f9fc7372ddae566b
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
 ROUNDS="${ROUNDS:-30}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"          # high drift amplifies FedProx benefit
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-50}"          # high drift amplifies FedProx benefit
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
-FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNIST)
+FRACTION_FIT="${FRACTION_FIT:-1.0}"       # 3 of 4 clients per round (match MNIST)
 MU="${MU:-0.1}"                           # proximal term (used directly, no normalization)
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
-DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
+DROP_PERCENT="${DROP_PERCENT:-0.0}"        # 50% stragglers (match MNIST)
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
