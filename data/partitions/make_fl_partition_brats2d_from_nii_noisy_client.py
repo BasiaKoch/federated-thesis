@@ -2,33 +2,32 @@
 """
 Federated-learning dataset builder for BraTS2020 2D slices (from NIfTI).
 
-Creates a partition with K clients where one "noisy hospital" client receives
-consistent image corruptions (bias field + noise + blur + downscale), inducing
-strong client drift that FedProx can mitigate better than FedAvg.
+Creates a partition with K clients where EACH client receives a different type
+and strength of image corruption, simulating heterogeneous hospital scanners.
+This multi-client corruption approach creates strong client drift that FedProx
+can mitigate better than FedAvg.
 
 Example commands
 ----------------
-# Default 8 clients, heavy corruption on client 7, central-band slices:
+# Default 8 clients, per-client gradient corruption, central-band slices:
 python make_fl_partition_brats2d_from_nii_noisy_client.py \
     --source_dir "/path/to/MICCAI_BraTS2020_TrainingData" \
-    --output_dir  "./brats2d_8client_noisy" \
-    --num_clients 8 --corrupt_strength heavy --use_cuda
+    --output_dir  "./brats2d_8client_heterogeneous"
 
-# 4 clients, medium noise, all slices, correlated phenotype:
+# No corruption (clean baseline):
 python make_fl_partition_brats2d_from_nii_noisy_client.py \
     --source_dir "/path/to/MICCAI_BraTS2020_TrainingData" \
-    --output_dir  "./brats2d_4client_noisy_corr" \
-    --num_clients 4 --corrupt_strength medium --slice_policy all \
-    --correlate_noise_with_phenotype
+    --output_dir  "./brats2d_8client_clean" \
+    --corruption_schedule none
 
 Why this helps FedProx
 ----------------------
-The noisy client's corrupted images shift its local loss surface away from the
-clean clients.  With many local epochs the noisy client drifts far from the
-global model.  FedProx's proximal term (mu/2)||w - w_global||^2 penalises
-this drift, keeping the noisy client's updates closer to the consensus and
-stabilising aggregation — especially visible on worst-client Dice and on
-round-to-round variance of the global metric.
+Each client's unique corruption shifts its local loss surface differently.
+With many local epochs, clients drift in diverse directions from the global
+model.  FedProx's proximal term (mu/2)||w - w_global||^2 penalises this
+drift, keeping each client's updates closer to the consensus and stabilising
+aggregation -- especially visible on worst-client Dice and on round-to-round
+variance of the global metric.
 """
 
 from __future__ import annotations
@@ -47,7 +46,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Optional imports — fail early with a clear message
+# Optional imports -- fail early with a clear message
 # ---------------------------------------------------------------------------
 try:
     import nibabel as nib
@@ -70,20 +69,54 @@ MODALITY_SUFFIXES = {
     "t2": "t2",
 }
 
-CORRUPTION_STRENGTHS: Dict[str, Dict[str, float]] = {
-    "mild":   {"bias": 0.2, "gauss_sigma": 0.08, "blur": 0.6, "scale": 0.85},
-    "medium": {"bias": 0.4, "gauss_sigma": 0.15, "blur": 1.0, "scale": 0.75},
-    "heavy":  {"bias": 0.6, "gauss_sigma": 0.25, "blur": 1.3, "scale": 0.65},
-}
+# 7 corruption profiles (index 0 is clean, indices 1-7 are corrupted).
+# Each profile simulates a different type of scanner degradation.
+_CORRUPTION_PROFILES: List[Dict[str, Any]] = [
+    # C0: Clean reference hospital
+    {"label": "clean", "steps": []},
+    # C1: Inhomogeneous B1 coil — bias field only
+    {"label": "bias_only", "steps": ["bias"], "bias": 0.35},
+    # C2: Old/noisy scanner — Gaussian noise only
+    {"label": "noise_only", "steps": ["gauss"], "gauss_sigma": 0.20},
+    # C3: Low-resolution protocol — blur + downscale
+    {"label": "blur_downscale", "steps": ["blur", "scale"], "blur": 1.2, "scale": 0.70},
+    # C4: Aging scanner — bias + noise
+    {"label": "bias_noise", "steps": ["bias", "gauss"], "bias": 0.30, "gauss_sigma": 0.15},
+    # C5: Poor quality overall — bias + noise + blur
+    {"label": "bias_noise_blur", "steps": ["bias", "gauss", "blur"],
+     "bias": 0.40, "gauss_sigma": 0.18, "blur": 0.8},
+    # C6: Rural clinic — noise + blur + downscale
+    {"label": "noise_blur_downscale", "steps": ["gauss", "blur", "scale"],
+     "gauss_sigma": 0.22, "blur": 1.0, "scale": 0.75},
+    # C7: Mobile scanner — full pipeline
+    {"label": "full_pipeline", "steps": ["bias", "gauss", "blur", "scale"],
+     "bias": 0.60, "gauss_sigma": 0.25, "blur": 1.3, "scale": 0.65},
+]
+
+
+def generate_corruption_profiles(num_clients: int) -> List[Dict[str, Any]]:
+    """
+    Generate per-client corruption profiles.
+
+    Client 0 is always clean.  Clients 1..num_clients-1 cycle through
+    the 7 corrupted profiles (indices 1-7 of _CORRUPTION_PROFILES).
+    """
+    profiles: List[Dict[str, Any]] = []
+    # Client 0 is always clean
+    profiles.append(dict(_CORRUPTION_PROFILES[0]))
+    corrupted = _CORRUPTION_PROFILES[1:]  # 7 corrupted profiles
+    for i in range(1, num_clients):
+        profiles.append(dict(corrupted[(i - 1) % len(corrupted)]))
+    return profiles
 
 
 # =========================================================================
-# Step 0 — CLI
+# Step 0 -- CLI
 # =========================================================================
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        description="BraTS2020 NIfTI → 2D-slice FL partition with a noisy-hospital client",
+        description="BraTS2020 NIfTI -> 2D-slice FL partition with per-client corruption",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     # Paths
@@ -96,6 +129,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--val_frac", type=float, default=0.1)
     p.add_argument("--test_frac", type=float, default=0.1)
+    p.add_argument("--dirichlet_alpha", type=float, default=0.1,
+                   help="Dirichlet concentration for non-IID label distribution "
+                        "(lower = more heterogeneous)")
+    p.add_argument("--min_patients_per_client", type=int, default=15,
+                   help="Minimum patients per client; rebalance from largest if needed")
 
     # Slice selection
     p.add_argument("--slice_policy", choices=["central_band", "all"],
@@ -108,35 +146,28 @@ def build_parser() -> argparse.ArgumentParser:
                         "1.0 = tumor slices only)")
 
     # Normalization
-    p.add_argument("--normalize", choices=["zscore_per_volume", "zscore_per_slice", "none"],
-                   default="zscore_per_volume")
+    p.add_argument("--normalize", choices=["zscore", "none"],
+                   default="zscore",
+                   help="Normalization mode (always per-slice)")
     p.add_argument("--clip_percentiles", nargs=2, type=float, default=[0.5, 99.5],
                    metavar=("LOW", "HIGH"))
 
-    # Noisy client
-    p.add_argument("--noisy_client_id", type=int, default=-1,
-                   help="Client to corrupt (-1 = num_clients-1)")
-    p.add_argument("--noisy_client_patient_frac", type=float, default=0.20)
-    p.add_argument("--correlate_noise_with_phenotype", action="store_true",
-                   default=False)
-
     # Corruption
-    p.add_argument("--corrupt_mode",
-                   choices=["bias+gauss+blur+scale", "bias+rician+blur+scale",
-                            "gauss_only"],
-                   default="bias+gauss+blur+scale")
-    p.add_argument("--corrupt_strength", choices=["mild", "medium", "heavy"],
-                   default="heavy")
+    p.add_argument("--corruption_schedule",
+                   choices=["per_client_gradient", "none"],
+                   default="per_client_gradient",
+                   help="Corruption schedule: per_client_gradient assigns a different "
+                        "corruption profile to each client; none disables corruption")
 
-    # Slice limits (keep small for fast training; corruption drives FedProx gap)
-    p.add_argument("--min_slices_per_patient", type=int, default=1)
-    p.add_argument("--max_slices_per_patient", type=int, default=3)
+    # Slice limits
+    p.add_argument("--min_slices_per_patient", type=int, default=2)
+    p.add_argument("--max_slices_per_patient", type=int, default=5)
 
     return p
 
 
 # =========================================================================
-# Step 1 — NIfTI discovery + loading helpers
+# Step 1 -- NIfTI discovery + loading helpers
 # =========================================================================
 
 def _find_nii(directory: Path, suffix: str) -> Optional[Path]:
@@ -208,7 +239,7 @@ def load_case_volumes(
 
 
 # =========================================================================
-# Step 2 — Per-patient tumor signature
+# Step 2 -- Per-patient tumor signature
 # =========================================================================
 
 def compute_patient_stats(seg: np.ndarray) -> Dict[str, float]:
@@ -257,7 +288,7 @@ def scan_all_patients(
 
 
 # =========================================================================
-# Step 3 — Global test set (stratified by WT_frac quantiles)
+# Step 3 -- Global test set (stratified by WT_frac quantiles)
 # =========================================================================
 
 def stratified_test_split(
@@ -292,60 +323,43 @@ def stratified_test_split(
 
 
 # =========================================================================
-# Step 4 — Client assignment (Dirichlet + noisy client)
+# Step 4 -- Client assignment (Dirichlet, all clients equal + rebalancing)
 # =========================================================================
 
 def assign_clients(
     patient_ids: List[str],
     patient_stats: Dict[str, Dict[str, Any]],
     num_clients: int,
-    noisy_client_id: int,
-    noisy_frac: float,
-    correlate_phenotype: bool,
     rng: np.random.Generator,
-    alpha: float = 0.3,
+    alpha: float = 0.1,
+    min_patients_per_client: int = 15,
     n_quantiles: int = 4,
     max_retries: int = 20,
 ) -> Dict[int, List[str]]:
     """
     Assign patients to clients using Dirichlet over WT_frac quantile bins.
 
-    The noisy client gets ~noisy_frac of patients, drawn either uniformly
-    or from the highest-WT bin (if correlate_phenotype=True).
+    All clients are treated equally (no special noisy-client reservation).
+    After Dirichlet allocation, if any client has fewer than
+    min_patients_per_client, patients are moved from the largest client.
     """
     ids = list(patient_ids)
     rng.shuffle(ids)
 
-    # --- Noisy client patients ---
-    n_noisy = max(2, round(len(ids) * noisy_frac))
-
-    if correlate_phenotype:
-        # Sort by WT_frac descending; take from highest bin
-        ids_sorted = sorted(ids, key=lambda p: patient_stats[p]["WT_frac"], reverse=True)
-        noisy_patients = ids_sorted[:n_noisy]
-    else:
-        noisy_patients = ids[:n_noisy]
-
-    noisy_set = set(noisy_patients)
-    clean_ids = [p for p in ids if p not in noisy_set]
-
-    # --- Dirichlet assignment for clean clients ---
-    clean_clients = [c for c in range(num_clients) if c != noisy_client_id]
-    n_clean_clients = len(clean_clients)
-
-    wt_fracs = np.array([patient_stats[p]["WT_frac"] for p in clean_ids])
+    wt_fracs = np.array([patient_stats[p]["WT_frac"] for p in ids])
     bin_edges = np.quantile(wt_fracs, np.linspace(0, 1, n_quantiles + 1))
     bins = np.digitize(wt_fracs, bin_edges[1:-1])  # 0..n_quantiles-1
 
-    # Build bin → patient list
+    # Build bin -> patient list
     bin_patients: Dict[int, List[str]] = defaultdict(list)
-    for i, pid in enumerate(clean_ids):
+    for i, pid in enumerate(ids):
         bin_patients[bins[i]].append(pid)
 
-    # Dirichlet proportions per client per bin
+    best_assignment: Optional[Dict[int, List[str]]] = None
+    best_min_count = 0
+
     for attempt in range(max_retries):
         assignment: Dict[int, List[str]] = {c: [] for c in range(num_clients)}
-        assignment[noisy_client_id] = list(noisy_patients)
 
         trial_rng = np.random.default_rng(rng.integers(0, 2**31) + attempt)
 
@@ -353,43 +367,58 @@ def assign_clients(
             pids_in_bin = list(bin_patients.get(b, []))
             if not pids_in_bin:
                 continue
-            props = trial_rng.dirichlet([alpha] * n_clean_clients)
+            props = trial_rng.dirichlet([alpha] * num_clients)
             # Convert proportions to counts
             counts = np.round(props * len(pids_in_bin)).astype(int)
             # Fix rounding so counts sum to len(pids_in_bin)
             diff = len(pids_in_bin) - counts.sum()
             for d in range(abs(diff)):
-                idx = d % n_clean_clients
+                idx = d % num_clients
                 counts[idx] += 1 if diff > 0 else -1
             counts = np.maximum(counts, 0)
             # Re-fix sum
             while counts.sum() < len(pids_in_bin):
-                counts[trial_rng.integers(n_clean_clients)] += 1
+                counts[trial_rng.integers(num_clients)] += 1
             while counts.sum() > len(pids_in_bin):
                 pos = np.where(counts > 0)[0]
                 counts[trial_rng.choice(pos)] -= 1
 
             trial_rng.shuffle(pids_in_bin)
             offset = 0
-            for ci, c in enumerate(clean_clients):
+            for ci in range(num_clients):
                 n = int(counts[ci])
-                assignment[c].extend(pids_in_bin[offset:offset + n])
+                assignment[ci].extend(pids_in_bin[offset:offset + n])
                 offset += n
 
-        # Check minimum: each client should have at least 2 patients
+        # Rebalance: steal from largest client until minimum is met
+        for _ in range(len(ids)):  # safety bound
+            sizes = {c: len(v) for c, v in assignment.items()}
+            min_client = min(sizes, key=sizes.get)
+            if sizes[min_client] >= min_patients_per_client:
+                break
+            max_client = max(sizes, key=sizes.get)
+            if sizes[max_client] <= sizes[min_client] + 1:
+                break  # cannot improve
+            # Move one patient from largest to smallest
+            patient = assignment[max_client].pop()
+            assignment[min_client].append(patient)
+
         min_count = min(len(v) for v in assignment.values())
-        if min_count >= 2:
+        if min_count >= min_patients_per_client:
             return assignment
+        if min_count > best_min_count:
+            best_min_count = min_count
+            best_assignment = assignment
 
     warnings.warn(
-        f"After {max_retries} attempts, min client has {min_count} patients. "
-        "Proceeding anyway."
+        f"After {max_retries} attempts, min client has {best_min_count} patients "
+        f"(target: {min_patients_per_client}). Proceeding with best attempt."
     )
-    return assignment
+    return best_assignment  # type: ignore[return-value]
 
 
 # =========================================================================
-# Step 5 — Per-client train/val/test (patient-level)
+# Step 5 -- Per-client train/val/test (patient-level)
 # =========================================================================
 
 def split_client_patients(
@@ -420,7 +449,7 @@ def split_client_patients(
 
 
 # =========================================================================
-# Step 6 — Normalization helpers
+# Step 6 -- Normalization helpers
 # =========================================================================
 
 def clip_volume(vol: np.ndarray, p_low: float, p_high: float) -> np.ndarray:
@@ -433,19 +462,6 @@ def clip_volume(vol: np.ndarray, p_low: float, p_high: float) -> np.ndarray:
             lo = np.percentile(nz, p_low)
             hi = np.percentile(nz, p_high)
             out[c] = np.clip(x, lo, hi)
-    return out
-
-
-def zscore_volume(vol: np.ndarray, eps: float = 1e-8) -> np.ndarray:
-    """Z-score each channel using non-zero voxels only."""
-    out = vol.copy()
-    for c in range(out.shape[0]):
-        x = out[c]
-        nz = x != 0
-        if np.any(nz):
-            mu = x[nz].mean()
-            sd = x[nz].std()
-            out[c] = np.where(nz, (x - mu) / (sd + eps), 0.0)
     return out
 
 
@@ -463,7 +479,7 @@ def zscore_slice(slc: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 
 
 # =========================================================================
-# Step 6 (cont.) — Slice selection
+# Step 6 (cont.) -- Slice selection
 # =========================================================================
 
 def select_slice_indices(
@@ -521,7 +537,7 @@ def select_slice_indices(
         # Val/test: prefer tumor-containing slices
         selected = list(tumor_slices) if tumor_slices else list(candidates)
 
-    # Cap to max_slices — keep slices with MOST tumor area (most informative)
+    # Cap to max_slices -- keep slices with MOST tumor area (most informative)
     if len(selected) > max_slices:
         selected.sort(key=lambda z: tumor_area.get(z, 0), reverse=True)
         selected = selected[:max_slices]
@@ -536,7 +552,7 @@ def select_slice_indices(
 
 
 # =========================================================================
-# Step 7 — Corruption pipeline
+# Step 7 -- Corruption pipeline
 # =========================================================================
 
 def _corruption_rng(seed: int, patient_id: str, slice_idx: int) -> np.random.Generator:
@@ -572,18 +588,6 @@ def apply_gaussian_noise(
     return img + noise
 
 
-def apply_rician_noise(
-    img: np.ndarray, sigma: float, rng: np.random.Generator,
-) -> np.ndarray:
-    """Rician noise (for magnitude MR images). Falls back to Gaussian if
-    image has negative values (e.g. after z-scoring)."""
-    if np.any(img < -0.01):
-        return apply_gaussian_noise(img, sigma, rng)
-    n1 = rng.standard_normal(img.shape).astype(np.float32) * sigma
-    n2 = rng.standard_normal(img.shape).astype(np.float32) * sigma
-    return np.sqrt((img + n1) ** 2 + n2 ** 2)
-
-
 def apply_blur(img: np.ndarray, sigma: float) -> np.ndarray:
     """Gaussian blur per channel."""
     out = np.empty_like(img)
@@ -598,7 +602,6 @@ def apply_downscale(
     """Downsample then upsample to simulate low-resolution acquisition."""
     C, H, W = img.shape
     new_h, new_w = max(4, int(H * scale)), max(4, int(W * scale))
-    # Use scipy zoom for simplicity (avoids torch dependency here)
     from scipy.ndimage import zoom
     out = np.empty_like(img)
     for c in range(C):
@@ -609,67 +612,70 @@ def apply_downscale(
 
 def corrupt_slice(
     img: np.ndarray,
-    mode: str,
-    strength_params: Dict[str, float],
+    profile: Dict[str, Any],
     seed: int,
     patient_id: str,
     slice_idx: int,
 ) -> np.ndarray:
-    """Apply corruption pipeline to a single slice image (C, H, W)."""
+    """
+    Apply corruption pipeline to a single slice image (C, H, W).
+
+    Parameters
+    ----------
+    profile : dict with keys:
+        "steps": list of str, e.g. ["bias", "gauss", "blur", "scale"]
+        "bias": float (optional)
+        "gauss_sigma": float (optional)
+        "blur": float (optional)
+        "scale": float (optional)
+    """
+    steps = profile.get("steps", [])
+    if not steps:
+        return img
+
     crng = _corruption_rng(seed, patient_id, slice_idx)
     out = img.copy()
 
-    if mode == "gauss_only":
-        out = apply_gaussian_noise(out, strength_params["gauss_sigma"], crng)
-        return out
-
-    # Full pipeline: bias → noise → blur → scale
-    steps = mode.split("+")  # e.g. ["bias", "gauss", "blur", "scale"]
-
     for step in steps:
         if step == "bias":
-            out = apply_bias_field(out, strength_params["bias"], crng)
+            out = apply_bias_field(out, profile["bias"], crng)
         elif step == "gauss":
-            out = apply_gaussian_noise(out, strength_params["gauss_sigma"], crng)
-        elif step == "rician":
-            out = apply_rician_noise(out, strength_params["gauss_sigma"], crng)
+            out = apply_gaussian_noise(out, profile["gauss_sigma"], crng)
         elif step == "blur":
-            out = apply_blur(out, strength_params["blur"])
+            out = apply_blur(out, profile["blur"])
         elif step == "scale":
-            out = apply_downscale(out, strength_params["scale"])
+            out = apply_downscale(out, profile["scale"])
 
     return out
 
 
 # =========================================================================
-# Step 6+7+8 — Process patients → write .npz slices
+# Step 6+7+8 -- Process patients -> write .npz slices
 # =========================================================================
 
 def process_and_write_patient(
     case_dir: Path,
     patient_id: str,
     out_dir: Path,
-    is_noisy: bool,
+    corruption_profile: Dict[str, Any],
     is_train: bool,
     args: argparse.Namespace,
     rng: np.random.Generator,
 ) -> int:
     """
-    Load one patient, select slices, optionally corrupt, write .npz files.
-    Returns number of slices written.
+    Load one patient, select slices, corrupt in raw space, normalize, write .npz.
+
+    Order: load -> clip (raw data) -> select slices -> for each slice:
+      extract raw 2D -> corrupt in raw intensity space -> z-score per-slice -> save
     """
     vol, seg = load_case_volumes(case_dir)
     z_dim = vol.shape[-1]  # (4, H, W, Z)
 
-    # Clip
+    # Clip percentiles on raw data
     if args.clip_percentiles[0] > 0 or args.clip_percentiles[1] < 100:
         vol = clip_volume(vol, args.clip_percentiles[0], args.clip_percentiles[1])
 
-    # Normalize volume-level
-    if args.normalize == "zscore_per_volume":
-        vol = zscore_volume(vol)
-
-    # Select slices
+    # Select slices (uses raw vol for brain mask detection)
     slice_indices = select_slice_indices(
         seg_vol=seg,
         z_dim=z_dim,
@@ -687,22 +693,20 @@ def process_and_write_patient(
     out_dir.mkdir(parents=True, exist_ok=True)
     count = 0
 
-    strength_params = CORRUPTION_STRENGTHS[args.corrupt_strength]
-
     for z in slice_indices:
         img_slice = vol[:, :, :, z].astype(np.float32)  # (4, H, W)
         seg_slice = seg[:, :, z].astype(np.int16)        # (H, W)
 
-        # Per-slice normalisation (if requested)
-        if args.normalize == "zscore_per_slice":
-            img_slice = zscore_slice(img_slice)
-
-        # Corrupt noisy client
-        if is_noisy:
+        # Corrupt in raw intensity space (before normalization)
+        if corruption_profile.get("steps"):
             img_slice = corrupt_slice(
-                img_slice, args.corrupt_mode, strength_params,
+                img_slice, corruption_profile,
                 args.seed, patient_id, z,
             )
+
+        # Z-score per-slice (always, unless normalize=none)
+        if args.normalize == "zscore":
+            img_slice = zscore_slice(img_slice)
 
         fname = f"{patient_id}_z{z:03d}.npz"
         np.savez_compressed(
@@ -716,7 +720,7 @@ def process_and_write_patient(
 
 
 # =========================================================================
-# Step 9 — Verification
+# Step 9 -- Verification
 # =========================================================================
 
 def verify_no_leakage(
@@ -725,7 +729,7 @@ def verify_no_leakage(
 ) -> None:
     """Verify no patient appears in multiple clients or splits."""
     global_set = set(global_test)
-    all_assigned: Dict[str, str] = {}  # patient → "client_X/split"
+    all_assigned: Dict[str, str] = {}  # patient -> "client_X/split"
 
     for cid, splits in client_splits.items():
         for split_name, pids in splits.items():
@@ -773,7 +777,7 @@ def verify_npz_files(output_dir: Path, sample_n: int = 10) -> None:
 
 
 # =========================================================================
-# Step 10 — Diagnostics
+# Step 10 -- Diagnostics
 # =========================================================================
 
 def _jsd(p: np.ndarray, q: np.ndarray, eps: float = 1e-12) -> float:
@@ -794,7 +798,7 @@ def compute_diagnostics(
     slice_counts: Dict[str, int],
     global_test: List[str],
     args: argparse.Namespace,
-    noisy_client_id: int,
+    corruption_profiles: List[Dict[str, Any]],
     n_quantiles: int = 4,
 ) -> Dict[str, Any]:
     """Build client_map.json content."""
@@ -833,6 +837,9 @@ def compute_diagnostics(
             for split, pids in splits.items()
         }
 
+        # Get this client's corruption profile
+        profile = corruption_profiles[cid] if cid < len(corruption_profiles) else {"label": "unknown", "steps": []}
+
         per_client[f"client_{cid}"] = {
             "num_patients": len(c_pids),
             "patients_per_split": {s: len(p) for s, p in splits.items()},
@@ -841,7 +848,7 @@ def compute_diagnostics(
             "mean_ET_frac": float(np.mean(et)) if et else 0.0,
             "mean_ED_frac": float(np.mean(ed)) if ed else 0.0,
             "mean_NCR_frac": float(np.mean(ncr)) if ncr else 0.0,
-            "is_noisy": cid == noisy_client_id,
+            "corruption_profile": profile,
         }
 
     # Pairwise JSD
@@ -860,19 +867,18 @@ def compute_diagnostics(
         "experiment_config": {
             "num_clients": args.num_clients,
             "seed": args.seed,
-            "noisy_client_id": noisy_client_id,
-            "corrupt_mode": args.corrupt_mode,
-            "corrupt_strength": args.corrupt_strength,
-            "corruption_params": CORRUPTION_STRENGTHS[args.corrupt_strength],
+            "corruption_schedule": args.corruption_schedule,
+            "dirichlet_alpha": args.dirichlet_alpha,
+            "min_patients_per_client": args.min_patients_per_client,
             "slice_policy": args.slice_policy,
             "central_band": args.central_band,
             "normalize": args.normalize,
             "clip_percentiles": args.clip_percentiles,
             "tumor_sampling": args.tumor_sampling,
-            "noisy_client_patient_frac": args.noisy_client_patient_frac,
-            "correlate_noise_with_phenotype": args.correlate_noise_with_phenotype,
             "val_frac": args.val_frac,
             "test_frac": args.test_frac,
+            "min_slices_per_patient": args.min_slices_per_patient,
+            "max_slices_per_patient": args.max_slices_per_patient,
         },
         "per_client": per_client,
         "global_test": {
@@ -899,33 +905,32 @@ def compute_diagnostics(
 def main() -> None:
     args = build_parser().parse_args()
 
-    # Resolve noisy client id
-    noisy_client_id = args.noisy_client_id
-    if noisy_client_id < 0:
-        noisy_client_id = args.num_clients - 1
-
-    if noisy_client_id >= args.num_clients:
-        sys.exit(f"--noisy_client_id {noisy_client_id} >= --num_clients {args.num_clients}")
-
     rng = np.random.default_rng(args.seed)
     np.random.seed(args.seed)
 
     output_dir: Path = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # ── Step 1: Discover patients ──
-    print("Step 1: Discovering patients …")
+    # -- Build corruption profiles --
+    if args.corruption_schedule == "per_client_gradient":
+        corruption_profiles = generate_corruption_profiles(args.num_clients)
+    else:
+        # No corruption: all clients clean
+        corruption_profiles = [{"label": "clean", "steps": []}] * args.num_clients
+
+    # -- Step 1: Discover patients --
+    print("Step 1: Discovering patients ...")
     patient_dirs = discover_patients(args.source_dir)
     print(f"  Found {len(patient_dirs)} patient directories.")
 
-    # ── Step 2: Compute per-patient stats ──
-    print("Step 2: Computing per-patient tumor signatures …")
+    # -- Step 2: Compute per-patient stats --
+    print("Step 2: Computing per-patient tumor signatures ...")
     patient_stats = scan_all_patients(patient_dirs)
     all_patient_ids = sorted(patient_stats.keys())
     print(f"  Stats computed for {len(all_patient_ids)} patients.")
 
-    # ── Step 3: Global test split ──
-    print("Step 3: Creating global test split …")
+    # -- Step 3: Global test split --
+    print("Step 3: Creating global test split ...")
     remaining_ids, global_test_ids = stratified_test_split(
         all_patient_ids, patient_stats, args.test_frac, rng,
     )
@@ -936,19 +941,21 @@ def main() -> None:
     gt_path = output_dir / "global_test_patients.txt"
     gt_path.write_text("\n".join(sorted(global_test_ids)) + "\n")
 
-    # ── Step 4: Client assignment ──
-    print("Step 4: Assigning patients to clients …")
+    # -- Step 4: Client assignment --
+    print("Step 4: Assigning patients to clients ...")
     client_assignment = assign_clients(
         remaining_ids, patient_stats, args.num_clients,
-        noisy_client_id, args.noisy_client_patient_frac,
-        args.correlate_noise_with_phenotype, rng,
+        rng,
+        alpha=args.dirichlet_alpha,
+        min_patients_per_client=args.min_patients_per_client,
     )
     for cid in sorted(client_assignment.keys()):
-        tag = " [NOISY]" if cid == noisy_client_id else ""
+        profile = corruption_profiles[cid]
+        tag = f" [{profile['label']}]"
         print(f"  Client {cid}: {len(client_assignment[cid])} patients{tag}")
 
-    # ── Step 5: Per-client train/val/test splits ──
-    print("Step 5: Splitting each client into train/val/test …")
+    # -- Step 5: Per-client train/val/test splits --
+    print("Step 5: Splitting each client into train/val/test ...")
     client_splits: Dict[int, Dict[str, List[str]]] = {}
     for cid in sorted(client_assignment.keys()):
         split_rng = np.random.default_rng(args.seed + cid + 1000)
@@ -965,12 +972,12 @@ def main() -> None:
         indent=2,
     ))
 
-    # ── Verification (patient level) ──
-    print("Step 5b: Verifying no patient leakage …")
+    # -- Verification (patient level) --
+    print("Step 5b: Verifying no patient leakage ...")
     verify_no_leakage(client_splits, global_test_ids)
 
-    # ── Step 6+7+8: Process slices and write .npz ──
-    print("Step 6-8: Processing patients → slices → .npz …")
+    # -- Step 6+7+8: Process slices and write .npz --
+    print("Step 6-8: Processing patients -> slices -> .npz ...")
     # Build a lookup from patient_id to its directory
     pid_to_dir: Dict[str, Path] = {d.name: d for d in patient_dirs}
 
@@ -979,7 +986,7 @@ def main() -> None:
 
     # Process clients
     for cid in sorted(client_splits.keys()):
-        is_noisy = (cid == noisy_client_id)
+        profile = corruption_profiles[cid]
         for split_name, pids in client_splits[cid].items():
             is_train = (split_name == "train")
             for pid in pids:
@@ -990,7 +997,7 @@ def main() -> None:
                 )
                 n = process_and_write_patient(
                     case_dir, pid, out_path,
-                    is_noisy=is_noisy,
+                    corruption_profile=profile,
                     is_train=is_train,
                     args=args,
                     rng=patient_rng,
@@ -1012,18 +1019,19 @@ def main() -> None:
             slice_counts.get(f"client_{cid}/test/{p}", 0)
             for p in client_splits[cid]["test"]
         )
-        tag = " [NOISY]" if cid == noisy_client_id else ""
+        tag = f" [{profile['label']}]"
         print(f"  Client {cid}{tag}: train={train_n}  val={val_n}  test={test_n} slices")
 
-    # Process global test
-    print("  Processing global test …")
+    # Process global test (always clean, no corruption)
+    clean_profile: Dict[str, Any] = {"label": "clean", "steps": []}
+    print("  Processing global test ...")
     for pid in global_test_ids:
         case_dir = pid_to_dir[pid]
         out_path = output_dir / "global_test"
         patient_rng = np.random.default_rng(args.seed + hash(pid) % (2**31))
         n = process_and_write_patient(
             case_dir, pid, out_path,
-            is_noisy=False,
+            corruption_profile=clean_profile,
             is_train=False,
             args=args,
             rng=patient_rng,
@@ -1038,29 +1046,34 @@ def main() -> None:
           f"({len(global_test_ids)} patients)")
     print(f"  Total slices written: {total_slices}")
 
-    # ── Step 9: Verify .npz files ──
-    print("Step 9: Verifying .npz files …")
+    # -- Step 9: Verify .npz files --
+    print("Step 9: Verifying .npz files ...")
     verify_npz_files(output_dir)
 
-    # ── Step 10: Diagnostics ──
-    print("Step 10: Computing diagnostics …")
+    # -- Step 10: Diagnostics --
+    print("Step 10: Computing diagnostics ...")
     diagnostics = compute_diagnostics(
         client_splits, patient_stats, slice_counts,
-        global_test_ids, args, noisy_client_id,
+        global_test_ids, args, corruption_profiles,
     )
 
     client_map_path = output_dir / "client_map.json"
     client_map_path.write_text(json.dumps(diagnostics, indent=2))
     print(f"  Saved {client_map_path}")
 
-    # ── Step 11: Print usage hints ──
+    # -- Step 11: Print usage hints --
     print(f"\n{'='*60}")
-    print("DONE — Dataset ready")
+    print("DONE -- Dataset ready")
     print(f"{'='*60}")
     print(f"  Output dir:      {output_dir}")
     print(f"  Clients:         {args.num_clients}")
-    print(f"  Noisy client:    {noisy_client_id} ({args.corrupt_strength} corruption)")
+    print(f"  Corruption:      {args.corruption_schedule}")
     print(f"  Total slices:    {total_slices}")
+    print()
+    print("  Per-client corruption profiles:")
+    for cid in range(args.num_clients):
+        profile = corruption_profiles[cid]
+        print(f"    C{cid}: {profile['label']}  steps={profile.get('steps', [])}")
     print()
     print("Example training commands:")
     print(f"  PARTITION_DIR={output_dir / 'client_data'}")
@@ -1070,7 +1083,7 @@ def main() -> None:
     print(f"  python brats_n_clients.py --partition_dir $PARTITION_DIR "
           f"--strategy fedavg --rounds 30 --local_epochs 50")
     print()
-    print("  # FedProx (recommended mu=0.1–1.0 for heavy corruption)")
+    print("  # FedProx (recommended mu=0.1-1.0 for heterogeneous corruption)")
     print(f"  python brats_n_clients.py --partition_dir $PARTITION_DIR "
           f"--strategy fedprox --mu 0.5 --rounds 30 --local_epochs 50")
     print(f"{'='*60}")
