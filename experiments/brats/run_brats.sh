@@ -27,6 +27,7 @@ set -euo pipefail
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
+PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_a0p1/client_data}"
 PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data}"
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-}"   # set to e.g. .../brats2d_8client_noisy/global_test if available
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
@@ -39,7 +40,7 @@ LOCAL_EPOCHS="${LOCAL_EPOCHS:-50}"          # high drift amplifies FedProx benef
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNIST)
-MU="${MU:-0.01}"                           # proximal term (used directly, no normalization)
+MU="${MU:-0.4}"                           # proximal term (used directly, no normalization)
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
 DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
