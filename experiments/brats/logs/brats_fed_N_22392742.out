@@ -1,0 +1,380 @@
+==============================================
+BraTS 2D Federated Learning
+Job ID:       22392742
+Node(s):      gpu-q-1
+Workdir:      /home/bk489/federated/federated-thesis
+Script:       /home/bk489/federated/federated-thesis/experiments/brats/brats_n_clients.py
+Partition dir:/home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data
+Results dir:  /home/bk489/federated/federated-thesis/results/brats
+Strategy:     both (mu=0.01)
+Model:        UNet2D base=16
+Fraction:     0.75 | DropPercent: 0.5
+Rounds:       30 | LocalEpochs: 50
+Batch:        4 | LR: 0.01 | Seed: 42
+WeightDecay:  0.0 | NumWorkers: 2
+Python:       /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Mon Feb  9 16:54:21 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:41:00.0 Off |                    0 |
+| N/A   32C    P0             64W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDAVG (mu=0.0) ...
+
+
+============================================================
+Federated Learning -- FEDAVG
+============================================================
+Model:          UNet2D (base=16, 482,915 params)
+Input channels: 4
+Clients:        4
+Rounds:         30
+Local epochs:   50
+Batch size:     4
+Learning rate:  0.01
+Weight decay:   0.0
+Fraction fit:   0.75
+Drop percent:   0.5
+Device:         cuda
+Partition dir:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data
+============================================================
+
+Client data distribution:
+  client_0: train=60  test=7
+  client_1: train=60  test=7
+  client_2: train=60  test=7
+  client_3: train=59  test=7
+
+    Client 3: loss=1.3489, epochs=14 [straggler, 14 ep]
+    Client 2: loss=1.0688, epochs=50
+    Client 1: loss=0.9096, epochs=50
+  Round   1/30: Pooled Loss=0.7947, Pooled Mean=0.7212 (WT=0.8550 TC=0.6619 ET=0.6466) | C0 Mean=0.6892 | C1 Mean=0.8109 | C2 Mean=0.4814 | C3 Mean=0.8022 [29.5s]
+    Client 3: loss=0.4280, epochs=50
+    Client 0: loss=0.7835, epochs=5 [straggler, 5 ep]
+    Client 1: loss=0.3586, epochs=50
+  Round   2/30: Pooled Loss=0.4368, Pooled Mean=0.7544 (WT=0.8512 TC=0.6752 ET=0.7368) | C0 Mean=0.7516 | C1 Mean=0.8747 | C2 Mean=0.4517 | C3 Mean=0.8379 [25.2s]
+    Client 1: loss=0.1947, epochs=50
+    Client 3: loss=0.2304, epochs=50
+    Client 2: loss=0.5354, epochs=35 [straggler, 35 ep]
+  Round   3/30: Pooled Loss=0.3122, Pooled Mean=0.7947 (WT=0.8557 TC=0.7387 ET=0.7896) | C0 Mean=0.7792 | C1 Mean=0.8945 | C2 Mean=0.5461 | C3 Mean=0.8468 [32.4s]
+    Client 0: loss=0.3123, epochs=13 [straggler, 13 ep]
+    Client 2: loss=0.4011, epochs=50
+    Client 1: loss=0.1296, epochs=50
+  Round   4/30: Pooled Loss=0.2739, Pooled Mean=0.8030 (WT=0.8854 TC=0.7350 ET=0.7885) | C0 Mean=0.8060 | C1 Mean=0.8793 | C2 Mean=0.5983 | C3 Mean=0.8490 [27.4s]
+    Client 2: loss=0.3320, epochs=50
+    Client 0: loss=0.2691, epochs=6 [straggler, 6 ep]
+    Client 3: loss=0.1276, epochs=50
+  Round   5/30: Pooled Loss=0.2470, Pooled Mean=0.8259 (WT=0.9112 TC=0.7615 ET=0.8048) | C0 Mean=0.8437 | C1 Mean=0.8856 | C2 Mean=0.6316 | C3 Mean=0.8613 [25.5s]
+    Client 0: loss=0.1513, epochs=50
+    Client 3: loss=0.1436, epochs=3 [straggler, 3 ep]
+    Client 1: loss=0.0911, epochs=50
+  Round   6/30: Pooled Loss=0.2350, Pooled Mean=0.8359 (WT=0.9079 TC=0.7671 ET=0.8327) | C0 Mean=0.8263 | C1 Mean=0.9197 | C2 Mean=0.6070 | C3 Mean=0.8741 [25.8s]
+    Client 3: loss=0.0908, epochs=50
+    Client 0: loss=0.1407, epochs=26 [straggler, 26 ep]
+    Client 1: loss=0.0771, epochs=50
+  Round   7/30: Pooled Loss=0.2324, Pooled Mean=0.8336 (WT=0.9069 TC=0.7544 ET=0.8393) | C0 Mean=0.8286 | C1 Mean=0.9219 | C2 Mean=0.5848 | C3 Mean=0.8808 [30.8s]
+    Client 1: loss=0.0682, epochs=50
+    Client 2: loss=0.3259, epochs=12 [straggler, 12 ep]
+    Client 3: loss=0.0786, epochs=50
+  Round   8/30: Pooled Loss=0.2176, Pooled Mean=0.8461 (WT=0.9071 TC=0.7861 ET=0.8451) | C0 Mean=0.8487 | C1 Mean=0.9152 | C2 Mean=0.6351 | C3 Mean=0.8850 [27.1s]
+    Client 2: loss=0.3238, epochs=16 [straggler, 16 ep]
+    Client 3: loss=0.0728, epochs=50
+    Client 0: loss=0.1133, epochs=50
+  Round   9/30: Pooled Loss=0.2255, Pooled Mean=0.8397 (WT=0.9074 TC=0.7713 ET=0.8404) | C0 Mean=0.8695 | C1 Mean=0.9033 | C2 Mean=0.6358 | C3 Mean=0.8643 [28.0s]
+    Client 3: loss=0.0660, epochs=50
+    Client 1: loss=0.0653, epochs=39 [straggler, 39 ep]
+    Client 2: loss=0.2463, epochs=50
+  Round  10/30: Pooled Loss=0.2151, Pooled Mean=0.8472 (WT=0.9161 TC=0.7881 ET=0.8375) | C0 Mean=0.8522 | C1 Mean=0.9063 | C2 Mean=0.6401 | C3 Mean=0.8908 [33.3s]
+    Client 1: loss=0.0627, epochs=26 [straggler, 26 ep]
+    Client 0: loss=0.0990, epochs=50
+    Client 2: loss=0.2212, epochs=50
+  Round  11/30: Pooled Loss=0.2151, Pooled Mean=0.8462 (WT=0.9162 TC=0.7861 ET=0.8363) | C0 Mean=0.8650 | C1 Mean=0.8984 | C2 Mean=0.6628 | C3 Mean=0.8777 [30.5s]
+    Client 0: loss=0.0896, epochs=42 [straggler, 42 ep]
+    Client 1: loss=0.0557, epochs=50
+    Client 2: loss=0.1959, epochs=50
+  Round  12/30: Pooled Loss=0.2155, Pooled Mean=0.8446 (WT=0.9161 TC=0.7816 ET=0.8362) | C0 Mean=0.8621 | C1 Mean=0.8938 | C2 Mean=0.6790 | C3 Mean=0.8768 [34.3s]
+    Client 2: loss=0.1935, epochs=39 [straggler, 39 ep]
+    Client 1: loss=0.0527, epochs=50
+    Client 3: loss=0.0624, epochs=50
+  Round  13/30: Pooled Loss=0.2320, Pooled Mean=0.8337 (WT=0.9100 TC=0.7662 ET=0.8248) | C0 Mean=0.8457 | C1 Mean=0.8934 | C2 Mean=0.6417 | C3 Mean=0.8769 [33.5s]
+    Client 1: loss=0.0492, epochs=50
+    Client 2: loss=0.1615, epochs=50
+    Client 0: loss=0.0909, epochs=31 [straggler, 31 ep]
+  Round  14/30: Pooled Loss=0.2160, Pooled Mean=0.8408 (WT=0.9162 TC=0.7803 ET=0.8259) | C0 Mean=0.8457 | C1 Mean=0.8882 | C2 Mean=0.7018 | C3 Mean=0.8753 [31.7s]
+    Client 0: loss=0.0717, epochs=50
+    Client 3: loss=0.0565, epochs=50
+    Client 2: loss=0.1544, epochs=46 [straggler, 46 ep]
+  Round  15/30: Pooled Loss=0.2214, Pooled Mean=0.8344 (WT=0.9168 TC=0.7797 ET=0.8066) | C0 Mean=0.8390 | C1 Mean=0.8836 | C2 Mean=0.6913 | C3 Mean=0.8684 [39.4s]
+    Client 1: loss=0.0518, epochs=32 [straggler, 32 ep]
+    Client 0: loss=0.0660, epochs=50
+    Client 2: loss=0.1363, epochs=50
+  Round  16/30: Pooled Loss=0.2202, Pooled Mean=0.8376 (WT=0.9162 TC=0.7830 ET=0.8137) | C0 Mean=0.8527 | C1 Mean=0.8792 | C2 Mean=0.7028 | C3 Mean=0.8713 [32.0s]
+    Client 1: loss=0.0473, epochs=40 [straggler, 40 ep]
+    Client 2: loss=0.1179, epochs=50
+    Client 3: loss=0.0522, epochs=50
+  Round  17/30: Pooled Loss=0.2155, Pooled Mean=0.8445 (WT=0.9155 TC=0.7855 ET=0.8326) | C0 Mean=0.8635 | C1 Mean=0.8964 | C2 Mean=0.6650 | C3 Mean=0.8891 [33.8s]
+    Client 1: loss=0.0428, epochs=47 [straggler, 47 ep]
+    Client 2: loss=0.1032, epochs=50
+    Client 0: loss=0.0625, epochs=50
+  Round  18/30: Pooled Loss=0.2144, Pooled Mean=0.8450 (WT=0.9185 TC=0.7867 ET=0.8298) | C0 Mean=0.8549 | C1 Mean=0.8930 | C2 Mean=0.6973 | C3 Mean=0.8809 [35.5s]
+    Client 1: loss=0.0403, epochs=50
+    Client 0: loss=0.0560, epochs=50
+    Client 3: loss=0.0510, epochs=37 [straggler, 37 ep]
+  Round  19/30: Pooled Loss=0.2241, Pooled Mean=0.8414 (WT=0.9135 TC=0.7705 ET=0.8403) | C0 Mean=0.8406 | C1 Mean=0.9104 | C2 Mean=0.6212 | C3 Mean=0.8914 [33.1s]
+    Client 0: loss=0.0499, epochs=50
+    Client 1: loss=0.0372, epochs=50
+    Client 2: loss=0.1470, epochs=12 [straggler, 12 ep]
+  Round  20/30: Pooled Loss=0.2170, Pooled Mean=0.8434 (WT=0.9165 TC=0.7885 ET=0.8252) | C0 Mean=0.8550 | C1 Mean=0.8897 | C2 Mean=0.6955 | C3 Mean=0.8792 [27.2s]
+    Client 0: loss=0.0525, epochs=28 [straggler, 28 ep]
+    Client 1: loss=0.0353, epochs=50
+    Client 3: loss=0.0444, epochs=50
+  Round  21/30: Pooled Loss=0.2268, Pooled Mean=0.8402 (WT=0.9126 TC=0.7721 ET=0.8359) | C0 Mean=0.8401 | C1 Mean=0.9103 | C2 Mean=0.6155 | C3 Mean=0.8899 [30.8s]
+    Client 3: loss=0.0690, epochs=2 [straggler, 2 ep]
+    Client 1: loss=0.0332, epochs=50
+    Client 2: loss=0.2315, epochs=50
+  Round  22/30: Pooled Loss=0.2534, Pooled Mean=0.8074 (WT=0.9115 TC=0.7456 ET=0.7650) | C0 Mean=0.8143 | C1 Mean=0.8625 | C2 Mean=0.6515 | C3 Mean=0.8467 [24.8s]
+    Client 3: loss=0.0424, epochs=50
+    Client 0: loss=0.0541, epochs=46 [straggler, 46 ep]
+    Client 2: loss=0.1461, epochs=50
+  Round  23/30: Pooled Loss=0.2414, Pooled Mean=0.8219 (WT=0.9159 TC=0.7675 ET=0.7824) | C0 Mean=0.8387 | C1 Mean=0.8757 | C2 Mean=0.6721 | C3 Mean=0.8575 [35.2s]
+    Client 1: loss=0.0381, epochs=36 [straggler, 36 ep]
+    Client 2: loss=0.1287, epochs=50
+    Client 3: loss=0.0399, epochs=50
+  Round  24/30: Pooled Loss=0.2276, Pooled Mean=0.8361 (WT=0.9127 TC=0.7815 ET=0.8142) | C0 Mean=0.8449 | C1 Mean=0.8905 | C2 Mean=0.6707 | C3 Mean=0.8785 [32.8s]
+    Client 2: loss=0.1442, epochs=50
+    Client 3: loss=0.0396, epochs=31 [straggler, 31 ep]
+    Client 1: loss=0.0339, epochs=50
+  Round  25/30: Pooled Loss=0.2637, Pooled Mean=0.8080 (WT=0.8931 TC=0.7512 ET=0.7797) | C0 Mean=0.8158 | C1 Mean=0.8708 | C2 Mean=0.6233 | C3 Mean=0.8544 [31.6s]
+    Client 1: loss=0.0346, epochs=50
+    Client 0: loss=0.0548, epochs=50
+    Client 2: loss=0.0733, epochs=44 [straggler, 44 ep]
+  Round  26/30: Pooled Loss=0.2212, Pooled Mean=0.8407 (WT=0.9173 TC=0.7886 ET=0.8162) | C0 Mean=0.8480 | C1 Mean=0.8873 | C2 Mean=0.7019 | C3 Mean=0.8743 [35.1s]
+    Client 0: loss=0.0458, epochs=50
+    Client 2: loss=0.0679, epochs=50
+    Client 1: loss=0.0339, epochs=21 [straggler, 21 ep]
+  Round  27/30: Pooled Loss=0.2262, Pooled Mean=0.8364 (WT=0.9157 TC=0.7871 ET=0.8066) | C0 Mean=0.8438 | C1 Mean=0.8827 | C2 Mean=0.7091 | C3 Mean=0.8664 [29.4s]
+    Client 2: loss=0.2017, epochs=2 [straggler, 2 ep]
+    Client 1: loss=0.0296, epochs=50
+    Client 3: loss=0.0366, epochs=50
+  Round  28/30: Pooled Loss=0.2111, Pooled Mean=0.8506 (WT=0.9172 TC=0.7979 ET=0.8367) | C0 Mean=0.8570 | C1 Mean=0.8999 | C2 Mean=0.7027 | C3 Mean=0.8859 [24.8s]
+    Client 1: loss=0.0278, epochs=50
+    Client 3: loss=0.0330, epochs=50
+    Client 0: loss=0.0510, epochs=19 [straggler, 19 ep]
+  Round  29/30: Pooled Loss=0.2253, Pooled Mean=0.8441 (WT=0.9133 TC=0.7845 ET=0.8346) | C0 Mean=0.8431 | C1 Mean=0.9111 | C2 Mean=0.6253 | C3 Mean=0.8906 [28.8s]
+    Client 2: loss=0.1428, epochs=4 [straggler, 4 ep]
+    Client 3: loss=0.0305, epochs=50
+    Client 1: loss=0.0262, epochs=50
+  Round  30/30: Pooled Loss=0.2212, Pooled Mean=0.8435 (WT=0.9118 TC=0.7914 ET=0.8273) | C0 Mean=0.8444 | C1 Mean=0.8949 | C2 Mean=0.6808 | C3 Mean=0.8890 [25.3s]
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:            FEDAVG
+Global MeanPresent:  0.8435 (best=0.8506)
+Global WT:           0.9118
+Global TC:           0.7914
+Global ET:           0.8273
+Client 0 MeanPresent: 0.8444 (best=0.8695)
+Client 1 MeanPresent: 0.8949 (best=0.9219)
+Client 2 MeanPresent: 0.6808 (best=0.7091)
+Client 3 MeanPresent: 0.8890 (best=0.8914)
+Convergence 50%:     round 1
+Convergence 60%:     round 1
+Convergence 70%:     round 1
+Total Time:          914.34s (15.2min)
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/brats/fedavg_brats_r30_20260209_170938_results.json
+
+>>> FEDAVG done.
+
+>>> Running FEDPROX (mu=0.01) ...
+
+
+============================================================
+Federated Learning -- FEDPROX
+============================================================
+Model:          UNet2D (base=16, 482,915 params)
+Input channels: 4
+Clients:        4
+Rounds:         30
+Local epochs:   50
+Batch size:     4
+Learning rate:  0.01
+Weight decay:   0.0
+Fraction fit:   0.75
+Drop percent:   0.5
+Proximal mu:    0.01
+Device:         cuda
+Partition dir:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data
+============================================================
+
+Client data distribution:
+  client_0: train=60  test=7
+  client_1: train=60  test=7
+  client_2: train=60  test=7
+  client_3: train=59  test=7
+
+    Client 3: loss=1.3514, epochs=14 [straggler, 14 ep]
+    Client 2: loss=1.0857, epochs=50
+    Client 1: loss=0.9339, epochs=50
+  Round   1/30: Pooled Loss=0.8107, Pooled Mean=0.7204 (WT=0.8545 TC=0.6613 ET=0.6454) | C0 Mean=0.6893 | C1 Mean=0.8098 | C2 Mean=0.4807 | C3 Mean=0.8010 [35.7s]
+    Client 3: loss=0.4520, epochs=50
+    Client 0: loss=0.7983, epochs=5 [straggler, 5 ep]
+    Client 1: loss=0.3809, epochs=50
+  Round   2/30: Pooled Loss=0.4521, Pooled Mean=0.7516 (WT=0.8472 TC=0.6741 ET=0.7337) | C0 Mean=0.7499 | C1 Mean=0.8734 | C2 Mean=0.4489 | C3 Mean=0.8347 [31.7s]
+    Client 1: loss=0.2058, epochs=50
+    Client 3: loss=0.2444, epochs=50
+    Client 2: loss=0.5441, epochs=35 [straggler, 35 ep]
+  Round   3/30: Pooled Loss=0.3229, Pooled Mean=0.7861 (WT=0.8573 TC=0.7235 ET=0.7775) | C0 Mean=0.7698 | C1 Mean=0.8907 | C2 Mean=0.5224 | C3 Mean=0.8487 [40.4s]
+    Client 0: loss=0.3104, epochs=13 [straggler, 13 ep]
+    Client 2: loss=0.4137, epochs=50
+    Client 1: loss=0.1353, epochs=50
+  Round   4/30: Pooled Loss=0.2726, Pooled Mean=0.8107 (WT=0.8910 TC=0.7443 ET=0.7969) | C0 Mean=0.8173 | C1 Mean=0.8920 | C2 Mean=0.5889 | C3 Mean=0.8566 [34.0s]
+    Client 2: loss=0.3458, epochs=50
+    Client 0: loss=0.2742, epochs=6 [straggler, 6 ep]
+    Client 3: loss=0.1280, epochs=50
+  Round   5/30: Pooled Loss=0.2390, Pooled Mean=0.8343 (WT=0.9105 TC=0.7746 ET=0.8177) | C0 Mean=0.8562 | C1 Mean=0.9033 | C2 Mean=0.6077 | C3 Mean=0.8722 [31.9s]
+    Client 0: loss=0.1547, epochs=50
+    Client 3: loss=0.1460, epochs=3 [straggler, 3 ep]
+    Client 1: loss=0.0945, epochs=50
+  Round   6/30: Pooled Loss=0.2349, Pooled Mean=0.8352 (WT=0.9072 TC=0.7659 ET=0.8325) | C0 Mean=0.8362 | C1 Mean=0.9218 | C2 Mean=0.5857 | C3 Mean=0.8801 [30.8s]
+    Client 3: loss=0.0992, epochs=50
+    Client 0: loss=0.1457, epochs=26 [straggler, 26 ep]
+    Client 1: loss=0.0792, epochs=50
+  Round   7/30: Pooled Loss=0.2280, Pooled Mean=0.8397 (WT=0.9082 TC=0.7703 ET=0.8406) | C0 Mean=0.8410 | C1 Mean=0.9261 | C2 Mean=0.5834 | C3 Mean=0.8849 [37.5s]
+    Client 1: loss=0.0703, epochs=50
+    Client 2: loss=0.3390, epochs=12 [straggler, 12 ep]
+    Client 3: loss=0.0817, epochs=50
+  Round   8/30: Pooled Loss=0.2138, Pooled Mean=0.8523 (WT=0.9102 TC=0.7988 ET=0.8479) | C0 Mean=0.8647 | C1 Mean=0.9174 | C2 Mean=0.6395 | C3 Mean=0.8889 [33.7s]
+    Client 2: loss=0.3162, epochs=16 [straggler, 16 ep]
+    Client 3: loss=0.0754, epochs=50
+    Client 0: loss=0.1154, epochs=50
+  Round   9/30: Pooled Loss=0.2270, Pooled Mean=0.8396 (WT=0.9078 TC=0.7639 ET=0.8470) | C0 Mean=0.8649 | C1 Mean=0.9089 | C2 Mean=0.6375 | C3 Mean=0.8702 [35.1s]
+    Client 3: loss=0.0687, epochs=50
+    Client 1: loss=0.0667, epochs=39 [straggler, 39 ep]
+    Client 2: loss=0.2521, epochs=50
+  Round  10/30: Pooled Loss=0.2206, Pooled Mean=0.8421 (WT=0.9145 TC=0.7825 ET=0.8293) | C0 Mean=0.8549 | C1 Mean=0.8995 | C2 Mean=0.6642 | C3 Mean=0.8788 [41.8s]
+    Client 1: loss=0.0643, epochs=26 [straggler, 26 ep]
+    Client 0: loss=0.1029, epochs=50
+    Client 2: loss=0.2238, epochs=50
+  Round  11/30: Pooled Loss=0.2103, Pooled Mean=0.8513 (WT=0.9183 TC=0.7959 ET=0.8398) | C0 Mean=0.8683 | C1 Mean=0.9031 | C2 Mean=0.6975 | C3 Mean=0.8700 [38.0s]
+    Client 0: loss=0.0924, epochs=42 [straggler, 42 ep]
+    Client 1: loss=0.0571, epochs=50
+    Client 2: loss=0.2111, epochs=50
+  Round  12/30: Pooled Loss=0.2188, Pooled Mean=0.8415 (WT=0.9190 TC=0.7883 ET=0.8173) | C0 Mean=0.8638 | C1 Mean=0.8873 | C2 Mean=0.7012 | C3 Mean=0.8623 [42.2s]
+    Client 2: loss=0.1877, epochs=39 [straggler, 39 ep]
+    Client 1: loss=0.0543, epochs=50
+    Client 3: loss=0.0649, epochs=50
+  Round  13/30: Pooled Loss=0.2247, Pooled Mean=0.8354 (WT=0.9159 TC=0.7760 ET=0.8144) | C0 Mean=0.8494 | C1 Mean=0.8895 | C2 Mean=0.6815 | C3 Mean=0.8691 [41.4s]
+    Client 1: loss=0.0503, epochs=50
+    Client 2: loss=0.1765, epochs=50
+    Client 0: loss=0.0900, epochs=31 [straggler, 31 ep]
+  Round  14/30: Pooled Loss=0.2171, Pooled Mean=0.8427 (WT=0.9189 TC=0.7785 ET=0.8308) | C0 Mean=0.8665 | C1 Mean=0.8898 | C2 Mean=0.6907 | C3 Mean=0.8785 [39.4s]
+    Client 0: loss=0.0780, epochs=50
+    Client 3: loss=0.0582, epochs=50
+    Client 2: loss=0.1499, epochs=46 [straggler, 46 ep]
+  Round  15/30: Pooled Loss=0.2207, Pooled Mean=0.8361 (WT=0.9187 TC=0.7775 ET=0.8121) | C0 Mean=0.8538 | C1 Mean=0.8864 | C2 Mean=0.7049 | C3 Mean=0.8617 [47.5s]
+    Client 1: loss=0.0535, epochs=32 [straggler, 32 ep]
+    Client 0: loss=0.0699, epochs=50
+    Client 2: loss=0.1394, epochs=50
+  Round  16/30: Pooled Loss=0.2185, Pooled Mean=0.8388 (WT=0.9205 TC=0.7877 ET=0.8081) | C0 Mean=0.8554 | C1 Mean=0.8830 | C2 Mean=0.7207 | C3 Mean=0.8648 [39.6s]
+    Client 1: loss=0.0486, epochs=40 [straggler, 40 ep]
+    Client 2: loss=0.1216, epochs=50
+    Client 3: loss=0.0533, epochs=50
+  Round  17/30: Pooled Loss=0.2178, Pooled Mean=0.8419 (WT=0.9160 TC=0.7813 ET=0.8285) | C0 Mean=0.8636 | C1 Mean=0.8953 | C2 Mean=0.6800 | C3 Mean=0.8823 [41.6s]
+    Client 1: loss=0.0443, epochs=47 [straggler, 47 ep]
+    Client 2: loss=0.1150, epochs=50
+    Client 0: loss=0.0643, epochs=50
+  Round  18/30: Pooled Loss=0.2216, Pooled Mean=0.8379 (WT=0.9183 TC=0.7807 ET=0.8147) | C0 Mean=0.8532 | C1 Mean=0.8879 | C2 Mean=0.6987 | C3 Mean=0.8690 [44.2s]
+    Client 1: loss=0.0419, epochs=50
+    Client 0: loss=0.0580, epochs=50
+    Client 3: loss=0.0516, epochs=37 [straggler, 37 ep]
+  Round  19/30: Pooled Loss=0.2234, Pooled Mean=0.8425 (WT=0.9145 TC=0.7800 ET=0.8330) | C0 Mean=0.8538 | C1 Mean=0.9166 | C2 Mean=0.6025 | C3 Mean=0.8884 [40.6s]
+    Client 0: loss=0.0517, epochs=50
+    Client 1: loss=0.0388, epochs=50
+    Client 2: loss=0.1712, epochs=12 [straggler, 12 ep]
+  Round  20/30: Pooled Loss=0.2167, Pooled Mean=0.8423 (WT=0.9202 TC=0.7834 ET=0.8234) | C0 Mean=0.8576 | C1 Mean=0.8918 | C2 Mean=0.7010 | C3 Mean=0.8747 [33.4s]
+    Client 0: loss=0.0539, epochs=28 [straggler, 28 ep]
+    Client 1: loss=0.0372, epochs=50
+    Client 3: loss=0.0457, epochs=50
+  Round  21/30: Pooled Loss=0.2262, Pooled Mean=0.8398 (WT=0.9152 TC=0.7744 ET=0.8298) | C0 Mean=0.8501 | C1 Mean=0.9149 | C2 Mean=0.5992 | C3 Mean=0.8878 [38.1s]
+    Client 3: loss=0.0700, epochs=2 [straggler, 2 ep]
+    Client 1: loss=0.0347, epochs=50
+    Client 2: loss=0.1309, epochs=50
+  Round  22/30: Pooled Loss=0.2171, Pooled Mean=0.8441 (WT=0.9160 TC=0.7865 ET=0.8297) | C0 Mean=0.8629 | C1 Mean=0.8954 | C2 Mean=0.6792 | C3 Mean=0.8837 [31.1s]
+    Client 3: loss=0.0422, epochs=50
+    Client 0: loss=0.0543, epochs=46 [straggler, 46 ep]
+    Client 2: loss=0.1670, epochs=50
+  Round  23/30: Pooled Loss=0.2377, Pooled Mean=0.8256 (WT=0.9166 TC=0.7632 ET=0.7971) | C0 Mean=0.8434 | C1 Mean=0.8796 | C2 Mean=0.6802 | C3 Mean=0.8540 [44.9s]
+    Client 1: loss=0.0390, epochs=36 [straggler, 36 ep]
+    Client 2: loss=0.1072, epochs=50
+    Client 3: loss=0.0429, epochs=50
+  Round  24/30: Pooled Loss=0.2250, Pooled Mean=0.8384 (WT=0.9171 TC=0.7757 ET=0.8225) | C0 Mean=0.8557 | C1 Mean=0.8929 | C2 Mean=0.6627 | C3 Mean=0.8816 [41.1s]
+    Client 2: loss=0.0808, epochs=50
+    Client 3: loss=0.0397, epochs=31 [straggler, 31 ep]
+    Client 1: loss=0.0346, epochs=50
+  Round  25/30: Pooled Loss=0.2264, Pooled Mean=0.8375 (WT=0.9143 TC=0.7743 ET=0.8239) | C0 Mean=0.8560 | C1 Mean=0.8927 | C2 Mean=0.6629 | C3 Mean=0.8822 [39.1s]
+    Client 1: loss=0.0323, epochs=50
+    Client 0: loss=0.0518, epochs=50
+    Client 2: loss=0.1018, epochs=44 [straggler, 44 ep]
+  Round  26/30: Pooled Loss=0.3628, Pooled Mean=0.7237 (WT=0.8695 TC=0.6009 ET=0.7006) | C0 Mean=0.6936 | C1 Mean=0.8270 | C2 Mean=0.5685 | C3 Mean=0.7250 [42.0s]
+    Client 0: loss=0.0526, epochs=50
+    Client 2: loss=0.1340, epochs=50
+    Client 1: loss=0.0443, epochs=21 [straggler, 21 ep]
+  Round  27/30: Pooled Loss=0.2183, Pooled Mean=0.8415 (WT=0.9197 TC=0.7838 ET=0.8211) | C0 Mean=0.8553 | C1 Mean=0.8908 | C2 Mean=0.7016 | C3 Mean=0.8640 [35.7s]
+    Client 2: loss=0.2145, epochs=2 [straggler, 2 ep]
+    Client 1: loss=0.0321, epochs=50
+    Client 3: loss=0.0393, epochs=50
+  Round  28/30: Pooled Loss=0.2342, Pooled Mean=0.8333 (WT=0.9124 TC=0.7782 ET=0.8094) | C0 Mean=0.8307 | C1 Mean=0.9011 | C2 Mean=0.6269 | C3 Mean=0.8667 [29.9s]
+    Client 1: loss=0.0298, epochs=50
+    Client 3: loss=0.0354, epochs=50
+    Client 0: loss=0.0538, epochs=19 [straggler, 19 ep]
+  Round  29/30: Pooled Loss=0.2320, Pooled Mean=0.8375 (WT=0.9147 TC=0.7748 ET=0.8230) | C0 Mean=0.8495 | C1 Mean=0.9099 | C2 Mean=0.5932 | C3 Mean=0.8851 [34.9s]
+    Client 2: loss=0.1253, epochs=4 [straggler, 4 ep]
+    Client 3: loss=0.0327, epochs=50
+    Client 1: loss=0.0276, epochs=50
+  Round  30/30: Pooled Loss=0.2173, Pooled Mean=0.8470 (WT=0.9160 TC=0.7922 ET=0.8327) | C0 Mean=0.8611 | C1 Mean=0.8997 | C2 Mean=0.6650 | C3 Mean=0.8885 [30.5s]
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:            FEDPROX (mu=0.01)
+Global MeanPresent:  0.8470 (best=0.8523)
+Global WT:           0.9160
+Global TC:           0.7922
+Global ET:           0.8327
+Client 0 MeanPresent: 0.8611 (best=0.8683)
+Client 1 MeanPresent: 0.8997 (best=0.9261)
+Client 2 MeanPresent: 0.6650 (best=0.7207)
+Client 3 MeanPresent: 0.8885 (best=0.8889)
+Convergence 50%:     round 1
+Convergence 60%:     round 1
+Convergence 70%:     round 1
+Total Time:          1128.00s (18.8min)
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/brats/fedprox_brats_r30_mu0.01_20260209_172829_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/brats
