@@ -11,24 +11,22 @@
 #! ==============================================================
 
 #SBATCH -J brats_fed_N
-#SBATCH -A FERGUSSON-SL3-GPU
+#SBATCH -A MPHIL-DIS-SL2-GPU
 #SBATCH -p ampere
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.err
-#SBATCH --qos=INTR
 
 set -euo pipefail
 
 # ======= Paths =======
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
-PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_a0p1/client_data}"
-PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data}"
+PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_8client_noisy_heavy/client_data}"
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-}"   # set to e.g. .../brats2d_8client_noisy/global_test if available
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
