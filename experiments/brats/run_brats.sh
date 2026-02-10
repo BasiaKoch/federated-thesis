@@ -17,7 +17,7 @@
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --time=03:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.out
 #SBATCH --error=/home/bk489/federated/federated-thesis/experiments/brats/logs/%x_%j.err
 
@@ -34,14 +34,14 @@ LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
-ROUNDS="${ROUNDS:-30}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-20}"          # high drift amplifies FedProx benefit
+ROUNDS="${ROUNDS:-50}"
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-30}"          # high drift amplifies FedProx benefit
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
-FRACTION_FIT="${FRACTION_FIT:-0.75}"       # 3 of 4 clients per round (match MNIST)
-MU="${MU:-0.4}"                           # proximal term (used directly, no normalization)
+FRACTION_FIT="${FRACTION_FIT:-1.0}"       # all 8 clients every round
+MU="${MU:-0.5}"                           # proximal term — strong for multi-client corruption
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
-DROP_PERCENT="${DROP_PERCENT:-0.5}"        # 50% stragglers (match MNIST)
+DROP_PERCENT="${DROP_PERCENT:-0.0}"        # no stragglers — isolate corruption effect
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"

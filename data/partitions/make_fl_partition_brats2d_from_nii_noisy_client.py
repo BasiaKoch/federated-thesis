@@ -74,23 +74,23 @@ MODALITY_SUFFIXES = {
 _CORRUPTION_PROFILES: List[Dict[str, Any]] = [
     # C0: Clean reference hospital
     {"label": "clean", "steps": []},
-    # C1: Inhomogeneous B1 coil — bias field only
-    {"label": "bias_only", "steps": ["bias"], "bias": 0.35},
-    # C2: Old/noisy scanner — Gaussian noise only
-    {"label": "noise_only", "steps": ["gauss"], "gauss_sigma": 0.20},
-    # C3: Low-resolution protocol — blur + downscale
-    {"label": "blur_downscale", "steps": ["blur", "scale"], "blur": 1.2, "scale": 0.70},
-    # C4: Aging scanner — bias + noise
-    {"label": "bias_noise", "steps": ["bias", "gauss"], "bias": 0.30, "gauss_sigma": 0.15},
-    # C5: Poor quality overall — bias + noise + blur
-    {"label": "bias_noise_blur", "steps": ["bias", "gauss", "blur"],
-     "bias": 0.40, "gauss_sigma": 0.18, "blur": 0.8},
-    # C6: Rural clinic — noise + blur + downscale
-    {"label": "noise_blur_downscale", "steps": ["gauss", "blur", "scale"],
-     "gauss_sigma": 0.22, "blur": 1.0, "scale": 0.75},
-    # C7: Mobile scanner — full pipeline
-    {"label": "full_pipeline", "steps": ["bias", "gauss", "blur", "scale"],
-     "bias": 0.60, "gauss_sigma": 0.25, "blur": 1.3, "scale": 0.65},
+    # C1: Mild — inhomogeneous B1 coil only
+    {"label": "bias_only", "steps": ["bias"], "bias": 0.40},
+    # C2: Mild — old/noisy scanner
+    {"label": "noise_only", "steps": ["gauss"], "gauss_sigma": 0.25},
+    # C3: Moderate — low-resolution protocol
+    {"label": "blur_downscale", "steps": ["blur", "scale"], "blur": 1.5, "scale": 0.60},
+    # C4: Moderate — aging scanner with bias + noise
+    {"label": "bias_noise", "steps": ["bias", "gauss"], "bias": 0.45, "gauss_sigma": 0.20},
+    # C5: Severe — barely readable, heavy bias + noise + blur
+    {"label": "severe_degraded", "steps": ["bias", "gauss", "blur"],
+     "bias": 0.80, "gauss_sigma": 0.45, "blur": 2.0},
+    # C6: Severe — washed out, extreme noise + blur + downscale
+    {"label": "severe_washed_out", "steps": ["gauss", "blur", "scale"],
+     "gauss_sigma": 0.50, "blur": 2.5, "scale": 0.45},
+    # C7: Extreme — nearly destroyed, full pipeline maxed out
+    {"label": "extreme_corrupted", "steps": ["bias", "gauss", "blur", "scale"],
+     "bias": 1.00, "gauss_sigma": 0.60, "blur": 3.0, "scale": 0.40},
 ]
 
 

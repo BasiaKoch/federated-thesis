@@ -89,12 +89,24 @@ def _to_chw(img: np.ndarray) -> np.ndarray:
 def _mask_to_wt_tc_et(mask: np.ndarray) -> np.ndarray:
     """BraTS labels {0,1,2,4} -> WT={1,2,4}, TC={1,4}, ET={4}. Output (3,H,W)."""
     if mask.ndim == 3:
-        if mask.shape[0] == 1:
+        # If one-hot, convert to label map first
+        if mask.shape[0] in (3, 4) and mask.shape[1] > 1 and mask.shape[2] > 1:
+            # CHW one-hot -> label map by argmax
+            mask = np.argmax(mask, axis=0)
+        elif mask.shape[-1] in (3, 4) and mask.shape[0] > 1 and mask.shape[1] > 1:
+            # HWC one-hot -> label map by argmax
+            mask = np.argmax(mask, axis=-1)
+        elif mask.shape[0] == 1:
             mask = mask[0]
         elif mask.shape[-1] == 1:
             mask = mask[..., 0]
         else:
             mask = mask[..., 0]
+
+    # If argmax produced classes 0..3 (no value 4), map class 3 -> label 4 (ET)
+    if mask.ndim == 2 and mask.max() == 3 and not np.any(mask == 4):
+        mask = mask.copy()
+        mask[mask == 3] = 4
     if mask.ndim != 2:
         raise ValueError(f"Unexpected mask shape {mask.shape}")
 
@@ -476,8 +488,17 @@ def run_federated(args: argparse.Namespace) -> Dict:
         num_workers=args.num_workers, pin_memory=pin,
     )
 
-    # Auto-detect in_ch from first sample
-    in_ch = 4
+    # Auto-detect in_ch from the first available sample across clients
+    sample_path = None
+    for cdir in client_dirs:
+        files = list(cdir.rglob("*.npz"))
+        if files:
+            sample_path = files[0]
+            break
+    if sample_path is None:
+        raise FileNotFoundError(f"No .npz files found under {partition_dir}")
+    sample_img, _ = _load_npz(sample_path)
+    in_ch = _to_chw(sample_img).shape[0]
 
 
     # Init global model
@@ -527,6 +548,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
         "global_WT": [],
         "global_TC": [],
         "global_ET": [],
+        "global_worst_client_MeanPresent": [],
     }
 
     # Optional: local model performance on GLOBAL test (drift diagnostic)
@@ -638,6 +660,11 @@ def run_federated(args: argparse.Namespace) -> Dict:
             round_metrics[f"client{k}_TC"].append(per_client_m[k]["TC"])
             round_metrics[f"client{k}_ET"].append(per_client_m[k]["ET"])
 
+        worst_client_mp = float(
+            min(per_client_m[k]["MeanPresent"] for k in range(num_clients))
+        )
+        round_metrics["global_worst_client_MeanPresent"].append(worst_client_mp)
+
         rnd_elapsed = time.time() - rnd_start
         client_strs = " | ".join([
             f"C{k} Mean={per_client_m[k]['MeanPresent']:.4f}"
@@ -649,6 +676,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
             f"Pooled Mean={pooled_m['MeanPresent']:.4f} "
             f"(WT={pooled_m['WT']:.4f} TC={pooled_m['TC']:.4f} ET={pooled_m['ET']:.4f}) | "
             f"{client_strs} "
+            f"WorstC Mean={worst_client_mp:.4f} "
             f"[{rnd_elapsed:.1f}s]"
         )
 
@@ -693,6 +721,10 @@ def run_federated(args: argparse.Namespace) -> Dict:
             "global_final_WT": round_metrics["global_WT"][-1] if mp_vals else 0.0,
             "global_final_TC": round_metrics["global_TC"][-1] if mp_vals else 0.0,
             "global_final_ET": round_metrics["global_ET"][-1] if mp_vals else 0.0,
+            "global_final_worst_client_MeanPresent": (
+                round_metrics["global_worst_client_MeanPresent"][-1]
+                if mp_vals else 0.0
+            ),
             "total_time_seconds": total_time,
         },
         "convergence": {
@@ -726,6 +758,7 @@ def run_federated(args: argparse.Namespace) -> Dict:
     print(f"Global WT:           {round_metrics['global_WT'][-1]:.4f}")
     print(f"Global TC:           {round_metrics['global_TC'][-1]:.4f}")
     print(f"Global ET:           {round_metrics['global_ET'][-1]:.4f}")
+    print(f"Worst-client Mean:   {round_metrics['global_worst_client_MeanPresent'][-1]:.4f}")
     for k in range(num_clients):
         key_mp = f"client{k}_MeanPresent"
         print(f"Client {k} MeanPresent: {round_metrics[key_mp][-1]:.4f} "
