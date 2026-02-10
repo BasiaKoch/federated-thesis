@@ -1,0 +1,87 @@
+==============================================
+BraTS 2D Federated Learning
+Job ID:       22467913
+Node(s):      gpu-q-22
+Workdir:      /home/bk489/federated/federated-thesis
+Script:       /home/bk489/federated/federated-thesis/experiments/brats/brats_n_clients.py
+Partition dir:/home/bk489/federated/federated-thesis/data/partitions/brats2d_8client_heterogeneous/client_data
+Global test:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_8client_heterogeneous/global_test
+Results dir:  /home/bk489/federated/federated-thesis/results/brats
+Strategy:     both (mu=0.1)
+Model:        UNet2D base=16
+Fraction:     0.75 | DropPercent: 0.5
+Rounds:       30 | LocalEpochs: 20
+Batch:        4 | LR: 0.01 | Seed: 42
+WeightDecay:  0.0 | NumWorkers: 2
+Python:       /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Tue Feb 10 18:30:01 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:41:00.0 Off |                    0 |
+| N/A   33C    P0             66W /  500W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDAVG (mu=0.0) ...
+
+Using global_test_dir: /home/bk489/federated/federated-thesis/data/partitions/brats2d_8client_heterogeneous/global_test (180 files)
+
+============================================================
+Federated Learning -- FEDAVG
+============================================================
+Model:          UNet2D (base=16, 482,915 params)
+Input channels: 4
+Clients:        8
+Rounds:         30
+Local epochs:   20
+Batch size:     4
+Learning rate:  0.01
+Weight decay:   0.0
+Fraction fit:   0.75
+Drop percent:   0.5
+Device:         cuda
+Partition dir:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_8client_heterogeneous/client_data
+============================================================
+
+Client data distribution:
+  client_0: train=135  test=15
+  client_1: train=295  test=40
+  client_2: train=140  test=20
+  client_3: train=265  test=30
+  client_4: train=180  test=25
+  client_5: train=180  test=25
+  client_6: train=55  test=10
+  client_7: train=65  test=10
+
+    Client 1: loss=1.2815, epochs=6 [straggler, 6 ep]
+    Client 4: loss=1.0208, epochs=20
+    Client 0: loss=1.0624, epochs=20
+    Client 7: loss=1.3193, epochs=20
+    Client 6: loss=1.4144, epochs=8 [straggler, 8 ep]
+    Client 2: loss=1.2191, epochs=13 [straggler, 13 ep]
+  Round   1/30: Pooled Loss=0.9996, Pooled Mean=0.5338 (WT=0.7409 TC=0.2441 ET=0.6163) | C0 Mean=0.5426 | C1 Mean=0.2950 | C2 Mean=0.2803 | C3 Mean=0.5199 | C4 Mean=0.4380 | C5 Mean=0.3698 | C6 Mean=0.5671 | C7 Mean=0.1912 [75.3s]
+    Client 1: loss=0.8989, epochs=8 [straggler, 8 ep]
+    Client 0: loss=0.5970, epochs=20
+    Client 3: loss=0.4340, epochs=20
+    Client 4: loss=0.7272, epochs=13 [straggler, 13 ep]
+    Client 6: loss=0.7066, epochs=20
+    Client 2: loss=0.7172, epochs=14 [straggler, 14 ep]
+  Round   2/30: Pooled Loss=0.4985, Pooled Mean=0.7248 (WT=0.8308 TC=0.6625 ET=0.6812) | C0 Mean=0.7631 | C1 Mean=0.4021 | C2 Mean=0.4341 | C3 Mean=0.7400 | C4 Mean=0.5723 | C5 Mean=0.4783 | C6 Mean=0.7701 | C7 Mean=0.2505 [69.0s]
+    Client 5: loss=0.4798, epochs=20

@@ -187,3 +187,55 @@ Client data distribution:
     Client 4: loss=0.0368, epochs=50
     Client 1: loss=0.0491, epochs=50
   Round  13/30: Pooled Loss=0.2468, Pooled Mean=0.8376 (WT=0.8911 TC=0.7890 ET=0.8326) | C0 Mean=0.5994 | C1 Mean=0.8795 | C2 Mean=0.8877 | C3 Mean=0.6209 | C4 Mean=0.8843 | C5 Mean=0.8601 | C6 Mean=0.8632 | C7 Mean=0.5488 [159.7s]
+    Client 7: loss=0.0666, epochs=50
+    Client 2: loss=0.0687, epochs=50
+    Client 4: loss=0.0357, epochs=50
+    Client 6: loss=0.0509, epochs=50
+    Client 1: loss=0.0490, epochs=50
+    Client 3: loss=0.0485, epochs=50
+    Client 0: loss=0.0439, epochs=50
+    Client 5: loss=0.0470, epochs=50
+  Round  14/30: Pooled Loss=0.2449, Pooled Mean=0.8401 (WT=0.8956 TC=0.7927 ET=0.8321) | C0 Mean=0.6042 | C1 Mean=0.8779 | C2 Mean=0.8973 | C3 Mean=0.7251 | C4 Mean=0.8751 | C5 Mean=0.8702 | C6 Mean=0.8549 | C7 Mean=0.5633 [166.0s]
+    Client 5: loss=0.0468, epochs=50
+    Client 4: loss=0.0348, epochs=50
+    Client 6: loss=0.0469, epochs=50
+    Client 0: loss=0.0496, epochs=50
+    Client 3: loss=0.0488, epochs=50
+    Client 7: loss=0.0650, epochs=50
+    Client 1: loss=0.0419, epochs=50
+    Client 2: loss=0.0452, epochs=50
+  Round  15/30: Pooled Loss=0.2499, Pooled Mean=0.8359 (WT=0.8926 TC=0.7850 ET=0.8302) | C0 Mean=0.5984 | C1 Mean=0.8804 | C2 Mean=0.8847 | C3 Mean=0.6287 | C4 Mean=0.8780 | C5 Mean=0.8568 | C6 Mean=0.8596 | C7 Mean=0.5510 [161.8s]
+    Client 7: loss=0.0624, epochs=50
+    Client 2: loss=0.0421, epochs=50
+    Client 3: loss=0.0497, epochs=50
+    Client 0: loss=0.0416, epochs=50
+    Client 6: loss=0.0457, epochs=50
+    Client 5: loss=0.0441, epochs=50
+    Client 4: loss=0.0344, epochs=50
+    Client 1: loss=0.0432, epochs=50
+  Round  16/30: Pooled Loss=0.2506, Pooled Mean=0.8359 (WT=0.8942 TC=0.7880 ET=0.8255) | C0 Mean=0.6001 | C1 Mean=0.8792 | C2 Mean=0.8814 | C3 Mean=0.6248 | C4 Mean=0.8777 | C5 Mean=0.8525 | C6 Mean=0.8605 | C7 Mean=0.5533 [159.2s]
+    Client 5: loss=0.0438, epochs=50
+    Client 7: loss=0.0635, epochs=50
+    Client 6: loss=0.0434, epochs=50
+    Client 4: loss=0.0316, epochs=50
+    Client 0: loss=0.0471, epochs=50
+    Client 1: loss=0.0463, epochs=50
+    Client 2: loss=0.0817, epochs=50
+    Client 3: loss=0.0460, epochs=50
+  Round  17/30: Pooled Loss=0.2721, Pooled Mean=0.8188 (WT=0.8869 TC=0.7762 ET=0.7933) | C0 Mean=0.6059 | C1 Mean=0.8676 | C2 Mean=0.8701 | C3 Mean=0.5526 | C4 Mean=0.8493 | C5 Mean=0.8099 | C6 Mean=0.8473 | C7 Mean=0.5182 [159.7s]
+    Client 3: loss=0.0489, epochs=50
+    Client 1: loss=0.0542, epochs=50
+    Client 0: loss=0.0429, epochs=50
+    Client 2: loss=0.0486, epochs=50
+    Client 4: loss=0.0317, epochs=50
+    Client 5: loss=0.0437, epochs=50
+    Client 6: loss=0.0444, epochs=50
+
+>>> FEDAVG done.
+
+>>> Running FEDPROX (mu=0.1) ...
+
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/brats
