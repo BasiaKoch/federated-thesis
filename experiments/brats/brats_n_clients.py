@@ -450,8 +450,17 @@ def run_federated(args: argparse.Namespace) -> Dict:
 
     # Pooled global test loader
     pooled_files: List[Path] = []
-    for cdir in client_dirs:
-        pooled_files.extend(sorted((cdir / "test").rglob("*.npz")))
+    if args.global_test_dir is not None:
+        gt_dir = Path(args.global_test_dir)
+        if gt_dir.is_dir():
+            pooled_files = sorted(gt_dir.rglob("*.npz"))
+            print(f"Using global_test_dir: {gt_dir} ({len(pooled_files)} files)")
+        else:
+            print(f"WARNING: --global_test_dir {gt_dir} not found, "
+                  "falling back to per-client test/")
+    if not pooled_files:
+        for cdir in client_dirs:
+            pooled_files.extend(sorted((cdir / "test").rglob("*.npz")))
 
     class _PooledTestDS(Dataset):
         def __len__(self):
@@ -719,6 +728,9 @@ def main() -> None:
     )
     ap.add_argument("--partition_dir", required=True,
                     help="Path to client_data dir (contains client_0, client_1, ...)")
+    ap.add_argument("--global_test_dir", type=str, default=None,
+                    help="Path to global_test dir with .npz files (optional; "
+                         "if not set, pooled test = union of per-client test/)")
     ap.add_argument("--strategy", choices=["fedavg", "fedprox", "both"],
                     default="fedavg")
     ap.add_argument("--rounds", type=int, default=30)
