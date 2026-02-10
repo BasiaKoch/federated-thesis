@@ -100,11 +100,12 @@ def build_parser() -> argparse.ArgumentParser:
     # Slice selection
     p.add_argument("--slice_policy", choices=["central_band", "all"],
                    default="central_band")
-    p.add_argument("--central_band", nargs=2, type=float, default=[0.30, 0.70],
+    p.add_argument("--central_band", nargs=2, type=float, default=[0.35, 0.65],
                    metavar=("LOW", "HIGH"))
     p.add_argument("--keep_empty_slices", action="store_true", default=False)
-    p.add_argument("--tumor_sampling", type=float, default=0.70,
-                   help="Target proportion of tumor-containing slices (train only)")
+    p.add_argument("--tumor_sampling", type=float, default=1.0,
+                   help="Target proportion of tumor-containing slices (train only; "
+                        "1.0 = tumor slices only)")
 
     # Normalization
     p.add_argument("--normalize", choices=["zscore_per_volume", "zscore_per_slice", "none"],
@@ -127,9 +128,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--corrupt_strength", choices=["mild", "medium", "heavy"],
                    default="heavy")
 
-    # Slice limits
-    p.add_argument("--min_slices_per_patient", type=int, default=5)
-    p.add_argument("--max_slices_per_patient", type=int, default=128)
+    # Slice limits (keep small for fast training; corruption drives FedProx gap)
+    p.add_argument("--min_slices_per_patient", type=int, default=1)
+    p.add_argument("--max_slices_per_patient", type=int, default=3)
 
     return p
 
@@ -499,18 +500,16 @@ def select_slice_indices(
     if not candidates:
         return []
 
-    # Identify tumor vs non-tumor slices
-    tumor_slices = [z for z in candidates if np.any(seg_vol[:, :, z] > 0)]
-    nontumor_slices = [z for z in candidates if z not in set(tumor_slices)]
+    # Compute tumor area per candidate slice (used for ranking)
+    tumor_area = {z: int(np.count_nonzero(seg_vol[:, :, z] > 0)) for z in candidates}
+    tumor_slices = [z for z in candidates if tumor_area[z] > 0]
+    nontumor_slices = [z for z in candidates if tumor_area[z] == 0]
 
     if is_train and tumor_slices:
-        # Keep all tumor slices, then add non-tumor to reach target ratio
+        # Keep tumor slices, then optionally add non-tumor to reach ratio
         selected = list(tumor_slices)
         if tumor_sampling < 1.0 and nontumor_slices:
-            # How many non-tumor slices to add?
             n_tumor = len(tumor_slices)
-            # tumor_sampling = n_tumor / (n_tumor + n_nontumor)
-            # => n_nontumor = n_tumor * (1 - tumor_sampling) / tumor_sampling
             target_nontumor = int(
                 n_tumor * (1.0 - tumor_sampling) / max(tumor_sampling, 1e-9)
             )
@@ -519,17 +518,18 @@ def select_slice_indices(
                 rng.shuffle(nontumor_slices)
                 selected.extend(nontumor_slices[:target_nontumor])
     else:
-        # Val/test: keep all candidate slices
-        selected = candidates
+        # Val/test: prefer tumor-containing slices
+        selected = list(tumor_slices) if tumor_slices else list(candidates)
 
-    # Apply min/max limits
+    # Cap to max_slices — keep slices with MOST tumor area (most informative)
     if len(selected) > max_slices:
-        rng.shuffle(selected)
-        selected = sorted(selected[:max_slices])
-    elif len(selected) < min_slices:
-        # Try to pad from the full candidate list
+        selected.sort(key=lambda z: tumor_area.get(z, 0), reverse=True)
+        selected = selected[:max_slices]
+
+    # Pad to min_slices if needed
+    if len(selected) < min_slices:
         extras = [z for z in candidates if z not in set(selected)]
-        rng.shuffle(extras)
+        extras.sort(key=lambda z: tumor_area.get(z, 0), reverse=True)
         selected.extend(extras[:max(0, min_slices - len(selected))])
 
     return sorted(set(selected))
@@ -593,7 +593,7 @@ def apply_blur(img: np.ndarray, sigma: float) -> np.ndarray:
 
 
 def apply_downscale(
-    img: np.ndarray, scale: float, rng: np.random.Generator,
+    img: np.ndarray, scale: float,
 ) -> np.ndarray:
     """Downsample then upsample to simulate low-resolution acquisition."""
     C, H, W = img.shape
@@ -636,7 +636,7 @@ def corrupt_slice(
         elif step == "blur":
             out = apply_blur(out, strength_params["blur"])
         elif step == "scale":
-            out = apply_downscale(out, strength_params["scale"], crng)
+            out = apply_downscale(out, strength_params["scale"])
 
     return out
 
