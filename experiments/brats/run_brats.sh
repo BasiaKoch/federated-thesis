@@ -28,6 +28,7 @@ set -euo pipefail
 PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
 PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_4client_dirichlet_balanced_a0p1/client_data}"
+GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-}"   # set to e.g. .../brats2d_8client_noisy/global_test if available
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
@@ -72,6 +73,7 @@ echo "Node(s):      ${SLURM_NODELIST}"
 echo "Workdir:      $(pwd)"
 echo "Script:       ${SRC_FILE}"
 echo "Partition dir:${PARTITION_DIR}"
+echo "Global test:  ${GLOBAL_TEST_DIR:-<per-client test pooled>}"
 echo "Results dir:  ${RESULTS_DIR}"
 echo "Strategy:     ${STRATEGY} (mu=${MU})"
 echo "Model:        UNet2D base=${MODEL_BASE}"
@@ -111,6 +113,11 @@ COMMON_ARGS=(
     --use_cuda
     --output_dir "${RESULTS_DIR}"
 )
+
+# Append global_test_dir if set
+if [[ -n "${GLOBAL_TEST_DIR}" ]]; then
+    COMMON_ARGS+=(--global_test_dir "${GLOBAL_TEST_DIR}")
+fi
 
 # ======= Run =======
 run_strategy() {
