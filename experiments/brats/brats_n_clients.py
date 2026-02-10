@@ -477,8 +477,8 @@ def run_federated(args: argparse.Namespace) -> Dict:
     )
 
     # Auto-detect in_ch from first sample
-    x0, _ = client_train_loaders[0].dataset[0]
-    in_ch = int(x0.shape[0])
+    in_ch = 4
+
 
     # Init global model
     torch.manual_seed(args.seed)
@@ -520,7 +520,6 @@ def run_federated(args: argparse.Namespace) -> Dict:
         print(f"  {cdir.name}: train={train_n}  test={test_n}")
     print()
 
-    # Per-round tracking
     round_metrics: Dict[str, list] = {
         "rounds": [],
         "global_loss": [],
@@ -529,6 +528,13 @@ def run_federated(args: argparse.Namespace) -> Dict:
         "global_TC": [],
         "global_ET": [],
     }
+
+    # Optional: local model performance on GLOBAL test (drift diagnostic)
+    if args.eval_local_on_global:
+        round_metrics["local_on_global_mean"] = []
+        round_metrics["local_on_global_worst"] = []
+
+
     for k in range(num_clients):
         round_metrics[f"client{k}_MeanPresent"] = []
         round_metrics[f"client{k}_WT"] = []
@@ -539,6 +545,8 @@ def run_federated(args: argparse.Namespace) -> Dict:
 
     for rnd in range(1, args.rounds + 1):
         rnd_start = time.time()
+        local_global_scores: List[float] = []
+
 
         # Select fraction of clients
         num_selected = max(1, int(num_clients * args.fraction_fit))
@@ -583,6 +591,10 @@ def run_federated(args: argparse.Namespace) -> Dict:
                 global_params=global_params,
                 weight_decay=args.weight_decay,
             )
+            if args.eval_local_on_global:
+                lm = evaluate_model(local_model, global_test_loader, device)
+                local_global_scores.append(lm["MeanPresent"])
+
 
             tag = f" [straggler, {local_ep} ep]" if is_straggler else ""
             print(f"    Client {k}: loss={avg_loss:.4f}, epochs={local_ep}{tag}")
@@ -591,6 +603,15 @@ def run_federated(args: argparse.Namespace) -> Dict:
             selected_sizes.append(client_sizes[k])
             client_losses.append(avg_loss)
 
+            # Summarize local models evaluated on GLOBAL test (optional)
+        if args.eval_local_on_global and len(local_global_scores) > 0:
+            local_mean = float(np.mean(local_global_scores))
+            local_worst = float(np.min(local_global_scores))
+
+            # Save to metrics
+            round_metrics["local_on_global_mean"].append(local_mean)
+            round_metrics["local_on_global_worst"].append(local_worst)
+            print(f"    Local models on GLOBAL test: mean={local_mean:.4f} worst={local_worst:.4f}")
         # Aggregate
         federated_averaging(global_model, client_models, selected_sizes)
 
@@ -751,6 +772,8 @@ def main() -> None:
     ap.add_argument("--use_cuda", action="store_true")
     ap.add_argument("--output_dir", type=str, default="./results/brats",
                     help="Directory to save results JSON")
+    ap.add_argument("--eval_local_on_global", action="store_true")
+
     args = ap.parse_args()
 
     np.random.seed(args.seed)
