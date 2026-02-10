@@ -28,7 +28,10 @@ PROJECT_DIR="$HOME/federated/federated-thesis"
 SRC_FILE="${PROJECT_DIR}/experiments/brats/brats_n_clients.py"
 PARTITION_DIR="${PARTITION_DIR:-${PROJECT_DIR}/data/partitions/brats2d_8client_noisy_heavy/client_data}"
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-${PROJECT_DIR}/data/partitions/brats2d_8client_noisy_heavy/global_test}"
+<<<<<<< HEAD
 GLOBAL_TEST_DIR="${GLOBAL_TEST_DIR:-}"   # set to e.g. .../brats2d_8client_noisy/global_test if available
+=======
+>>>>>>> b60349aabdd90084e6a651654c065a3b8db4b81b
 RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
