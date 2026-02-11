@@ -73,11 +73,7 @@ LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 #
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
 ROUNDS="${ROUNDS:-50}"
-<<<<<<< HEAD
 LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"          # high drift amplifies FedProx benefit
-=======
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"           # fewer epochs = less drift = proximal term effective
->>>>>>> d45e64df08c766c66e5505426a59d840ef857a30
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-1.0}"        # all 8 clients every round
