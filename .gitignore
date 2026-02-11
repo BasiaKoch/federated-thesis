@@ -31,6 +31,7 @@ data/partitions/*
 !data/partitions/brats2d_8client_heterogeneous
 !data/partitions/brats2d_quality_2client_strong/
 !data/partitions/brats2d_quality_2client_strong/*
+!data/partitions/brats2d_2client_extreme
 
 !data/partitions/brats2d_4client_dirichlet_balanced_a1p0/
 !data/partitions/brats2d_4client_dirichlet_balanced_a1p0/*

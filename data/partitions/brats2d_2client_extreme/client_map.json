@@ -1,0 +1,63 @@
+{
+  "experiment_config": {
+    "num_clients": 2,
+    "seed": 42,
+    "corruption_schedule": "extreme",
+    "design": "balanced_data_corruption_heterogeneity",
+    "client_0": "clean (no corruption)",
+    "client_1": "extreme_corrupted (bias=1.0, gauss=0.6, blur=3.0, scale=0.4)"
+  },
+  "per_client": {
+    "client_0": {
+      "num_patients": 166,
+      "patients_per_split": {
+        "test": 17,
+        "val": 17,
+        "train": 132
+      },
+      "slices_per_split": {
+        "test": 85,
+        "val": 85,
+        "train": 660
+      },
+      "mean_WT_frac": 0.011165973031912597,
+      "mean_ET_frac": 0.21163956075851553,
+      "corruption_profile": {
+        "label": "clean",
+        "steps": []
+      }
+    },
+    "client_1": {
+      "num_patients": 167,
+      "patients_per_split": {
+        "test": 17,
+        "val": 17,
+        "train": 133
+      },
+      "slices_per_split": {
+        "test": 85,
+        "val": 85,
+        "train": 665
+      },
+      "mean_WT_frac": 0.011192353196832143,
+      "mean_ET_frac": 0.1928059444782138,
+      "corruption_profile": {
+        "label": "extreme_corrupted",
+        "steps": [
+          "bias",
+          "gauss",
+          "blur",
+          "scale"
+        ],
+        "bias": 1.0,
+        "gauss_sigma": 0.6,
+        "blur": 3.0,
+        "scale": 0.4
+      }
+    }
+  },
+  "global_test": {
+    "num_patients": 36,
+    "num_slices": 180
+  }
+}
