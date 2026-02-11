@@ -1,0 +1,240 @@
+==============================================
+BraTS 2D Federated Learning
+Job ID:       22536467
+Node(s):      gpu-q-61
+Workdir:      /home/bk489/federated/federated-thesis
+Script:       /home/bk489/federated/federated-thesis/experiments/brats/brats_n_clients.py
+Partition dir:/home/bk489/federated/federated-thesis/data/partitions/brats2d_2client_extreme/client_data
+Global test:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_2client_extreme/global_test
+Results dir:  /home/bk489/federated/federated-thesis/results/brats
+Strategy:     fedprox (mu=0.2)
+Model:        UNet2D base=16
+Fraction:     1.0 | DropPercent: 0.0
+Rounds:       50 | LocalEpochs: 10
+Batch:        4 | LR: 0.01 | Seed: 42
+WeightDecay:  0.0 | NumWorkers: 2
+Python:       /home/bk489/.conda/envs/fed/bin/python
+Python 3.9.16 | packaged by conda-forge | (main, Feb  1 2023, 21:39:03) 
+[GCC 11.3.0]
+PyTorch 2.8.0+cu128 CUDA: 12.8 CUDA available: True Device count: 1
+Wed Feb 11 13:19:08 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.195.03             Driver Version: 570.195.03     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:01:00.0 Off |                    0 |
+| N/A   41C    P0             69W /  500W |    1709MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A         4110893      C   /opt/alphafoldenv/bin/python            420MiB |
++-----------------------------------------------------------------------------------------+
+==============================================
+
+>>> Running FEDPROX (mu=0.2) ...
+
+Using global_test_dir: /home/bk489/federated/federated-thesis/data/partitions/brats2d_2client_extreme/global_test (180 files)
+
+============================================================
+Federated Learning -- FEDPROX
+============================================================
+Model:          UNet2D (base=16, 482,915 params)
+Input channels: 4
+Clients:        2
+Rounds:         50
+Local epochs:   10
+Batch size:     4
+Learning rate:  0.01
+Weight decay:   0.0
+Fraction fit:   1.0
+Drop percent:   0.0
+Proximal mu:    0.2
+Device:         cuda
+Partition dir:  /home/bk489/federated/federated-thesis/data/partitions/brats2d_2client_extreme/client_data
+============================================================
+
+Client data distribution:
+  client_0: train=660  test=85
+  client_1: train=665  test=85
+
+    Client 0: loss=1.2079, epochs=10
+    Client 1: loss=1.3015, epochs=10
+  Round   1/50: Pooled Loss=1.0674, Pooled Mean=0.5004 (WT=0.6895 TC=0.2233 ET=0.5884) | C0 Mean=0.5049 | C1 Mean=0.1796 WorstC Mean=0.1796 [68.4s]
+    Client 1: loss=1.0411, epochs=10
+    Client 0: loss=0.7582, epochs=10
+  Round   2/50: Pooled Loss=0.7514, Pooled Mean=0.7173 (WT=0.8140 TC=0.6224 ET=0.7156) | C0 Mean=0.6905 | C1 Mean=0.2352 WorstC Mean=0.2352 [53.7s]
+    Client 0: loss=0.4817, epochs=10
+    Client 1: loss=0.9429, epochs=10
+  Round   3/50: Pooled Loss=0.5577, Pooled Mean=0.7339 (WT=0.8402 TC=0.6558 ET=0.7056) | C0 Mean=0.7540 | C1 Mean=0.2610 WorstC Mean=0.2610 [55.3s]
+    Client 0: loss=0.3462, epochs=10
+    Client 1: loss=0.8964, epochs=10
+  Round   4/50: Pooled Loss=0.4744, Pooled Mean=0.7377 (WT=0.8217 TC=0.6997 ET=0.6917) | C0 Mean=0.7339 | C1 Mean=0.2907 WorstC Mean=0.2907 [58.0s]
+    Client 0: loss=0.2749, epochs=10
+    Client 1: loss=0.8359, epochs=10
+  Round   5/50: Pooled Loss=0.4962, Pooled Mean=0.6814 (WT=0.7811 TC=0.6117 ET=0.6515) | C0 Mean=0.7102 | C1 Mean=0.2851 WorstC Mean=0.2851 [55.7s]
+    Client 1: loss=0.7959, epochs=10
+    Client 0: loss=0.2319, epochs=10
+  Round   6/50: Pooled Loss=0.4201, Pooled Mean=0.7309 (WT=0.8264 TC=0.6841 ET=0.6821) | C0 Mean=0.7280 | C1 Mean=0.3226 WorstC Mean=0.3226 [60.5s]
+    Client 1: loss=0.7639, epochs=10
+    Client 0: loss=0.2046, epochs=10
+  Round   7/50: Pooled Loss=0.4444, Pooled Mean=0.7129 (WT=0.7749 TC=0.6370 ET=0.7269) | C0 Mean=0.7152 | C1 Mean=0.3730 WorstC Mean=0.3730 [62.1s]
+    Client 0: loss=0.1857, epochs=10
+    Client 1: loss=0.7375, epochs=10
+  Round   8/50: Pooled Loss=0.4248, Pooled Mean=0.7179 (WT=0.8074 TC=0.6450 ET=0.7013) | C0 Mean=0.7280 | C1 Mean=0.3788 WorstC Mean=0.3788 [60.0s]
+    Client 0: loss=0.1700, epochs=10
+    Client 1: loss=0.7205, epochs=10
+  Round   9/50: Pooled Loss=0.4326, Pooled Mean=0.7124 (WT=0.7947 TC=0.6132 ET=0.7295) | C0 Mean=0.7305 | C1 Mean=0.3927 WorstC Mean=0.3927 [56.9s]
+    Client 0: loss=0.1557, epochs=10
+    Client 1: loss=0.6916, epochs=10
+  Round  10/50: Pooled Loss=0.4293, Pooled Mean=0.7111 (WT=0.7785 TC=0.6253 ET=0.7296) | C0 Mean=0.7223 | C1 Mean=0.4030 WorstC Mean=0.4030 [55.4s]
+    Client 1: loss=0.6739, epochs=10
+    Client 0: loss=0.1477, epochs=10
+  Round  11/50: Pooled Loss=0.4516, Pooled Mean=0.6773 (WT=0.7488 TC=0.6160 ET=0.6671) | C0 Mean=0.6867 | C1 Mean=0.4012 WorstC Mean=0.4012 [60.8s]
+    Client 1: loss=0.6307, epochs=10
+    Client 0: loss=0.1401, epochs=10
+  Round  12/50: Pooled Loss=0.4073, Pooled Mean=0.7237 (WT=0.8002 TC=0.6463 ET=0.7244) | C0 Mean=0.7276 | C1 Mean=0.4422 WorstC Mean=0.4422 [60.8s]
+    Client 0: loss=0.1342, epochs=10
+    Client 1: loss=0.5781, epochs=10
+  Round  13/50: Pooled Loss=0.4023, Pooled Mean=0.7258 (WT=0.8013 TC=0.6675 ET=0.7087) | C0 Mean=0.7301 | C1 Mean=0.4620 WorstC Mean=0.4620 [59.3s]
+    Client 0: loss=0.1308, epochs=10
+    Client 1: loss=0.5415, epochs=10
+  Round  14/50: Pooled Loss=0.3819, Pooled Mean=0.7471 (WT=0.8228 TC=0.6840 ET=0.7346) | C0 Mean=0.7425 | C1 Mean=0.4835 WorstC Mean=0.4835 [56.7s]
+    Client 0: loss=0.1250, epochs=10
+    Client 1: loss=0.5033, epochs=10
+  Round  15/50: Pooled Loss=0.3631, Pooled Mean=0.7622 (WT=0.8302 TC=0.7110 ET=0.7454) | C0 Mean=0.7723 | C1 Mean=0.4887 WorstC Mean=0.4887 [57.9s]
+    Client 1: loss=0.4761, epochs=10
+    Client 0: loss=0.1203, epochs=10
+  Round  16/50: Pooled Loss=0.3852, Pooled Mean=0.7477 (WT=0.8177 TC=0.7093 ET=0.7161) | C0 Mean=0.7402 | C1 Mean=0.5050 WorstC Mean=0.5050 [56.1s]
+    Client 0: loss=0.1173, epochs=10
+    Client 1: loss=0.4463, epochs=10
+  Round  17/50: Pooled Loss=0.3488, Pooled Mean=0.7701 (WT=0.8274 TC=0.7370 ET=0.7459) | C0 Mean=0.7712 | C1 Mean=0.5056 WorstC Mean=0.5056 [55.5s]
+    Client 1: loss=0.4248, epochs=10
+    Client 0: loss=0.1137, epochs=10
+  Round  18/50: Pooled Loss=0.3330, Pooled Mean=0.7847 (WT=0.8365 TC=0.7575 ET=0.7602) | C0 Mean=0.7774 | C1 Mean=0.5081 WorstC Mean=0.5081 [63.5s]
+    Client 1: loss=0.4058, epochs=10
+    Client 0: loss=0.1094, epochs=10
+  Round  19/50: Pooled Loss=0.3583, Pooled Mean=0.7620 (WT=0.8048 TC=0.7340 ET=0.7471) | C0 Mean=0.7479 | C1 Mean=0.4963 WorstC Mean=0.4963 [59.2s]
+    Client 0: loss=0.1075, epochs=10
+    Client 1: loss=0.3903, epochs=10
+  Round  20/50: Pooled Loss=0.3975, Pooled Mean=0.7359 (WT=0.7962 TC=0.6907 ET=0.7208) | C0 Mean=0.7433 | C1 Mean=0.5142 WorstC Mean=0.5142 [58.3s]
+    Client 0: loss=0.1057, epochs=10
+    Client 1: loss=0.3742, epochs=10
+  Round  21/50: Pooled Loss=0.3400, Pooled Mean=0.7768 (WT=0.8224 TC=0.7455 ET=0.7626) | C0 Mean=0.7766 | C1 Mean=0.5161 WorstC Mean=0.5161 [61.4s]
+    Client 0: loss=0.0997, epochs=10
+    Client 1: loss=0.3566, epochs=10
+  Round  22/50: Pooled Loss=0.3487, Pooled Mean=0.7756 (WT=0.8235 TC=0.7413 ET=0.7619) | C0 Mean=0.7779 | C1 Mean=0.5669 WorstC Mean=0.5669 [61.5s]
+    Client 1: loss=0.3477, epochs=10
+    Client 0: loss=0.0982, epochs=10
+  Round  23/50: Pooled Loss=0.3411, Pooled Mean=0.7798 (WT=0.8286 TC=0.7469 ET=0.7638) | C0 Mean=0.7780 | C1 Mean=0.5796 WorstC Mean=0.5796 [61.8s]
+    Client 0: loss=0.1003, epochs=10
+    Client 1: loss=0.3297, epochs=10
+  Round  24/50: Pooled Loss=0.3470, Pooled Mean=0.7766 (WT=0.8332 TC=0.7237 ET=0.7729) | C0 Mean=0.7637 | C1 Mean=0.5269 WorstC Mean=0.5269 [55.0s]
+    Client 1: loss=0.3214, epochs=10
+    Client 0: loss=0.0925, epochs=10
+  Round  25/50: Pooled Loss=0.3305, Pooled Mean=0.7862 (WT=0.8426 TC=0.7515 ET=0.7645) | C0 Mean=0.7872 | C1 Mean=0.5585 WorstC Mean=0.5585 [60.6s]
+    Client 1: loss=0.3044, epochs=10
+    Client 0: loss=0.0882, epochs=10
+  Round  26/50: Pooled Loss=0.3417, Pooled Mean=0.7792 (WT=0.8275 TC=0.7460 ET=0.7642) | C0 Mean=0.7817 | C1 Mean=0.5659 WorstC Mean=0.5659 [54.6s]
+    Client 0: loss=0.0884, epochs=10
+    Client 1: loss=0.2881, epochs=10
+  Round  27/50: Pooled Loss=0.3369, Pooled Mean=0.7812 (WT=0.8311 TC=0.7483 ET=0.7641) | C0 Mean=0.7814 | C1 Mean=0.5576 WorstC Mean=0.5576 [55.6s]
+    Client 1: loss=0.2903, epochs=10
+    Client 0: loss=0.0860, epochs=10
+  Round  28/50: Pooled Loss=0.3309, Pooled Mean=0.7883 (WT=0.8342 TC=0.7596 ET=0.7710) | C0 Mean=0.7853 | C1 Mean=0.5560 WorstC Mean=0.5560 [52.7s]
+    Client 1: loss=0.2873, epochs=10
+    Client 0: loss=0.0830, epochs=10
+  Round  29/50: Pooled Loss=0.3346, Pooled Mean=0.7824 (WT=0.8333 TC=0.7654 ET=0.7484) | C0 Mean=0.7668 | C1 Mean=0.5517 WorstC Mean=0.5517 [54.6s]
+    Client 0: loss=0.0809, epochs=10
+    Client 1: loss=0.2605, epochs=10
+  Round  30/50: Pooled Loss=0.3181, Pooled Mean=0.8015 (WT=0.8507 TC=0.7735 ET=0.7802) | C0 Mean=0.7939 | C1 Mean=0.5657 WorstC Mean=0.5657 [56.0s]
+    Client 1: loss=0.2574, epochs=10
+    Client 0: loss=0.0791, epochs=10
+  Round  31/50: Pooled Loss=0.3272, Pooled Mean=0.7956 (WT=0.8505 TC=0.7578 ET=0.7786) | C0 Mean=0.7911 | C1 Mean=0.5486 WorstC Mean=0.5486 [55.0s]
+    Client 0: loss=0.0789, epochs=10
+    Client 1: loss=0.2508, epochs=10
+  Round  32/50: Pooled Loss=0.3255, Pooled Mean=0.7891 (WT=0.8421 TC=0.7659 ET=0.7593) | C0 Mean=0.7798 | C1 Mean=0.5821 WorstC Mean=0.5821 [61.0s]
+    Client 1: loss=0.2985, epochs=10
+    Client 0: loss=0.0777, epochs=10
+  Round  33/50: Pooled Loss=0.3296, Pooled Mean=0.7890 (WT=0.8468 TC=0.7598 ET=0.7604) | C0 Mean=0.7873 | C1 Mean=0.5931 WorstC Mean=0.5931 [60.9s]
+    Client 0: loss=0.0806, epochs=10
+    Client 1: loss=0.2296, epochs=10
+  Round  34/50: Pooled Loss=0.3302, Pooled Mean=0.7840 (WT=0.8401 TC=0.7584 ET=0.7534) | C0 Mean=0.7767 | C1 Mean=0.5701 WorstC Mean=0.5701 [55.2s]
+    Client 0: loss=0.0749, epochs=10
+    Client 1: loss=0.2268, epochs=10
+  Round  35/50: Pooled Loss=0.3593, Pooled Mean=0.7529 (WT=0.8320 TC=0.7380 ET=0.6887) | C0 Mean=0.7489 | C1 Mean=0.5390 WorstC Mean=0.5390 [57.3s]
+    Client 1: loss=0.2344, epochs=10
+    Client 0: loss=0.0741, epochs=10
+  Round  36/50: Pooled Loss=0.3322, Pooled Mean=0.7902 (WT=0.8430 TC=0.7589 ET=0.7687) | C0 Mean=0.7734 | C1 Mean=0.5663 WorstC Mean=0.5663 [55.4s]
+    Client 0: loss=0.0745, epochs=10
+    Client 1: loss=0.2075, epochs=10
+  Round  37/50: Pooled Loss=0.3252, Pooled Mean=0.7918 (WT=0.8447 TC=0.7641 ET=0.7665) | C0 Mean=0.7845 | C1 Mean=0.5713 WorstC Mean=0.5713 [61.7s]
+    Client 0: loss=0.0726, epochs=10
+    Client 1: loss=0.2023, epochs=10
+  Round  38/50: Pooled Loss=0.3253, Pooled Mean=0.7908 (WT=0.8470 TC=0.7711 ET=0.7542) | C0 Mean=0.7771 | C1 Mean=0.5480 WorstC Mean=0.5480 [61.4s]
+    Client 1: loss=0.1994, epochs=10
+    Client 0: loss=0.0692, epochs=10
+  Round  39/50: Pooled Loss=0.3296, Pooled Mean=0.7901 (WT=0.8431 TC=0.7609 ET=0.7662) | C0 Mean=0.7871 | C1 Mean=0.5739 WorstC Mean=0.5739 [61.7s]
+    Client 0: loss=0.0703, epochs=10
+    Client 1: loss=0.1928, epochs=10
+  Round  40/50: Pooled Loss=0.3290, Pooled Mean=0.7898 (WT=0.8435 TC=0.7695 ET=0.7563) | C0 Mean=0.7902 | C1 Mean=0.5778 WorstC Mean=0.5778 [56.0s]
+    Client 1: loss=0.1917, epochs=10
+    Client 0: loss=0.0696, epochs=10
+  Round  41/50: Pooled Loss=0.3320, Pooled Mean=0.7826 (WT=0.8479 TC=0.7546 ET=0.7454) | C0 Mean=0.7855 | C1 Mean=0.5413 WorstC Mean=0.5413 [57.4s]
+    Client 0: loss=0.0723, epochs=10
+    Client 1: loss=0.1815, epochs=10
+  Round  42/50: Pooled Loss=0.3301, Pooled Mean=0.7918 (WT=0.8586 TC=0.7601 ET=0.7568) | C0 Mean=0.7955 | C1 Mean=0.5501 WorstC Mean=0.5501 [61.5s]
+    Client 1: loss=0.1796, epochs=10
+    Client 0: loss=0.0686, epochs=10
+  Round  43/50: Pooled Loss=0.3168, Pooled Mean=0.8053 (WT=0.8537 TC=0.7827 ET=0.7795) | C0 Mean=0.7924 | C1 Mean=0.5841 WorstC Mean=0.5841 [54.5s]
+    Client 0: loss=0.0684, epochs=10
+    Client 1: loss=0.1719, epochs=10
+  Round  44/50: Pooled Loss=0.3133, Pooled Mean=0.8040 (WT=0.8575 TC=0.7805 ET=0.7740) | C0 Mean=0.7957 | C1 Mean=0.5842 WorstC Mean=0.5842 [56.2s]
+    Client 0: loss=0.0670, epochs=10
+    Client 1: loss=0.1716, epochs=10
+  Round  45/50: Pooled Loss=0.3182, Pooled Mean=0.8025 (WT=0.8551 TC=0.7766 ET=0.7758) | C0 Mean=0.7937 | C1 Mean=0.5920 WorstC Mean=0.5920 [60.7s]
+    Client 1: loss=0.1713, epochs=10
+    Client 0: loss=0.0636, epochs=10
+  Round  46/50: Pooled Loss=0.3154, Pooled Mean=0.8010 (WT=0.8550 TC=0.7838 ET=0.7643) | C0 Mean=0.7856 | C1 Mean=0.5651 WorstC Mean=0.5651 [61.0s]
+    Client 0: loss=0.0622, epochs=10
+    Client 1: loss=0.1653, epochs=10
+  Round  47/50: Pooled Loss=0.3259, Pooled Mean=0.7917 (WT=0.8531 TC=0.7745 ET=0.7476) | C0 Mean=0.7796 | C1 Mean=0.5784 WorstC Mean=0.5784 [56.5s]
+    Client 1: loss=0.1593, epochs=10
+    Client 0: loss=0.0628, epochs=10
+  Round  48/50: Pooled Loss=0.3260, Pooled Mean=0.7907 (WT=0.8464 TC=0.7725 ET=0.7534) | C0 Mean=0.7822 | C1 Mean=0.5617 WorstC Mean=0.5617 [56.7s]
+    Client 1: loss=0.1673, epochs=10
+    Client 0: loss=0.0611, epochs=10
+  Round  49/50: Pooled Loss=0.3246, Pooled Mean=0.7940 (WT=0.8524 TC=0.7737 ET=0.7559) | C0 Mean=0.7840 | C1 Mean=0.5808 WorstC Mean=0.5808 [59.4s]
+    Client 0: loss=0.0649, epochs=10
+    Client 1: loss=0.1500, epochs=10
+  Round  50/50: Pooled Loss=0.3488, Pooled Mean=0.7733 (WT=0.8194 TC=0.7667 ET=0.7336) | C0 Mean=0.7559 | C1 Mean=0.4638 WorstC Mean=0.4638 [55.9s]
+
+============================================================
+RESULTS SUMMARY
+============================================================
+Strategy:            FEDPROX (mu=0.2)
+Global MeanPresent:  0.7733 (best=0.8053)
+Global WT:           0.8194
+Global TC:           0.7667
+Global ET:           0.7336
+Worst-client Mean:   0.4638
+Client 0 MeanPresent: 0.7559 (best=0.7957)
+Client 1 MeanPresent: 0.4638 (best=0.5931)
+Convergence 50%:     round 1
+Convergence 60%:     round 2
+Convergence 70%:     round 2
+Total Time:          2913.35s (48.6min)
+============================================================
+
+Results saved to: /home/bk489/federated/federated-thesis/results/brats/fedprox_brats_r50_mu0.2_20260211_140744_results.json
+
+>>> FEDPROX done.
+
+All done. Results in: /home/bk489/federated/federated-thesis/results/brats
