@@ -39,7 +39,11 @@ LOCAL_EPOCHS="${LOCAL_EPOCHS:-30}"          # high drift amplifies FedProx benef
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-1.0}"       # all 8 clients every round
+<<<<<<< HEAD
 MU="${MU:-0.1}"                           # proximal term (try 0.1 first, then 0.3 if no gap)
+=======
+MU="${MU:-0.4}"                           # proximal term — strong for multi-client corruption
+>>>>>>> a42638f7f68fcac6c1137e4a8c726e8e7a369409
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
 DROP_PERCENT="${DROP_PERCENT:-0.0}"        # no stragglers — isolate corruption effect
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
