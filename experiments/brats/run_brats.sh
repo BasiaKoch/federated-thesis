@@ -3,11 +3,26 @@
 #!  CSD3 Ampere GPU job: BraTS 2D Federated Learning (N clients)
 #!  FedAvg / FedProx — pure PyTorch (no Flower)
 #!
+#!  DEFAULT: runs FedAvg then FedProx under straggler conditions
+#!  (E=5, drop_percent=0.3) — the setting where FedProx shines.
+#!
 #!  Usage:
-#!    sbatch run_brats.sh                             # defaults: both strategies
-#!    STRATEGY=fedprox MU=1.0 sbatch run_brats.sh     # FedProx only
-#!    STRATEGY=fedavg sbatch run_brats.sh              # FedAvg only
-#!    PARTITION_DIR=path/to/client_data sbatch run_brats.sh
+#!    sbatch run_brats.sh                                  # both strategies, straggler setting
+#!    STRATEGY=fedprox MU=0.5 sbatch run_brats.sh          # FedProx only, custom mu
+#!    STRATEGY=fedavg sbatch run_brats.sh                   # FedAvg only
+#!
+#!  Ablation examples (submit as separate jobs):
+#!    # --- No stragglers (data heterogeneity only) ---
+#!    DROP_PERCENT=0.0 sbatch run_brats.sh
+#!
+#!    # --- Heavier stragglers ---
+#!    DROP_PERCENT=0.5 sbatch run_brats.sh
+#!
+#!    # --- Sweep mu values ---
+#!    STRATEGY=fedprox MU=0.01 sbatch run_brats.sh
+#!    STRATEGY=fedprox MU=0.1  sbatch run_brats.sh
+#!    STRATEGY=fedprox MU=0.5  sbatch run_brats.sh
+#!    STRATEGY=fedprox MU=1.0  sbatch run_brats.sh
 #! ==============================================================
 
 #SBATCH -J brats_fed_N
@@ -33,19 +48,38 @@ RESULTS_DIR="${PROJECT_DIR}/results/brats"
 LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 
 # ======= Hyperparams (override by exporting before sbatch) =======
+#
+#  Key changes from previous runs (E=30, drop=0.0, mu=0.4):
+#
+#  1. LOCAL_EPOCHS=5  (was 30)
+#     With 30 local epochs, clients drift so far from the global model
+#     that the proximal term (a simple L2 penalty) is overwhelmed by
+#     the accumulated gradient updates.  With E=5, the proximal term
+#     has proportionally ~6x more influence, which is the regime where
+#     FedProx is designed to operate (Li et al., 2020 use E=1-20).
+#
+#  2. DROP_PERCENT=0.3  (was 0.0)
+#     Straggler simulation: 30% of selected clients each round receive
+#     a *random* number of local epochs in [1, E).  This creates the
+#     systems heterogeneity that FedProx was explicitly designed for.
+#     FedAvg treats all updates equally regardless of how many epochs
+#     a client ran; FedProx's proximal term keeps partial updates
+#     aligned with the global model.
+#
+#  3. MU=0.1  (was 0.4)
+#     With E=5 the per-round client drift is ~6x smaller, so a smaller
+#     mu suffices.  mu=0.1 provides gentle regularisation without
+#     starving clients of local learning capacity.
+#
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
 ROUNDS="${ROUNDS:-50}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-30}"          # high drift amplifies FedProx benefit
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"           # fewer epochs = less drift = proximal term effective
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
-FRACTION_FIT="${FRACTION_FIT:-1.0}"       # all 8 clients every round
-<<<<<<< HEAD
-MU="${MU:-0.1}"                           # proximal term (try 0.1 first, then 0.3 if no gap)
-=======
-MU="${MU:-0.4}"                           # proximal term — strong for multi-client corruption
->>>>>>> a42638f7f68fcac6c1137e4a8c726e8e7a369409
+FRACTION_FIT="${FRACTION_FIT:-1.0}"        # all 8 clients every round
+MU="${MU:-0.1}"                            # proximal coefficient, tuned for E=5
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
-DROP_PERCENT="${DROP_PERCENT:-0.0}"        # no stragglers — isolate corruption effect
+DROP_PERCENT="${DROP_PERCENT:-0.3}"         # 30% stragglers — creates systems heterogeneity
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
