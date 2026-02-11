@@ -79,7 +79,7 @@ LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-1.0}"        # all 8 clients every round
 MU="${MU:-0.1}"                            # proximal coefficient, tuned for E=5
 WEIGHT_DECAY="${WEIGHT_DECAY:-0.0}"        # no weight decay — let FedProx be the only drift control
-DROP_PERCENT="${DROP_PERCENT:-0.3}"         # 30% stragglers — creates systems heterogeneity
+DROP_PERCENT="${DROP_PERCENT:-0.0}"         # 0.0 = data heterogeneity only (set 0.3 for systems hetero ablation)
 MODEL_BASE="${MODEL_BASE:-16}"             # UNet2D base filters
 NUM_WORKERS="${NUM_WORKERS:-2}"
 SEED="${SEED:-42}"
