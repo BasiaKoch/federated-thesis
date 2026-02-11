@@ -35,7 +35,7 @@ LOG_DIR="${PROJECT_DIR}/experiments/brats/logs"
 # ======= Hyperparams (override by exporting before sbatch) =======
 STRATEGY="${STRATEGY:-both}"               # fedavg, fedprox, or both
 ROUNDS="${ROUNDS:-50}"
-LOCAL_EPOCHS="${LOCAL_EPOCHS:-30}"          # high drift amplifies FedProx benefit
+LOCAL_EPOCHS="${LOCAL_EPOCHS:-5}"          # high drift amplifies FedProx benefit
 BATCH_SIZE="${BATCH_SIZE:-4}"
 LR="${LR:-0.01}"
 FRACTION_FIT="${FRACTION_FIT:-1.0}"       # all 8 clients every round
