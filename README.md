@@ -1,6 +1,6 @@
 # Federated Learning for Medical Image Segmentation
 
-This thesis project investigates and compares federated learning algorithms — **FedAvg** and **FedProx** — for brain tumor segmentation, enabling collaborative model training across simulated hospital sites without sharing raw patient data.
+This thesis project investigates and compares federated learning algorithms ,  **FedAvg** and **FedProx** ,  for brain tumor segmentation, enabling collaborative model training across simulated hospital sites without sharing raw patient data.
 
 ## Motivation
 
